@@ -1,0 +1,12 @@
+{
+  "requires": "demo.unlocked",
+  "presentation": {
+    "theme": "maimai_dialogue:default"
+  },
+  "end": {
+    "text": "The demo.unlocked ProgressNode is present.",
+    "exit": {
+      "type": "return"
+    }
+  }
+}

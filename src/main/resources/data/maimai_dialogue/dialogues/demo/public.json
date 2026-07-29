@@ -1,0 +1,11 @@
+{
+  "presentation": {
+    "theme": "maimai_dialogue:default"
+  },
+  "end": {
+    "text": "This dialogue is public.",
+    "exit": {
+      "type": "return"
+    }
+  }
+}

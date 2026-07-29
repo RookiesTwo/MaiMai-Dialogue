@@ -1,0 +1,40 @@
+{
+  "presentation": {
+    "theme": "maimai_dialogue:default"
+  },
+  "steps": [
+    {
+      "text": "MaiMai Dialogue demo"
+    }
+  ],
+  "end": {
+    "text": "Choose a dialogue.",
+    "exit": {
+      "type": "options",
+      "options": [
+        {
+          "text": "Open the public dialogue",
+          "icon": "dialogue",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:demo/public"
+          }
+        },
+        {
+          "text": "Open the progress-gated dialogue",
+          "icon": "question",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:demo/locked"
+          }
+        },
+        {
+          "text": "Close",
+          "target": {
+            "type": "return"
+          }
+        }
+      ]
+    }
+  }
+}
