@@ -1,9 +1,47 @@
 {
   "presentation": {
-    "theme": "maimai_dialogue:default"
+    "theme": "maimai_dialogue:default",
+    "background": {
+      "image": "minecraft:gui/title/background/panorama_0.png",
+      "fit": "cover",
+      "opacity": 0.82
+    },
+    "dialogue_box": {
+      "x": 0.5,
+      "y": 0.98,
+      "width": 0.96,
+      "max_height": 0.5,
+      "anchor": "bottom_center"
+    },
+    "visual_objects": {
+      "demo_marker": {
+        "variants": {
+          "default": "minecraft:item/emerald.png"
+        },
+        "initial_variant": "default",
+        "x": 0.5,
+        "y": 0.3,
+        "anchor": "center",
+        "scale": 8.0,
+        "opacity": 0.9,
+        "visible": true,
+        "z_index": 10
+      }
+    },
+    "filter": {
+      "type": "color_adjust",
+      "brightness": -0.03,
+      "contrast": 1.08,
+      "saturation": 0.55,
+      "tint": "#30A0C8FF"
+    }
   },
   "steps": [
     {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:demo/guide"
+      },
       "text": "MaiMai Dialogue demo"
     }
   ],

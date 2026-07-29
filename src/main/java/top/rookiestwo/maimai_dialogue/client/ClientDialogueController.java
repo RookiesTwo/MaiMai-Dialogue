@@ -27,6 +27,8 @@ import top.rookiestwo.maimai_dialogue.network.payload.DialogueRequestResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.OpenDialogueS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.QueryDialogueAccessC2S;
 import top.rookiestwo.maimai_dialogue.network.payload.RequestDialogueC2S;
+import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
+import top.rookiestwo.maimai_dialogue.speaker.resource.SpeakerSnapshots;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -294,6 +296,8 @@ public final class ClientDialogueController {
         ActiveDialogue current = active;
         if (current == null) {
             return new DialogueViewState(
+                    generation,
+                    Optional.empty(),
                     Optional.empty(),
                     Optional.empty(),
                     Optional.empty(),
@@ -314,7 +318,9 @@ public final class ClientDialogueController {
 
         boolean atEnd = current.stepIndex >= current.definition.steps().size();
         return new DialogueViewState(
-                Optional.ofNullable(current.speakerId).map(ResourceLocation::toString),
+                current.generation,
+                Optional.of(current.definition.presentation()),
+                Optional.ofNullable(current.speakerName),
                 text,
                 Optional.ofNullable(current.errorMessage),
                 atEnd ? current.visibleOptions : List.of(),
@@ -425,9 +431,18 @@ public final class ClientDialogueController {
         }
         SpeakerOperation speakerOperation = operation.orElseThrow();
         if (speakerOperation instanceof SetSpeaker setSpeaker) {
-            current.speakerId = setSpeaker.id();
+            current.speakerName = SpeakerSnapshots.client()
+                    .find(setSpeaker.id())
+                    .map(SpeakerDefinition::name)
+                    .orElseGet(() -> {
+                        reportDevelopmentError(
+                                "Client is missing speaker "
+                                        + setSpeaker.id()
+                        );
+                        return setSpeaker.id().toString();
+                    });
         } else if (speakerOperation instanceof HideSpeaker) {
-            current.speakerId = null;
+            current.speakerName = null;
         }
     }
 
@@ -443,7 +458,7 @@ public final class ClientDialogueController {
         return DialogueSnapshots.client().find(dialogueId).orElse(null);
     }
 
-    private static void reportDevelopmentError(String message) {
+    static void reportDevelopmentError(String message) {
         MaiMaiDialogue.LOGGER.error(message);
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player != null) {
@@ -493,7 +508,7 @@ public final class ClientDialogueController {
         private final DialogueDefinition definition;
         private int stepIndex;
         @Nullable
-        private ResourceLocation speakerId;
+        private String speakerName;
         @Nullable
         private String errorMessage;
         private List<DialogueOption> visibleOptions = List.of();

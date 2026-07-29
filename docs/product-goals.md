@@ -1,7 +1,7 @@
 # MaiMai Dialogue 产品目标与设计检查点
 
-> 状态：规划中
-> 更新日期：2026-07-29
+> 状态：实现中
+> 更新日期：2026-07-30
 > 本文只记录已经确认的方向，并将尚未确定的设计明确列为待讨论事项。
 
 ## 1. 产品目标
@@ -74,10 +74,16 @@ Minecraft 游戏世界
 - 默认位于屏幕底部。
 - Data Pack 可以配置位置、尺寸及对话过程中触发的动画。
 - 不包含参考界面中的左侧头像。
-- 角色名固定显示在对话框左上角。
-- 默认文字区域位于角色名下方。
-- 选项区域位于文字区域下方。
+- 默认 Theme 使用半透明黑色背景和白色描边；整体为近直角外观，默认圆角半径保持很小，并允许 Theme 将其设为 0。
+- 对话框纵向分为三个区域，各区域之间使用清晰可见的横向分割线：
+  1. Header：角色名称位于左侧，“展开所有选项”按钮位于同栏并默认隐藏；
+  2. Content：显示当前 Dialogue 文字；
+  3. Options：显示当前选项分支。
+- 没有可见 Options 时第三栏不占据空白空间，也不绘制对应分割线。
 - 每个选项占一行，可带问号、感叹号、对话等类型图标。
+- Option 内容按“图标、文字”的顺序从左向右排列，文字默认左对齐；文本自身仍使用自动 BiDi 方向，不强制破坏 RTL 内容。
+- 每个 Option 元素必须有独立的水平与垂直内边距，文字和图标不能紧贴边缘。
+- 鼠标悬浮 Option 时，默认同时加深其半透明背景并提高描边亮度；Theme 可以分别覆盖 hover 背景和描边。
 - 选项过多时支持滚动。
 - 只有当选项列表实际溢出时才显示“展开所有选项”按钮。
 - 展开后，对话框保持底部锚定并向上扩展；超出安全区域后仍使用滚动。
@@ -218,6 +224,9 @@ Step
 - `EndStep` 拥有普通 Step 的全部表现能力，并在完成后执行 Exit。
 - `steps` 只保存 ContinueStep；唯一且必填的 EndStep 单独保存在 `end` 字段。
 - Speaker 使用外部可复用资源，并与 VisualObject 完全解耦。
+- 首版 Speaker 资源位于客户端资源包的 `assets/<namespace>/speakers/<path>.json`，资源路径对应 `<namespace>:<path>`。
+- 首版 SpeakerDefinition 只包含非空 `name` String；头像、名称本地化和其他元数据后续扩展。
+- Dialogue 引用的 Speaker 在客户端缺失时视为内容包开发错误，日志与客户端消息报告错误，名字栏临时回退显示 Speaker ID。
 - `speaker` 省略表示继承；第一个 Step 省略时名字栏保持隐藏。
 - `{"type":"set","id":"<speaker_id>"}` 切换 Speaker。
 - `{"type":"hide"}` 隐藏名字栏。
@@ -246,8 +255,12 @@ Presentation
 - Scene Filter 只作用于 Presentation 的 background 和全部 VisualObject，不影响 DialogueBox、Options、历史记录或其他 UI controls，也不影响透明区域后方的 Minecraft 世界。
 - 渲染时先将 background 与 VisualObject 合成到独立 Scene RenderTarget，再执行 Filter pass，最后在其上方绘制 UI layer。
 - `filter` 省略表示不启用滤镜；首版提供内置静态 `color_adjust`，支持 brightness、contrast、saturation 和 tint。
+- `background` 首版支持 image、cover/contain/stretch fit 与 opacity。
+- `dialogue_box` 首版支持归一化 x/y、width、max_height 与九宫格 anchor。
+- `visual_objects` 首版静态状态支持 variants、initial_variant、归一化 x/y、九宫格 anchor、scale、opacity、visible 与 z_index。
 - Filter 随当前 Dialogue 的 Presentation 初始化和销毁；切换 Dialogue 或 Return 到 root 时重新创建，不继承前一个场景状态。
 - 首版 Filter 不参与 PresentationAction 动画，也不允许 Data Pack 提供任意 shader；后续可以增加 blur、vignette、grayscale 等内置类型或扩展为多 pass filter list。
+- 内置 Filter 待办包含 `crt`：支持曲面畸变、扫描线、RGB shadow mask、轻微色差、暗角、噪点和闪烁；可选 Bloom 使用额外 pass。CRT 只处理 Scene RenderTarget 并保留 alpha，因此不影响 Dialogue UI 或透明区域后方的 Minecraft 世界。
 - 所有 VisualObject 必须在 Presentation 中预先声明；Step 不能动态创建未声明对象。
 - 暂不显示的对象使用 `visible: false`。
 - 每个对象包含稳定 ID、图片差分表、初始差分、位置、缩放、透明度、可见性和场景内层级。
@@ -369,7 +382,8 @@ MaiMaiDialogueApi.get()
 
 ### 5.7 仍待确定
 
-- Presentation、Theme、VisualObject 和 PresentationAction 的最终 JSON/Codec；
+- Theme 与 PresentationAction 的最终 JSON/Codec；
+- VisualObject 差分切换与运行时 Action；当前仅实现 Presentation 初始化时的 initial_variant 静态状态；
 - Action 支持的具体属性、keyframe 字段和 easing 集合；
 - 历史记录的保存范围和展示数据；
 - 文字本地化和 Markdown 支持，首阶段明确延期。
@@ -590,5 +604,12 @@ NeoForge payload handler
 - OptionsExit 的目标访问状态在 Dialogue 激活时预取，点击目标时再次向服务端校验；
 - 已实现 root/current 识别、Return 导航、客户端文件缺失开发错误，以及已有 Dialogue UI 时忽略 OpenDialogueS2C；
 - 已加入 `maimai_dialogue:demo/root`、`public`、`locked` 双端示例资源和基础 JUnit 测试。
+- 已实现客户端 SpeakerDefinition、资源快照与 reload；默认 demo 使用 `maimai_dialogue:demo/guide`。
+- 默认 Dialogue UI 已改为稳定的 Header、Content、Options 三栏 View tree，并实现近直角半透明黑底、白色描边、分割线、Option padding、左对齐和 hover 状态。
+- 已实现 Presentation、Background、DialogueBoxLayout、VisualObject 与 SceneFilter Codec。
+- 已实现按 Dialogue generation 创建和销毁的静态 Scene layer，支持背景、VisualObject 初始差分、位置、缩放、透明度、可见性和 z_index。
+- 已实现独立 Arc3D Scene RenderTarget；`color_adjust` 在合成后的 Scene 上执行 ColorMatrix pass，不处理 DialogueBox 和其他 UI。
+- 已实现 `crt` 配置 Codec 与 Scene composite effect 扩展边界；CRT shader/multi-pass 渲染仍为明确待办。
+- `maimai_dialogue:demo/root` 已加入 Minecraft 内置 panorama 背景、emerald VisualObject 和可见的 `color_adjust` 示例。进入世界后可执行 `/maimai_dialogue open @s maimai_dialogue:demo/root` 查看。
 
-当前 ModernUI Screen 是可连通网络与导航逻辑的最小版本。打字机 PlaybackPhase、可重绑推进 KeyMapping、完整 Presentation/Theme/VisualObject/Action、历史记录、本地化和 Markdown 仍按前述顺序后续实现。
+当前 ModernUI Screen 已具备静态 Presentation 场景和默认三栏 Dialogue UI。打字机 PlaybackPhase、可重绑推进 KeyMapping、Theme 资源、PresentationAction、VisualObject 动态差分/动画、CRT shader、历史记录、本地化和 Markdown 仍按前述顺序后续实现。

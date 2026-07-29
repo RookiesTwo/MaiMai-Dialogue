@@ -3,6 +3,10 @@
     "theme": "maimai_dialogue:default"
   },
   "end": {
+    "speaker": {
+      "type": "set",
+      "id": "maimai_dialogue:demo/guide"
+    },
     "text": "This dialogue is public.",
     "exit": {
       "type": "return"

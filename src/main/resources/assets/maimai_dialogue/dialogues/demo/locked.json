@@ -4,6 +4,10 @@
     "theme": "maimai_dialogue:default"
   },
   "end": {
+    "speaker": {
+      "type": "set",
+      "id": "maimai_dialogue:demo/guide"
+    },
     "text": "The demo.unlocked ProgressNode is present.",
     "exit": {
       "type": "return"
