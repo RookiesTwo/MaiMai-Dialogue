@@ -15,6 +15,7 @@ public record VisualObject(
         float y,
         VisualAnchor anchor,
         float scale,
+        VisualSampling sampling,
         float opacity,
         boolean visible,
         int zIndex
@@ -54,6 +55,11 @@ public record VisualObject(
                                     .forGetter(VisualObject::anchor),
                             SCALE_CODEC.optionalFieldOf("scale", 1.0F)
                                     .forGetter(VisualObject::scale),
+                            VisualSampling.CODEC.optionalFieldOf(
+                                            "sampling",
+                                            VisualSampling.LINEAR
+                                    )
+                                    .forGetter(VisualObject::sampling),
                             OPACITY_CODEC.optionalFieldOf("opacity", 1.0F)
                                     .forGetter(VisualObject::opacity),
                             Codec.BOOL.optionalFieldOf("visible", true)
@@ -72,6 +78,7 @@ public record VisualObject(
         Objects.requireNonNull(variants, "variants");
         Objects.requireNonNull(initialVariant, "initialVariant");
         Objects.requireNonNull(anchor, "anchor");
+        Objects.requireNonNull(sampling, "sampling");
         variants = Map.copyOf(variants);
     }
 

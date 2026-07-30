@@ -263,7 +263,7 @@ Presentation
 - `filter` 省略表示不启用滤镜；首版提供内置静态 `color_adjust`，支持 brightness、contrast、saturation 和 tint。
 - `background` 支持预声明 variants、initial_variant、cover/contain/stretch fit 与 opacity；Action 只负责切换已声明贴图，不动态发明差分。
 - `dialogue_box` 首版支持归一化 x/y、width、max_height 与九宫格 anchor。
-- `visual_objects` 首版静态状态支持 variants、initial_variant、归一化 x/y、九宫格 anchor、scale、opacity、visible 与 z_index。
+- `visual_objects` 首版静态状态支持 variants、initial_variant、归一化 x/y、九宫格 anchor、scale、sampling、opacity、visible 与 z_index。`sampling` 默认为 `linear`，像素风贴图可设为 `nearest`，且差分切换前后的图层使用相同采样方式。
 - Filter 随当前 Dialogue 的 Presentation 初始化和销毁；切换 Dialogue 或 Return 到 root 时重新创建，不继承前一个场景状态。
 - 首版 Filter 不参与 PresentationAction 动画，也不允许 Data Pack 提供任意 shader；后续可以增加 blur、vignette、grayscale 等内置类型或扩展为多 pass filter list。
 - 内置 `crt` Filter 使用 Arc3D GPU RenderTarget 合成 Scene：执行分条曲率采样、扫描线、RGB shadow mask、轻微色差、暗角、噪点和闪烁，并以额外 pass 叠加 Bloom。效果保留 alpha，只处理 Scene，不影响 Dialogue UI 或透明区域后方的 Minecraft 世界。

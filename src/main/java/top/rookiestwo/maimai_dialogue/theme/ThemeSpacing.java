@@ -9,8 +9,8 @@ public record ThemeSpacing(
         int contentHorizontalDp,
         int contentVerticalDp,
         int optionsPaddingDp,
-        int optionsCollapsedMaxHeightDp,
-        int optionsExpandedMaxHeightDp
+        int optionsCollapsedLimit,
+        int optionsExpandedLimit
 ) {
     public static final ThemeSpacing DEFAULT = new ThemeSpacing(
             12,
@@ -18,8 +18,8 @@ public record ThemeSpacing(
             12,
             10,
             6,
-            160,
-            320
+            3,
+            6
     );
 
     public static final Codec<ThemeSpacing> CODEC =
@@ -49,19 +49,26 @@ public record ThemeSpacing(
                                     DEFAULT.optionsPaddingDp()
                             )
                             .forGetter(ThemeSpacing::optionsPaddingDp),
-                    ThemeCodecs.PANEL_DP.optionalFieldOf(
-                                    "options_collapsed_max_height",
-                                    DEFAULT.optionsCollapsedMaxHeightDp()
+                    ThemeCodecs.OPTION_COUNT.optionalFieldOf(
+                                    "options_collapsed_limit",
+                                    DEFAULT.optionsCollapsedLimit()
                             )
                             .forGetter(
-                                    ThemeSpacing::optionsCollapsedMaxHeightDp
+                                    ThemeSpacing::optionsCollapsedLimit
                             ),
-                    ThemeCodecs.PANEL_DP.optionalFieldOf(
-                                    "options_expanded_max_height",
-                                    DEFAULT.optionsExpandedMaxHeightDp()
+                    ThemeCodecs.OPTION_COUNT.optionalFieldOf(
+                                    "options_expanded_limit",
+                                    DEFAULT.optionsExpandedLimit()
                             )
                             .forGetter(
-                                    ThemeSpacing::optionsExpandedMaxHeightDp
+                                    ThemeSpacing::optionsExpandedLimit
                             )
             ).apply(instance, ThemeSpacing::new));
+
+    public ThemeSpacing {
+        optionsExpandedLimit = Math.max(
+                optionsCollapsedLimit,
+                optionsExpandedLimit
+        );
+    }
 }

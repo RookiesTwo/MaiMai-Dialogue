@@ -42,6 +42,7 @@ class PresentationCodecTest {
                       "y": 0.92,
                       "anchor": "bottom_center",
                       "scale": 1.2,
+                      "sampling": "nearest",
                       "opacity": 0.85,
                       "visible": true,
                       "z_index": 10
@@ -71,6 +72,10 @@ class PresentationCodecTest {
                         .get("guide")
                         .initialImage()
                         .toString()
+        );
+        assertEquals(
+                VisualSampling.NEAREST,
+                presentation.visualObjects().get("guide").sampling()
         );
         assertInstanceOf(
                 ColorAdjustFilter.class,
@@ -106,6 +111,28 @@ class PresentationCodecTest {
                 0.0F,
                 0.2F
         ).animated());
+    }
+
+    @Test
+    void defaultsVisualObjectSamplingToLinear() {
+        Presentation presentation = decode("""
+                {
+                  "theme": "maimai_dialogue:default",
+                  "visual_objects": {
+                    "guide": {
+                      "variants": {
+                        "idle": "maimai_dialogue:demo/guide.png"
+                      },
+                      "initial_variant": "idle"
+                    }
+                  }
+                }
+                """);
+
+        assertEquals(
+                VisualSampling.LINEAR,
+                presentation.visualObjects().get("guide").sampling()
+        );
     }
 
     @Test
@@ -145,6 +172,29 @@ class PresentationCodecTest {
 
         assertTrue(missingVariant.error().isPresent());
         assertTrue(invalidObjectId.error().isPresent());
+    }
+
+    @Test
+    void rejectsUnknownVisualObjectSampling() {
+        var result = Presentation.CODEC.parse(
+                JsonOps.INSTANCE,
+                JsonParser.parseString("""
+                        {
+                          "theme": "maimai_dialogue:default",
+                          "visual_objects": {
+                            "guide": {
+                              "variants": {
+                                "idle": "maimai_dialogue:demo/guide.png"
+                              },
+                              "initial_variant": "idle",
+                              "sampling": "pixelated"
+                            }
+                          }
+                        }
+                        """)
+        );
+
+        assertTrue(result.error().isPresent());
     }
 
     private static Presentation decode(String json) {

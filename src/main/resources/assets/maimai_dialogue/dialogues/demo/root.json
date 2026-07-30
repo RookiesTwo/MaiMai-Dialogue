@@ -28,6 +28,7 @@
         "y": 0.3,
         "anchor": "center",
         "scale": 8.0,
+        "sampling": "nearest",
         "opacity": 0.9,
         "visible": true,
         "z_index": 10

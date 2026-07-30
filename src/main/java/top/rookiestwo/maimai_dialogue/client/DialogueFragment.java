@@ -300,17 +300,10 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         );
 
         OptionScrollView scroll = new OptionScrollView(section.getContext());
-        scroll.setHeightLimits(
-                scroll.dp(
-                        currentTheme.spacing()
-                                .optionsCollapsedMaxHeightDp()
-                ),
-                scroll.dp(
-                        currentTheme.spacing()
-                                .optionsExpandedMaxHeightDp()
-                )
+        scroll.setOptionLimits(
+                currentTheme.spacing().optionsCollapsedLimit(),
+                currentTheme.spacing().optionsExpandedLimit()
         );
-        scroll.setOverflowListener(ignored -> updateExpandVisibility());
 
         LinearLayout list = new LinearLayout(scroll.getContext());
         list.setOrientation(LinearLayout.VERTICAL);
@@ -354,6 +347,9 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         overlay.setVisibility(View.GONE);
         overlay.setClickable(true);
         overlay.setOnClickListener(view -> setHistoryOpen(false));
+        ShapeDrawable scrim = new ShapeDrawable();
+        scrim.setColor(0x4D000000);
+        overlay.setBackground(scrim);
 
         LinearLayout panel = new LinearLayout(context);
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -378,12 +374,17 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         Button close = new Button(context);
         close.setText("Close");
         close.setOnClickListener(view -> setHistoryOpen(false));
-        titleRow.addView(
-                close,
+        LinearLayout.LayoutParams closeParams =
                 new LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT
-                )
+                );
+        closeParams.rightMargin = close.dp(
+                currentTheme.spacing().headerHorizontalDp()
+        );
+        titleRow.addView(
+                close,
+                closeParams
         );
         panel.addView(
                 titleRow,
@@ -417,12 +418,12 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         );
 
         FrameLayout.LayoutParams panelParams = new FrameLayout.LayoutParams(
-                overlay.dp(360),
+                ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
         );
         int margin = overlay.dp(24);
         panelParams.setMargins(margin, margin, margin, margin);
-        panelParams.gravity = Gravity.END | Gravity.CENTER_VERTICAL;
+        panelParams.gravity = Gravity.CENTER;
         overlay.addView(panel, panelParams);
 
         this.historyOverlay = overlay;
@@ -603,6 +604,10 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
             );
             if (index + 1 < entries.size()) {
                 View divider = createDivider(list);
+                divider.setLayoutParams(new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        1
+                ));
                 setDividerTheme(
                         divider,
                         currentTheme.box().divider().argb()
@@ -626,7 +631,8 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
             HistoryEntry entry
     ) {
         LinearLayout row = new LinearLayout(parent.getContext());
-        row.setOrientation(LinearLayout.VERTICAL);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.TOP);
         int horizontal = row.dp(
                 currentTheme.spacing().contentHorizontalDp()
         );
@@ -635,16 +641,22 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         );
         row.setPadding(horizontal, vertical, horizontal, vertical);
 
-        entry.speaker().ifPresent(speaker -> {
-            TextView name = new TextView(row.getContext());
-            name.setText(speaker);
-            name.setTextColor(currentTheme.text().primary().argb());
-            name.setTextSize(currentTheme.text().speakerSizeSp());
-            row.addView(name);
-        });
+        TextView name = new TextView(row.getContext());
+        name.setText(entry.speaker().orElse(""));
+        name.setTextColor(currentTheme.text().primary().argb());
+        name.setTextSize(currentTheme.text().speakerSizeSp());
+        name.setGravity(Gravity.START | Gravity.TOP);
+        row.addView(
+                name,
+                new LinearLayout.LayoutParams(
+                        0,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        1
+                )
+        );
 
         TextView content = new TextView(row.getContext());
-        content.setGravity(Gravity.START);
+        content.setGravity(Gravity.START | Gravity.TOP);
         if (entry.type() == HistoryEntry.Type.DIALOGUE) {
             content.setTextColor(currentTheme.text().primary().argb());
             content.setTextSize(currentTheme.text().dialogueSizeSp());
@@ -659,8 +671,9 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         row.addView(
                 content,
                 new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
+                        0,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                        4
                 )
         );
         return row;
@@ -681,7 +694,10 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         if (scroll == null || expand == null) {
             return;
         }
-        boolean show = scroll.isExpanded() || scroll.isOverflowing();
+        boolean show = scroll.isExpandable();
+        if (!show && scroll.isExpanded()) {
+            scroll.setExpanded(false);
+        }
         expand.setText(scroll.isExpanded() ? "Collapse" : "Expand");
         expand.setVisibility(show ? View.VISIBLE : View.GONE);
         updateHeaderVisibility();
@@ -902,9 +918,9 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         );
         OptionScrollView scroll = optionScroll;
         if (scroll != null) {
-            scroll.setHeightLimits(
-                    scroll.dp(spacing.optionsCollapsedMaxHeightDp()),
-                    scroll.dp(spacing.optionsExpandedMaxHeightDp())
+            scroll.setOptionLimits(
+                    spacing.optionsCollapsedLimit(),
+                    spacing.optionsExpandedLimit()
             );
             applyScrollbarTheme(scroll, currentTheme.controls());
         }
@@ -961,6 +977,14 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
             historyClose.setTextColor(textTheme.primary().argb());
             historyClose.setTextSize(textTheme.auxiliarySizeSp());
             applyControlButtonTheme(historyClose);
+            ViewGroup.LayoutParams rawParams =
+                    historyClose.getLayoutParams();
+            if (rawParams instanceof LinearLayout.LayoutParams params) {
+                params.rightMargin = historyClose.dp(
+                        spacing.headerHorizontalDp()
+                );
+                historyClose.setLayoutParams(params);
+            }
         }
     }
 

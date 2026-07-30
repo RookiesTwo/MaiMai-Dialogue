@@ -21,6 +21,10 @@ class ThemeDefinitionTest {
                           "option": {
                             "horizontal_padding": 16
                           },
+                          "spacing": {
+                            "options_collapsed_limit": 4,
+                            "options_expanded_limit": 8
+                          },
                           "controls": {
                             "icon": "#FF45A0FF",
                             "scrollbar_width": 6
@@ -32,6 +36,8 @@ class ThemeDefinitionTest {
         assertEquals(0xC0102030, theme.box().background().argb());
         assertEquals(0, theme.box().cornerRadiusDp());
         assertEquals(16, theme.option().horizontalPaddingDp());
+        assertEquals(4, theme.spacing().optionsCollapsedLimit());
+        assertEquals(8, theme.spacing().optionsExpandedLimit());
         assertEquals(0xFF45A0FF, theme.controls().icon().argb());
         assertEquals(6, theme.controls().scrollbarWidthDp());
         assertEquals(
@@ -48,6 +54,16 @@ class ThemeDefinitionTest {
                         {
                           "spacing": {
                             "options_padding": 100
+                          }
+                        }
+                        """)
+        ).error().isPresent());
+        assertTrue(ThemeDefinition.CODEC.parse(
+                JsonOps.INSTANCE,
+                JsonParser.parseString("""
+                        {
+                          "spacing": {
+                            "options_collapsed_limit": 0
                           }
                         }
                         """)

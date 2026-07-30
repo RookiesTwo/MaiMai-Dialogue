@@ -31,8 +31,8 @@
     "content_horizontal": 12,
     "content_vertical": 10,
     "options_padding": 6,
-    "options_collapsed_max_height": 160,
-    "options_expanded_max_height": 320
+    "options_collapsed_limit": 3,
+    "options_expanded_limit": 6
   },
   "controls": {
     "icon": "#FFFFFFFF",

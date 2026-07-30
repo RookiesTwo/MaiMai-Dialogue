@@ -40,6 +40,21 @@ class BundledDialogueResourcesTest {
     }
 
     @Test
+    void bundledRootDemonstratesNearestVisualSampling() {
+        DialogueDefinition root = decode(
+                "assets/maimai_dialogue/dialogues/demo/root.json"
+        );
+
+        assertEquals(
+                VisualSampling.NEAREST,
+                root.presentation()
+                        .visualObjects()
+                        .get("demo_marker")
+                        .sampling()
+        );
+    }
+
+    @Test
     void bundledSpeakerDecodes() {
         var stream = BundledDialogueResourcesTest.class
                 .getClassLoader()
@@ -89,6 +104,8 @@ class BundledDialogueResourcesTest {
         );
         assertEquals(4, theme.controls().scrollbarWidthDp());
         assertEquals(5, parchment.controls().scrollbarWidthDp());
+        assertEquals(3, theme.spacing().optionsCollapsedLimit());
+        assertEquals(6, theme.spacing().optionsExpandedLimit());
         assertEquals(700, action.durationMs());
     }
 

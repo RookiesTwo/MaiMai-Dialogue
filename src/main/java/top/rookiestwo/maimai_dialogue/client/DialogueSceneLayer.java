@@ -4,6 +4,7 @@ import icyllis.modernui.animation.ValueAnimator;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.Image;
 import icyllis.modernui.graphics.drawable.ColorDrawable;
+import icyllis.modernui.graphics.drawable.ImageDrawable;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
 import icyllis.modernui.widget.FrameLayout;
@@ -17,6 +18,7 @@ import top.rookiestwo.maimai_dialogue.dialogue.SceneBackground;
 import top.rookiestwo.maimai_dialogue.dialogue.SceneFilter;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualAnchor;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualObject;
+import top.rookiestwo.maimai_dialogue.dialogue.VisualSampling;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneObjectState;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneState;
@@ -176,6 +178,7 @@ final class DialogueSceneLayer extends FrameLayout {
 
         ImageView primary = new ImageView(getContext());
         primary.setImage(image);
+        applySampling(primary, object.sampling());
         primary.setImageAlpha(object.opacity());
         primary.setScaleType(ImageView.ScaleType.FIT_CENTER);
         primary.setVisibility(object.visible() ? VISIBLE : GONE);
@@ -189,7 +192,12 @@ final class DialogueSceneLayer extends FrameLayout {
         objectBindings.put(
                 objectId,
                 new ObjectBinding(
-                        new ImageLayers(primary, underlay, imageId),
+                        new ImageLayers(
+                                primary,
+                                underlay,
+                                imageId,
+                                object.sampling()
+                        ),
                         SceneObjectState.initial(object),
                         "VisualObject " + objectId
                 )
@@ -378,6 +386,7 @@ final class DialogueSceneLayer extends FrameLayout {
         if (imageId.equals(layers.underlayId)
                 && layers.underlayImage != null) {
             layers.primary.setImage(layers.underlayImage);
+            applySampling(layers.primary, layers.sampling);
             layers.primaryId = layers.underlayId;
             return;
         }
@@ -395,6 +404,7 @@ final class DialogueSceneLayer extends FrameLayout {
         Image image = loadImage(imageId, owner);
         if (image != null) {
             layers.primary.setImage(image);
+            applySampling(layers.primary, layers.sampling);
             layers.primaryId = imageId;
         }
     }
@@ -410,6 +420,7 @@ final class DialogueSceneLayer extends FrameLayout {
         Image image = loadImage(imageId, owner);
         if (image != null) {
             layers.underlay.setImage(image);
+            applySampling(layers.underlay, layers.sampling);
             layers.underlayId = imageId;
             layers.underlayImage = image;
         }
@@ -592,6 +603,15 @@ final class DialogueSceneLayer extends FrameLayout {
         };
     }
 
+    private static void applySampling(
+            ImageView view,
+            VisualSampling sampling
+    ) {
+        if (view.getDrawable() instanceof ImageDrawable drawable) {
+            drawable.setFilter(sampling == VisualSampling.LINEAR);
+        }
+    }
+
     private static final class ObjectBinding {
         private final ImageLayers layers;
         private final String owner;
@@ -680,6 +700,7 @@ final class DialogueSceneLayer extends FrameLayout {
     private static final class ImageLayers {
         private final ImageView primary;
         private final ImageView underlay;
+        private final VisualSampling sampling;
         private ResourceLocation primaryId;
         private ResourceLocation underlayId;
         private Image underlayImage;
@@ -689,9 +710,24 @@ final class DialogueSceneLayer extends FrameLayout {
                 ImageView underlay,
                 ResourceLocation primaryId
         ) {
+            this(
+                    primary,
+                    underlay,
+                    primaryId,
+                    VisualSampling.LINEAR
+            );
+        }
+
+        private ImageLayers(
+                ImageView primary,
+                ImageView underlay,
+                ResourceLocation primaryId,
+                VisualSampling sampling
+        ) {
             this.primary = primary;
             this.underlay = underlay;
             this.primaryId = primaryId;
+            this.sampling = sampling;
         }
     }
 }

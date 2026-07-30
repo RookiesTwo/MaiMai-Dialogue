@@ -1,5 +1,6 @@
 package top.rookiestwo.maimai_dialogue.client;
 
+import icyllis.modernui.animation.ValueAnimator;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.view.KeyEvent;
@@ -12,11 +13,17 @@ import top.rookiestwo.maimai_dialogue.dialogue.VisualAnchor;
 import java.util.Objects;
 
 final class DialogueRootLayout extends FrameLayout {
+    private static final int HEIGHT_ANIMATION_DURATION_MS = 220;
+
     private final DialogueSceneLayer sceneLayer;
     private final View dialogueBox;
     private final View historyEntry;
     private final View historyOverlay;
     private DialogueBoxLayout dialogueBoxLayout = DialogueBoxLayout.DEFAULT;
+    private ValueAnimator heightAnimator;
+    private int dialogueTargetHeight = -1;
+    private float dialogueDisplayHeight = -1.0F;
+    private boolean heightAnimationPosted;
     private Runnable advanceAction = () -> {
     };
 
@@ -120,6 +127,7 @@ final class DialogueRootLayout extends FrameLayout {
                 MeasureSpec.makeMeasureSpec(boxWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(boxMaxHeight, MeasureSpec.AT_MOST)
         );
+        updateDialogueHeightTarget(dialogueBox.getMeasuredHeight());
         historyEntry.measure(
                 MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST),
                 MeasureSpec.makeMeasureSpec(height, MeasureSpec.AT_MOST)
@@ -150,7 +158,9 @@ final class DialogueRootLayout extends FrameLayout {
         sceneLayer.layout(0, 0, width, height);
 
         int boxWidth = dialogueBox.getMeasuredWidth();
-        int boxHeight = dialogueBox.getMeasuredHeight();
+        int boxHeight = dialogueDisplayHeight < 0.0F
+                ? dialogueBox.getMeasuredHeight()
+                : Math.max(0, Math.round(dialogueDisplayHeight));
         float anchorX = horizontalAnchor(dialogueBoxLayout.anchor());
         float anchorY = verticalAnchor(dialogueBoxLayout.anchor());
         int boxLeft = Math.round(
@@ -168,17 +178,85 @@ final class DialogueRootLayout extends FrameLayout {
         int historyWidth = historyEntry.getMeasuredWidth();
         int historyHeight = historyEntry.getMeasuredHeight();
         int historyMargin = dp(12);
-        int historyLeft = width - historyMargin - historyWidth;
-        int historyTop = (height - historyHeight) / 2;
         historyEntry.layout(
-                historyLeft,
-                historyTop,
-                historyLeft + historyWidth,
-                historyTop + historyHeight
+                historyMargin,
+                historyMargin,
+                historyMargin + historyWidth,
+                historyMargin + historyHeight
         );
         if (historyOverlay.getVisibility() != GONE) {
             historyOverlay.layout(0, 0, width, height);
         }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        cancelHeightAnimator();
+        super.onDetachedFromWindow();
+    }
+
+    private void updateDialogueHeightTarget(int targetHeight) {
+        if (dialogueTargetHeight < 0) {
+            dialogueTargetHeight = targetHeight;
+            dialogueDisplayHeight = targetHeight;
+            return;
+        }
+        if (dialogueTargetHeight == targetHeight) {
+            return;
+        }
+
+        dialogueTargetHeight = targetHeight;
+        if (heightAnimationPosted) {
+            return;
+        }
+        heightAnimationPosted = true;
+        post(() -> {
+            heightAnimationPosted = false;
+            animateDialogueHeightTo(dialogueTargetHeight);
+        });
+    }
+
+    private void animateDialogueHeightTo(int targetHeight) {
+        cancelHeightAnimator();
+        float startHeight = dialogueDisplayHeight;
+        if (startHeight < 0.0F
+                || Math.abs(startHeight - targetHeight) < 0.5F) {
+            dialogueDisplayHeight = targetHeight;
+            requestLayout();
+            return;
+        }
+
+        ValueAnimator animator = ValueAnimator.ofFloat(0.0F, 1.0F);
+        animator.setDuration(HEIGHT_ANIMATION_DURATION_MS);
+        animator.addUpdateListener(valueAnimator -> {
+            float fraction = valueAnimator.getAnimatedFraction();
+            float eased = easeInOut(fraction);
+            dialogueDisplayHeight = startHeight
+                    + (targetHeight - startHeight) * eased;
+            if (fraction >= 1.0F && heightAnimator == animator) {
+                dialogueDisplayHeight = targetHeight;
+                heightAnimator = null;
+            }
+            requestLayout();
+        });
+        heightAnimator = animator;
+        animator.start();
+    }
+
+    private void cancelHeightAnimator() {
+        if (heightAnimator != null) {
+            heightAnimator.cancel();
+            heightAnimator = null;
+        }
+    }
+
+    private static float easeInOut(float fraction) {
+        float clamped = Math.clamp(fraction, 0.0F, 1.0F);
+        return clamped < 0.5F
+                ? 2.0F * clamped * clamped
+                : 1.0F
+                - (float) Math.pow(-2.0F * clamped + 2.0F, 2.0F)
+                / 2.0F;
     }
 
     private static float horizontalAnchor(VisualAnchor anchor) {

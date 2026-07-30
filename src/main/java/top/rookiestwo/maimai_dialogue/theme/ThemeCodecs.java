@@ -7,8 +7,8 @@ final class ThemeCodecs {
     static final Codec<Integer> DP = range(0, 64, "dp value");
     static final Codec<Integer> POSITIVE_DP =
             range(1, 64, "positive dp value");
-    static final Codec<Integer> PANEL_DP =
-            range(32, 2048, "panel dp value");
+    static final Codec<Integer> OPTION_COUNT =
+            range(1, 32, "option count");
     static final Codec<Integer> TEXT_SIZE =
             range(8, 64, "text size");
 
