@@ -23,3 +23,8 @@ run
 
 # Local project notes
 /.project-notes/
+
+# Node.js and VitePress
+/node_modules/
+/docs/.vitepress/cache/
+/docs/.vitepress/dist/
