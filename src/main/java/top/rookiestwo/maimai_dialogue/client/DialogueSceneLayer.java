@@ -4,6 +4,7 @@ import icyllis.modernui.animation.ValueAnimator;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.Image;
 import icyllis.modernui.graphics.drawable.ColorDrawable;
+import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
 import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.ImageView;
@@ -16,28 +17,28 @@ import top.rookiestwo.maimai_dialogue.dialogue.SceneBackground;
 import top.rookiestwo.maimai_dialogue.dialogue.SceneFilter;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualAnchor;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualObject;
-import top.rookiestwo.maimai_dialogue.client.scene.BackgroundCrossfade;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneObjectState;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneState;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneBackgroundState;
+import top.rookiestwo.maimai_dialogue.client.scene.VariantTransition;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Consumer;
 
 @SuppressWarnings("deprecation")
 final class DialogueSceneLayer extends FrameLayout {
     private final Map<String, ObjectBinding> objectBindings =
             new LinkedHashMap<>();
-    private ImageView backgroundView;
-    private ResourceLocation backgroundImageId;
-    private ImageView backgroundFadeView;
-    private ResourceLocation backgroundFadeImageId;
+    private SceneContentView currentScene;
+    private SceneContentView outgoingScene;
+    private ImageLayers backgroundLayers;
     private ValueAnimator sceneAnimator;
     private long playbackToken = Long.MIN_VALUE;
+    private float currentBackgroundOpacity;
+    private float outgoingCoverageOpacity;
     private Consumer<Float> dialogueOpacityConsumer = ignored -> {
     };
 
@@ -53,13 +54,13 @@ final class DialogueSceneLayer extends FrameLayout {
     void apply(Presentation presentation) {
         cancelSceneAnimator();
         playbackToken = Long.MIN_VALUE;
-        releaseImages();
-        removeAllViews();
+        finishSceneTransition();
+        outgoingScene = currentScene;
+        outgoingCoverageOpacity = currentBackgroundOpacity;
         objectBindings.clear();
-        backgroundView = null;
-        backgroundImageId = null;
-        backgroundFadeView = null;
-        backgroundFadeImageId = null;
+        backgroundLayers = null;
+        currentBackgroundOpacity = 0.0F;
+        currentScene = new SceneContentView(getContext());
 
         presentation.background().ifPresent(this::addBackground);
         presentation.visualObjects().entrySet().stream()
@@ -74,6 +75,16 @@ final class DialogueSceneLayer extends FrameLayout {
                         entry.getValue()
                 ));
         applyFilter(presentation.filter().orElse(null));
+        initializeDetachedScene(currentScene);
+        currentScene.setAlpha(0.0F);
+        addView(
+                currentScene,
+                0,
+                new LayoutParams(
+                        LayoutParams.MATCH_PARENT,
+                        LayoutParams.MATCH_PARENT
+                )
+        );
         requestLayout();
         invalidate();
     }
@@ -106,10 +117,11 @@ final class DialogueSceneLayer extends FrameLayout {
         releaseImages();
         removeAllViews();
         objectBindings.clear();
-        backgroundView = null;
-        backgroundImageId = null;
-        backgroundFadeView = null;
-        backgroundFadeImageId = null;
+        currentScene = null;
+        outgoingScene = null;
+        backgroundLayers = null;
+        currentBackgroundOpacity = 0.0F;
+        outgoingCoverageOpacity = 0.0F;
     }
 
     private void addBackground(SceneBackground background) {
@@ -119,31 +131,29 @@ final class DialogueSceneLayer extends FrameLayout {
             return;
         }
 
-        ImageView imageView = new ImageView(getContext());
-        imageView.setImage(image);
-        imageView.setImageAlpha(background.opacity());
-        imageView.setScaleType(scaleType(background.fit()));
-        addView(
-                imageView,
+        ImageView underlay = new ImageView(getContext());
+        underlay.setScaleType(scaleType(background.fit()));
+        underlay.setVisibility(INVISIBLE);
+        addSceneView(
+                underlay,
                 new LayoutParams(
                         LayoutParams.MATCH_PARENT,
                         LayoutParams.MATCH_PARENT
                 )
         );
-        backgroundView = imageView;
-        backgroundImageId = imageId;
 
-        ImageView fadeView = new ImageView(getContext());
-        fadeView.setScaleType(scaleType(background.fit()));
-        fadeView.setVisibility(GONE);
-        addView(
-                fadeView,
+        ImageView primary = new ImageView(getContext());
+        primary.setImage(image);
+        primary.setImageAlpha(background.opacity());
+        primary.setScaleType(scaleType(background.fit()));
+        addSceneView(
+                primary,
                 new LayoutParams(
                         LayoutParams.MATCH_PARENT,
                         LayoutParams.MATCH_PARENT
                 )
         );
-        backgroundFadeView = fadeView;
+        backgroundLayers = new ImageLayers(primary, underlay, imageId);
     }
 
     private void addObject(String objectId, VisualObject object) {
@@ -153,13 +163,24 @@ final class DialogueSceneLayer extends FrameLayout {
             return;
         }
 
-        ImageView imageView = new ImageView(getContext());
-        imageView.setImage(image);
-        imageView.setImageAlpha(object.opacity());
-        imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        imageView.setVisibility(object.visible() ? VISIBLE : GONE);
-        addView(
-                imageView,
+        ImageView underlay = new ImageView(getContext());
+        underlay.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        underlay.setVisibility(INVISIBLE);
+        addSceneView(
+                underlay,
+                new LayoutParams(
+                        LayoutParams.WRAP_CONTENT,
+                        LayoutParams.WRAP_CONTENT
+                )
+        );
+
+        ImageView primary = new ImageView(getContext());
+        primary.setImage(image);
+        primary.setImageAlpha(object.opacity());
+        primary.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        primary.setVisibility(object.visible() ? VISIBLE : GONE);
+        addSceneView(
+                primary,
                 new LayoutParams(
                         LayoutParams.WRAP_CONTENT,
                         LayoutParams.WRAP_CONTENT
@@ -168,54 +189,43 @@ final class DialogueSceneLayer extends FrameLayout {
         objectBindings.put(
                 objectId,
                 new ObjectBinding(
-                        imageView,
+                        new ImageLayers(primary, underlay, imageId),
                         SceneObjectState.initial(object),
-                        imageId
+                        "VisualObject " + objectId
                 )
+        );
+        currentScene.addObjectBinding(
+                objectBindings.get(objectId)
         );
     }
 
-    @Override
-    protected void onLayout(
-            boolean changed,
-            int left,
-            int top,
-            int right,
-            int bottom
+    private static void layoutObjectView(
+            ImageView view,
+            SceneObjectState object,
+            int width,
+            int height
     ) {
-        super.onLayout(changed, left, top, right, bottom);
-        int width = right - left;
-        int height = bottom - top;
+        int childWidth = view.getMeasuredWidth();
+        int childHeight = view.getMeasuredHeight();
+        float anchorX = horizontalAnchor(object.anchor());
+        float anchorY = verticalAnchor(object.anchor());
 
-        for (ObjectBinding binding : objectBindings.values()) {
-            ImageView view = binding.view;
-            if (view.getVisibility() == GONE) {
-                continue;
-            }
-
-            SceneObjectState object = binding.state;
-            int childWidth = view.getMeasuredWidth();
-            int childHeight = view.getMeasuredHeight();
-            float anchorX = horizontalAnchor(object.anchor());
-            float anchorY = verticalAnchor(object.anchor());
-
-            int childLeft = Math.round(
-                    object.x() * width - anchorX * childWidth
-            );
-            int childTop = Math.round(
-                    object.y() * height - anchorY * childHeight
-            );
-            view.layout(
-                    childLeft,
-                    childTop,
-                    childLeft + childWidth,
-                    childTop + childHeight
-            );
-            view.setPivotX(anchorX * childWidth);
-            view.setPivotY(anchorY * childHeight);
-            view.setScaleX(object.scale());
-            view.setScaleY(object.scale());
-        }
+        int childLeft = Math.round(
+                object.x() * width - anchorX * childWidth
+        );
+        int childTop = Math.round(
+                object.y() * height - anchorY * childHeight
+        );
+        view.layout(
+                childLeft,
+                childTop,
+                childLeft + childWidth,
+                childTop + childHeight
+        );
+        view.setPivotX(anchorX * childWidth);
+        view.setPivotY(anchorY * childHeight);
+        view.setScaleX(object.scale());
+        view.setScaleY(object.scale());
     }
 
     private Image loadImage(ResourceLocation imageId, String owner) {
@@ -260,19 +270,26 @@ final class DialogueSceneLayer extends FrameLayout {
             ScenePlayback playback,
             int elapsedMs
     ) {
+        SceneState state = playback.stateAt(elapsedMs);
         applyState(
-                playback.stateAt(elapsedMs),
-                playback.backgroundCrossfadeAt(elapsedMs)
+                state,
+                playback.variantTransitionsAt(elapsedMs)
+        );
+        applySceneTransition(
+                playback.dialogueTransitionProgressAt(elapsedMs)
         );
     }
 
     private void applyState(
             SceneState state,
-            Optional<BackgroundCrossfade> backgroundCrossfade
+            Map<String, VariantTransition> transitions
     ) {
         dialogueOpacityConsumer.accept(state.dialogueOpacity());
         state.background().ifPresent(background ->
-                applyBackgroundState(background, backgroundCrossfade)
+                applyBackgroundState(
+                        background,
+                        transitions.get("background")
+                )
         );
         for (Map.Entry<String, SceneObjectState> entry :
                 state.objects().entrySet()) {
@@ -281,110 +298,190 @@ final class DialogueSceneLayer extends FrameLayout {
                 continue;
             }
             SceneObjectState object = entry.getValue();
-            if (!object.image().equals(binding.imageId)) {
-                Image image = loadImage(
-                        object.image(),
-                        "VisualObject " + entry.getKey()
-                );
-                if (image != null) {
-                    binding.view.setImage(image);
-                    binding.imageId = object.image();
-                }
-            }
             binding.state = object;
-            binding.view.setImageAlpha(object.opacity());
-            binding.view.setVisibility(object.visible() ? VISIBLE : GONE);
+            applyImageState(
+                    binding.layers,
+                    object.variants(),
+                    object.image(),
+                    object.opacity(),
+                    ImageView.ScaleType.FIT_CENTER,
+                    transitions.get(entry.getKey()),
+                    binding.owner
+            );
+            int visibility = object.visible() ? VISIBLE : GONE;
+            binding.layers.primary.setVisibility(visibility);
+            if (!object.visible()) {
+                binding.layers.underlay.setVisibility(INVISIBLE);
+            }
+            currentScene.applyObjectLayout(binding);
         }
-        requestLayout();
+        currentScene.requestLayout();
         invalidate();
     }
 
     private void applyBackgroundState(
             SceneBackgroundState background,
-            Optional<BackgroundCrossfade> crossfade
+            VariantTransition transition
     ) {
-        ImageView view = backgroundView;
-        ImageView fadeView = backgroundFadeView;
-        if (view == null || fadeView == null) {
+        ImageLayers layers = backgroundLayers;
+        if (layers == null) {
             return;
         }
-        if (crossfade.isPresent()) {
-            BackgroundCrossfade transition = crossfade.orElseThrow();
-            applyBackgroundImage(
-                    view,
-                    transition.from().image(),
-                    false
-            );
-            applyBackgroundImage(
-                    fadeView,
-                    transition.to().image(),
-                    true
-            );
-            float progress = transition.progress();
-            view.setImageAlpha(
-                    transition.from().opacity() * (1.0F - progress)
-            );
-            fadeView.setImageAlpha(
-                    transition.to().opacity() * progress
-            );
-            view.setScaleType(scaleType(transition.from().fit()));
-            fadeView.setScaleType(scaleType(transition.to().fit()));
-            fadeView.setVisibility(VISIBLE);
-            return;
-        }
-
-        ResourceLocation imageId = background.image();
-        if (fadeView.getVisibility() == VISIBLE
-                && imageId.equals(backgroundFadeImageId)) {
-            ImageView previous = view;
-            backgroundView = fadeView;
-            backgroundFadeView = previous;
-            backgroundImageId = backgroundFadeImageId;
-            backgroundFadeImageId = null;
-            previous.setImage(null);
-            previous.setVisibility(GONE);
-            view = backgroundView;
-        }
-        if (!imageId.equals(backgroundImageId)) {
-            applyBackgroundImage(view, imageId, false);
-        }
-        view.setImageAlpha(background.opacity());
-        view.setScaleType(scaleType(background.fit()));
-        view.setVisibility(VISIBLE);
-        hideBackgroundFade();
+        currentBackgroundOpacity = background.opacity();
+        applyImageState(
+                layers,
+                background.variants(),
+                background.image(),
+                background.opacity(),
+                scaleType(background.fit()),
+                transition,
+                "background"
+        );
+        layers.primary.setVisibility(VISIBLE);
     }
 
-    private void applyBackgroundImage(
-            ImageView view,
+    private void applyImageState(
+            ImageLayers layers,
+            Map<String, ResourceLocation> variants,
             ResourceLocation imageId,
-            boolean fade
+            float opacity,
+            ImageView.ScaleType scaleType,
+            VariantTransition transition,
+            String owner
     ) {
-        ResourceLocation current = fade
-                ? backgroundFadeImageId
-                : backgroundImageId;
-        if (imageId.equals(current)) {
+        layers.primary.setScaleType(scaleType);
+        layers.underlay.setScaleType(scaleType);
+        if (transition == null) {
+            promoteOrLoad(layers, imageId, owner);
+            layers.primary.setImageAlpha(opacity);
+            clearUnderlay(layers);
             return;
         }
-        Image image = loadImage(imageId, "background");
-        if (image == null) {
+
+        ResourceLocation fromImage =
+                variants.get(transition.fromVariant());
+        ResourceLocation toImage =
+                variants.get(transition.toVariant());
+        setPrimaryImage(layers, fromImage, owner);
+        setUnderlayImage(layers, toImage, owner);
+
+        layers.primary.setImageAlpha(transition.outgoingAlpha(opacity));
+        layers.underlay.setImageAlpha(transition.incomingAlpha(opacity));
+        layers.underlay.setVisibility(VISIBLE);
+    }
+
+    private void promoteOrLoad(
+            ImageLayers layers,
+            ResourceLocation imageId,
+            String owner
+    ) {
+        if (imageId.equals(layers.underlayId)
+                && layers.underlayImage != null) {
+            layers.primary.setImage(layers.underlayImage);
+            layers.primaryId = layers.underlayId;
             return;
         }
-        view.setImage(image);
-        if (fade) {
-            backgroundFadeImageId = imageId;
-        } else {
-            backgroundImageId = imageId;
+        setPrimaryImage(layers, imageId, owner);
+    }
+
+    private void setPrimaryImage(
+            ImageLayers layers,
+            ResourceLocation imageId,
+            String owner
+    ) {
+        if (imageId.equals(layers.primaryId)) {
+            return;
+        }
+        Image image = loadImage(imageId, owner);
+        if (image != null) {
+            layers.primary.setImage(image);
+            layers.primaryId = imageId;
         }
     }
 
-    private void hideBackgroundFade() {
-        ImageView fadeView = backgroundFadeView;
-        if (fadeView == null) {
+    private void setUnderlayImage(
+            ImageLayers layers,
+            ResourceLocation imageId,
+            String owner
+    ) {
+        if (imageId.equals(layers.underlayId)) {
             return;
         }
-        fadeView.setImage(null);
-        fadeView.setVisibility(GONE);
-        backgroundFadeImageId = null;
+        Image image = loadImage(imageId, owner);
+        if (image != null) {
+            layers.underlay.setImage(image);
+            layers.underlayId = imageId;
+            layers.underlayImage = image;
+        }
+    }
+
+    private static void clearUnderlay(ImageLayers layers) {
+        layers.underlay.setImage(null);
+        layers.underlay.setVisibility(INVISIBLE);
+        layers.underlayId = null;
+        layers.underlayImage = null;
+    }
+
+    private void applySceneTransition(float progress) {
+        SceneContentView incoming = currentScene;
+        SceneContentView outgoing = outgoingScene;
+        if (incoming == null && outgoing == null) {
+            return;
+        }
+        float clamped = Math.clamp(progress, 0.0F, 1.0F);
+        float outgoingFactor = 1.0F - clamped;
+        float outgoingAlpha =
+                outgoingCoverageOpacity * outgoingFactor;
+        float denominator = 1.0F - outgoingAlpha;
+        float incomingFactor = denominator <= 0.0001F
+                ? 0.0F
+                : Math.clamp(clamped / denominator, 0.0F, 1.0F);
+
+        if (outgoing != null) {
+            outgoing.setAlpha(outgoingFactor);
+        }
+        if (incoming != null) {
+            incoming.setAlpha(incomingFactor);
+        }
+
+        if (clamped >= 0.9999F) {
+            finishSceneTransition();
+        }
+    }
+
+    private void finishSceneTransition() {
+        if (outgoingScene != null) {
+            outgoingScene.releaseImages();
+            removeView(outgoingScene);
+            outgoingScene = null;
+        }
+        if (currentScene != null) {
+            currentScene.setAlpha(1.0F);
+        }
+        outgoingCoverageOpacity = 0.0F;
+    }
+
+    private void addSceneView(View view, LayoutParams params) {
+        currentScene.addView(view, params);
+    }
+
+    private void initializeDetachedScene(SceneContentView scene) {
+        int width = getWidth();
+        int height = getHeight();
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        scene.measure(
+                MeasureSpec.makeMeasureSpec(
+                        width,
+                        MeasureSpec.EXACTLY
+                ),
+                MeasureSpec.makeMeasureSpec(
+                        height,
+                        MeasureSpec.EXACTLY
+                )
+        );
+        scene.layout(0, 0, width, height);
     }
 
     private void cancelSceneAnimator() {
@@ -398,7 +495,7 @@ final class DialogueSceneLayer extends FrameLayout {
         if (filter instanceof ColorAdjustFilter colorAdjust) {
             addColorAdjustOverlays(colorAdjust);
         } else if (filter instanceof CrtFilter crt) {
-            addView(
+            addSceneView(
                     new CrtOverlayView(getContext(), crt),
                     new LayoutParams(
                             LayoutParams.MATCH_PARENT,
@@ -406,8 +503,9 @@ final class DialogueSceneLayer extends FrameLayout {
                     )
             );
         }
-        for (int index = 0; index < getChildCount(); index++) {
-            if (getChildAt(index) instanceof ImageView imageView) {
+        SceneContentView scene = currentScene;
+        for (int index = 0; index < scene.getChildCount(); index++) {
+            if (scene.getChildAt(index) instanceof ImageView imageView) {
                 imageView.setColorFilter(null);
             }
         }
@@ -453,7 +551,7 @@ final class DialogueSceneLayer extends FrameLayout {
                 (alphaByte << 24) | (rgb & 0x00FFFFFF)
         ));
         overlay.setClickable(false);
-        addView(
+        addSceneView(
                 overlay,
                 new LayoutParams(
                         LayoutParams.MATCH_PARENT,
@@ -464,8 +562,8 @@ final class DialogueSceneLayer extends FrameLayout {
 
     private void releaseImages() {
         for (int index = 0; index < getChildCount(); index++) {
-            if (getChildAt(index) instanceof ImageView imageView) {
-                imageView.setImage(null);
+            if (getChildAt(index) instanceof SceneContentView scene) {
+                scene.releaseImages();
             }
         }
     }
@@ -495,18 +593,105 @@ final class DialogueSceneLayer extends FrameLayout {
     }
 
     private static final class ObjectBinding {
-        private final ImageView view;
+        private final ImageLayers layers;
+        private final String owner;
         private SceneObjectState state;
-        private ResourceLocation imageId;
 
         private ObjectBinding(
-                ImageView view,
+                ImageLayers layers,
                 SceneObjectState state,
-                ResourceLocation imageId
+                String owner
         ) {
-            this.view = view;
+            this.layers = layers;
             this.state = state;
-            this.imageId = imageId;
+            this.owner = owner;
+        }
+    }
+
+    private static final class SceneContentView extends FrameLayout {
+        private final Map<String, ObjectBinding> objectBindings =
+                new LinkedHashMap<>();
+
+        private SceneContentView(Context context) {
+            super(context);
+            setClickable(false);
+        }
+
+        private void addObjectBinding(ObjectBinding binding) {
+            objectBindings.put(binding.owner, binding);
+        }
+
+        @Override
+        protected void onLayout(
+                boolean changed,
+                int left,
+                int top,
+                int right,
+                int bottom
+        ) {
+            super.onLayout(changed, left, top, right, bottom);
+            int width = right - left;
+            int height = bottom - top;
+
+            for (ObjectBinding binding : objectBindings.values()) {
+                applyObjectLayout(binding, width, height);
+            }
+        }
+
+        private void applyObjectLayout(ObjectBinding binding) {
+            applyObjectLayout(binding, getWidth(), getHeight());
+        }
+
+        private static void applyObjectLayout(
+                ObjectBinding binding,
+                int width,
+                int height
+        ) {
+            if (width <= 0
+                    || height <= 0
+                    || (binding.layers.primary.getVisibility() == GONE
+                    && binding.layers.underlay.getVisibility()
+                    != VISIBLE)) {
+                return;
+            }
+            layoutObjectView(
+                    binding.layers.underlay,
+                    binding.state,
+                    width,
+                    height
+            );
+            layoutObjectView(
+                    binding.layers.primary,
+                    binding.state,
+                    width,
+                    height
+            );
+        }
+
+        private void releaseImages() {
+            for (int index = 0; index < getChildCount(); index++) {
+                if (getChildAt(index) instanceof ImageView imageView) {
+                    imageView.setImage(null);
+                }
+            }
+        }
+    }
+
+    private static final class ImageLayers {
+        private final ImageView primary;
+        private final ImageView underlay;
+        private ResourceLocation primaryId;
+        private ResourceLocation underlayId;
+        private Image underlayImage;
+
+        private ImageLayers(
+                ImageView primary,
+                ImageView underlay,
+                ResourceLocation primaryId
+        ) {
+            this.primary = primary;
+            this.underlay = underlay;
+            this.primaryId = primaryId;
         }
     }
 }

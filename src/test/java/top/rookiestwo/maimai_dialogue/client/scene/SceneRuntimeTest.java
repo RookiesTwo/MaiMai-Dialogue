@@ -51,6 +51,20 @@ class SceneRuntimeTest {
         assertEquals(0.6F, halfway.x(), 0.0001F);
         assertEquals(0.6F, halfway.opacity(), 0.0001F);
         assertEquals("alert", halfway.variant());
+        VariantTransition objectTransition = preparation.playback()
+                .variantTransitionsAt(750)
+                .get("guide");
+        assertEquals("idle", objectTransition.fromVariant());
+        assertEquals("alert", objectTransition.toVariant());
+        assertEquals(0.5F, objectTransition.progress(), 0.0001F);
+        float outgoingAlpha = objectTransition.outgoingAlpha(0.8F);
+        float incomingAlpha = objectTransition.incomingAlpha(0.8F);
+        assertEquals(0.4F, outgoingAlpha, 0.0001F);
+        assertEquals(
+                0.8F,
+                outgoingAlpha + incomingAlpha * (1.0F - outgoingAlpha),
+                0.0001F
+        );
 
         SceneObjectState end = runtime.current()
                 .find("guide")
@@ -139,16 +153,16 @@ class SceneRuntimeTest {
                         .background().orElseThrow().variant()
         );
         assertTrue(
-                preparation.playback().backgroundCrossfadeAt(199).isEmpty()
+                preparation.playback().variantTransitionsAt(199).isEmpty()
         );
-        BackgroundCrossfade halfway = preparation.playback()
-                .backgroundCrossfadeAt(300)
-                .orElseThrow();
-        assertEquals("day", halfway.from().variant());
-        assertEquals("night", halfway.to().variant());
+        VariantTransition halfway = preparation.playback()
+                .variantTransitionsAt(300)
+                .get("background");
+        assertEquals("day", halfway.fromVariant());
+        assertEquals("night", halfway.toVariant());
         assertEquals(0.5F, halfway.progress(), 0.0001F);
         assertTrue(
-                preparation.playback().backgroundCrossfadeAt(400).isEmpty()
+                preparation.playback().variantTransitionsAt(400).isEmpty()
         );
     }
 
@@ -176,6 +190,11 @@ class SceneRuntimeTest {
         assertEquals(
                 0.5F,
                 preparation.playback().stateAt(100).dialogueOpacity(),
+                0.0001F
+        );
+        assertEquals(
+                0.5F,
+                preparation.playback().dialogueTransitionProgressAt(100),
                 0.0001F
         );
         assertEquals(1.0F, runtime.current().dialogueOpacity(), 0.0001F);

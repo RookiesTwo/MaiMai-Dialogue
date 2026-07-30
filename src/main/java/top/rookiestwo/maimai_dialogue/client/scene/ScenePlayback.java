@@ -2,9 +2,10 @@ package top.rookiestwo.maimai_dialogue.client.scene;
 
 import top.rookiestwo.maimai_dialogue.presentation.action.PresentationAction;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 public record ScenePlayback(
         long token,
@@ -84,12 +85,13 @@ public record ScenePlayback(
         return state;
     }
 
-    public Optional<BackgroundCrossfade> backgroundCrossfadeAt(
+    public Map<String, VariantTransition> variantTransitionsAt(
             int elapsedMs
     ) {
+        Map<String, VariantTransition> transitions =
+                new LinkedHashMap<>();
         for (ResolvedActionCall call : calls) {
-            if (!call.target().equals("background")
-                    || call.action().variant().isEmpty()) {
+            if (call.action().variant().isEmpty()) {
                 continue;
             }
             PresentationAction action = call.action();
@@ -103,20 +105,63 @@ public record ScenePlayback(
                 continue;
             }
 
-            SceneBackgroundState from =
-                    start.background().orElseThrow();
-            SceneBackgroundState to = from.withVariant(
-                    action.variant().orElseThrow().variant()
-            );
+            String fromVariant;
+            if (call.target().equals("background")) {
+                fromVariant = start.background()
+                        .orElseThrow()
+                        .variant();
+            } else {
+                fromVariant = start.find(call.target())
+                        .orElseThrow()
+                        .variant();
+            }
+            String toVariant =
+                    action.variant().orElseThrow().variant();
             float linearProgress = (elapsedMs - fadeStart)
                     / (float) (fadeEnd - fadeStart);
-            return Optional.of(new BackgroundCrossfade(
-                    from,
-                    to,
+            transitions.put(call.target(), new VariantTransition(
+                    call.target(),
+                    fromVariant,
+                    toVariant,
                     action.easing().apply(linearProgress)
             ));
         }
-        return Optional.empty();
+        return Map.copyOf(transitions);
+    }
+
+    public float dialogueTransitionProgressAt(int elapsedMs) {
+        float startOpacity = start.dialogueOpacity();
+        float endOpacity = end.dialogueOpacity();
+        float opacityRange = endOpacity - startOpacity;
+        if (Math.abs(opacityRange) > 0.0001F) {
+            float currentOpacity = stateAt(elapsedMs).dialogueOpacity();
+            return Math.clamp(
+                    (currentOpacity - startOpacity) / opacityRange,
+                    0.0F,
+                    1.0F
+            );
+        }
+
+        for (ResolvedActionCall call : calls) {
+            if (!call.target().equals("dialogue")) {
+                continue;
+            }
+            int startTime = call.delayMs();
+            int endTime = call.endTimeMs();
+            if (endTime <= startTime) {
+                return elapsedMs >= endTime ? 1.0F : 0.0F;
+            }
+            float progress = (elapsedMs - startTime)
+                    / (float) (endTime - startTime);
+            return Math.clamp(
+                    call.action().easing().apply(
+                            Math.clamp(progress, 0.0F, 1.0F)
+                    ),
+                    0.0F,
+                    1.0F
+            );
+        }
+        return 1.0F;
     }
 
     private SceneState applyDialogue(

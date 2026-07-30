@@ -82,7 +82,6 @@ final class DialogueRootLayout extends FrameLayout {
 
     void setDialogueOpacity(float opacity) {
         float clamped = Math.clamp(opacity, 0.0F, 1.0F);
-        sceneLayer.setAlpha(clamped);
         dialogueBox.setAlpha(clamped);
         historyEntry.setAlpha(clamped);
     }
