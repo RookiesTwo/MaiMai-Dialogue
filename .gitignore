@@ -20,3 +20,6 @@ hs_err_pid*
 # Common working directory
 run
 /src/test/
+
+# Local project notes
+/.project-notes/

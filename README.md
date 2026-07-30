@@ -49,10 +49,6 @@ MaiMai Dialogue 是一个面向 Minecraft 1.21.1、基于 NeoForge 与 Modern UI
 
 该命令默认需要 permission level 2。
 
-## 文档
-
-目前可以在 [产品目标与设计检查点](docs/product-goals.md) 中查看已经确认的设计、功能边界和实现状态。面向使用者的完整文档仍在编写中。
-
 ## License
 
 本项目声明使用 MIT License。
