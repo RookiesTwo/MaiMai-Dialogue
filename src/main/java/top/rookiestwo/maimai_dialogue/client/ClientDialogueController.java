@@ -20,6 +20,10 @@ import top.rookiestwo.maimai_dialogue.dialogue.ReturnTarget;
 import top.rookiestwo.maimai_dialogue.dialogue.SetSpeaker;
 import top.rookiestwo.maimai_dialogue.dialogue.SpeakerOperation;
 import top.rookiestwo.maimai_dialogue.dialogue.resource.DialogueSnapshots;
+import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
+import top.rookiestwo.maimai_dialogue.client.scene.ScenePreparation;
+import top.rookiestwo.maimai_dialogue.client.scene.SceneRuntime;
+import top.rookiestwo.maimai_dialogue.client.scene.SceneTransitions;
 import top.rookiestwo.maimai_dialogue.network.DialogueAccessEntry;
 import top.rookiestwo.maimai_dialogue.network.DialogueAccessStatus;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueAccessResultS2C;
@@ -27,8 +31,11 @@ import top.rookiestwo.maimai_dialogue.network.payload.DialogueRequestResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.OpenDialogueS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.QueryDialogueAccessC2S;
 import top.rookiestwo.maimai_dialogue.network.payload.RequestDialogueC2S;
+import top.rookiestwo.maimai_dialogue.presentation.action.ActionCall;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
 import top.rookiestwo.maimai_dialogue.speaker.resource.SpeakerSnapshots;
+import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
+import top.rookiestwo.maimai_dialogue.theme.resource.ThemeSnapshots;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -40,7 +47,6 @@ import java.util.stream.Collectors;
 public final class ClientDialogueController {
     public static final ClientDialogueController INSTANCE =
             new ClientDialogueController();
-
     private long nextRequestId = 1L;
     private long generation;
     @Nullable
@@ -53,6 +59,8 @@ public final class ClientDialogueController {
     private PendingTargetRequest pendingTargetRequest;
     @Nullable
     private PendingRootRequest pendingRootRequest;
+    @Nullable
+    private List<HistoryEntry> historyEntries;
 
     private ClientDialogueController() {
     }
@@ -215,6 +223,7 @@ public final class ClientDialogueController {
             publishView();
             return;
         }
+        recordOption(pending.option());
         activate(
                 current.rootDialogueId,
                 payload.dialogueId(),
@@ -230,9 +239,18 @@ public final class ClientDialogueController {
             return;
         }
 
+        if (current.playbackPhase == PlaybackPhase.PLAYING) {
+            current.playbackPhase = PlaybackPhase.READY;
+            current.sceneComplete = true;
+            current.textComplete = true;
+            current.playbackSkipped = true;
+            publishView();
+            return;
+        }
+
         if (current.stepIndex < current.definition.steps().size()) {
             current.stepIndex++;
-            applySpeaker(current.currentStepSpeaker());
+            enterCurrentStep(current);
             publishView();
             return;
         }
@@ -249,6 +267,37 @@ public final class ClientDialogueController {
         }
     }
 
+    public void completePlayback(long completedGeneration, long playbackToken) {
+        requireClientThread();
+        ActiveDialogue current = active;
+        if (current == null
+                || current.generation != completedGeneration
+                || current.playback.token() != playbackToken
+                || current.sceneComplete) {
+            return;
+        }
+        current.sceneComplete = true;
+        updatePlaybackPhase(current);
+        publishView();
+    }
+
+    public void completeTextPlayback(
+            long completedGeneration,
+            long playbackToken
+    ) {
+        requireClientThread();
+        ActiveDialogue current = active;
+        if (current == null
+                || current.generation != completedGeneration
+                || current.playback.token() != playbackToken
+                || current.textComplete) {
+            return;
+        }
+        current.textComplete = true;
+        updatePlaybackPhase(current);
+        publishView();
+    }
+
     public void selectOption(DialogueOption option) {
         requireClientThread();
         ActiveDialogue current = active;
@@ -260,6 +309,7 @@ public final class ClientDialogueController {
         }
 
         if (option.target() instanceof ReturnTarget) {
+            recordOption(option);
             performReturn();
             return;
         }
@@ -268,7 +318,8 @@ public final class ClientDialogueController {
             pendingTargetRequest = new PendingTargetRequest(
                     requestId,
                     current.generation,
-                    target.dialogue()
+                    target.dialogue(),
+                    option
             );
             current.errorMessage = null;
             PacketDistributor.sendToServer(new RequestDialogueC2S(
@@ -289,6 +340,7 @@ public final class ClientDialogueController {
         pendingAccessQuery = null;
         pendingTargetRequest = null;
         pendingRootRequest = null;
+        historyEntries = null;
         generation++;
     }
 
@@ -300,7 +352,12 @@ public final class ClientDialogueController {
                     Optional.empty(),
                     Optional.empty(),
                     Optional.empty(),
+                    PlaybackPhase.READY,
+                    false,
                     Optional.empty(),
+                    Optional.empty(),
+                    Optional.empty(),
+                    List.of(),
                     List.of(),
                     false,
                     false
@@ -317,14 +374,22 @@ public final class ClientDialogueController {
         }
 
         boolean atEnd = current.stepIndex >= current.definition.steps().size();
+        boolean ready = current.playbackPhase == PlaybackPhase.READY;
         return new DialogueViewState(
                 current.generation,
                 Optional.of(current.definition.presentation()),
+                Optional.of(current.theme),
+                Optional.of(current.playback),
+                current.playbackPhase,
+                current.playbackSkipped,
                 Optional.ofNullable(current.speakerName),
                 text,
                 Optional.ofNullable(current.errorMessage),
-                atEnd ? current.visibleOptions : List.of(),
-                atEnd && pendingAccessQuery != null,
+                historyEntries != null
+                        ? List.copyOf(historyEntries)
+                        : List.of(),
+                atEnd && ready ? current.visibleOptions : List.of(),
+                atEnd && ready && pendingAccessQuery != null,
                 pendingTargetRequest != null
         );
     }
@@ -338,6 +403,9 @@ public final class ClientDialogueController {
         generation++;
         pendingAccessQuery = null;
         pendingTargetRequest = null;
+        if (openScreen) {
+            historyEntries = new ArrayList<>();
+        }
 
         ActiveDialogue next = new ActiveDialogue(
                 generation,
@@ -346,7 +414,7 @@ public final class ClientDialogueController {
                 definition
         );
         active = next;
-        applySpeaker(next.currentStepSpeaker());
+        enterCurrentStep(next);
         prefetchOptions(next);
 
         if (openScreen) {
@@ -446,10 +514,52 @@ public final class ClientDialogueController {
         }
     }
 
+    private void enterCurrentStep(ActiveDialogue current) {
+        applySpeaker(current.currentStepSpeaker());
+        ScenePreparation preparation = current.sceneRuntime.prepare(
+                current.currentStepActions()
+        );
+        current.playback = preparation.playback();
+        current.sceneComplete = current.playback.blockingDurationMs() == 0;
+        current.textComplete = current.currentStepText()
+                .filter(text -> !text.isEmpty())
+                .isEmpty();
+        updatePlaybackPhase(current);
+        current.playbackSkipped = false;
+        for (String error : preparation.errors()) {
+            reportDevelopmentError(error);
+        }
+        List<HistoryEntry> entries = historyEntries;
+        if (entries != null) {
+            current.currentStepText()
+                    .filter(text -> !text.isEmpty())
+                    .ifPresent(text ->
+                    entries.add(HistoryEntry.dialogue(
+                            current.speakerName,
+                            text
+                    ))
+            );
+        }
+    }
+
     private void publishView() {
         DialogueFragment currentFragment = fragment;
         if (currentFragment != null) {
             currentFragment.render(viewState());
+        }
+    }
+
+    private static void updatePlaybackPhase(ActiveDialogue current) {
+        current.playbackPhase =
+                current.sceneComplete && current.textComplete
+                        ? PlaybackPhase.READY
+                        : PlaybackPhase.PLAYING;
+    }
+
+    private void recordOption(DialogueOption option) {
+        List<HistoryEntry> entries = historyEntries;
+        if (entries != null) {
+            entries.add(HistoryEntry.option(option.text()));
         }
     }
 
@@ -506,7 +616,15 @@ public final class ClientDialogueController {
         private final ResourceLocation rootDialogueId;
         private final ResourceLocation currentDialogueId;
         private final DialogueDefinition definition;
+        private final ThemeDefinition theme;
+        private final SceneRuntime sceneRuntime;
+        private boolean initialStep = true;
         private int stepIndex;
+        private ScenePlayback playback;
+        private PlaybackPhase playbackPhase = PlaybackPhase.READY;
+        private boolean playbackSkipped;
+        private boolean sceneComplete = true;
+        private boolean textComplete = true;
         @Nullable
         private String speakerName;
         @Nullable
@@ -523,6 +641,12 @@ public final class ClientDialogueController {
             this.rootDialogueId = rootDialogueId;
             this.currentDialogueId = currentDialogueId;
             this.definition = definition;
+            this.theme = resolveTheme(definition);
+            this.sceneRuntime = new SceneRuntime(
+                    definition.presentation(),
+                    0.0F,
+                    generation << 32
+            );
         }
 
         private Optional<SpeakerOperation> currentStepSpeaker() {
@@ -532,6 +656,39 @@ public final class ClientDialogueController {
             }
             EndStep step = definition.end();
             return step.speaker();
+        }
+
+        private List<ActionCall> currentStepActions() {
+            List<ActionCall> actions;
+            if (stepIndex < definition.steps().size()) {
+                actions = definition.steps().get(stepIndex).actions();
+            } else {
+                actions = definition.end().actions();
+            }
+            if (!initialStep) {
+                return actions;
+            }
+            initialStep = false;
+            return SceneTransitions.withDefaultFadeIn(actions);
+        }
+
+        private Optional<String> currentStepText() {
+            if (stepIndex < definition.steps().size()) {
+                return definition.steps().get(stepIndex).text();
+            }
+            return definition.end().text();
+        }
+
+        private static ThemeDefinition resolveTheme(
+                DialogueDefinition definition
+        ) {
+            ResourceLocation themeId = definition.presentation().theme();
+            return ThemeSnapshots.client().find(themeId).orElseGet(() -> {
+                reportDevelopmentError(
+                        "Client is missing dialogue theme " + themeId
+                );
+                return ThemeDefinition.DEFAULT;
+            });
         }
     }
 
@@ -548,7 +705,8 @@ public final class ClientDialogueController {
     private record PendingTargetRequest(
             long requestId,
             long generation,
-            ResourceLocation target
+            ResourceLocation target,
+            DialogueOption option
     ) {
     }
 

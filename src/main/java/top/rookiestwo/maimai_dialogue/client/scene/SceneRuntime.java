@@ -1,0 +1,299 @@
+package top.rookiestwo.maimai_dialogue.client.scene;
+
+import net.minecraft.resources.ResourceLocation;
+import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.action.ActionCall;
+import top.rookiestwo.maimai_dialogue.presentation.action.ActionDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.action.ActionProperty;
+import top.rookiestwo.maimai_dialogue.presentation.action.PresentationAction;
+import top.rookiestwo.maimai_dialogue.presentation.action.NumericTrack;
+import top.rookiestwo.maimai_dialogue.presentation.action.resource.ActionSnapshots;
+
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+
+public final class SceneRuntime {
+    private final Function<ResourceLocation, Optional<PresentationAction>>
+            actionLookup;
+    private SceneState current;
+    private long nextPlaybackToken;
+
+    public SceneRuntime(Presentation presentation) {
+        this(presentation, 1.0F, 1L);
+    }
+
+    public SceneRuntime(
+            Presentation presentation,
+            float initialDialogueOpacity
+    ) {
+        this(presentation, initialDialogueOpacity, 1L);
+    }
+
+    public SceneRuntime(
+            Presentation presentation,
+            float initialDialogueOpacity,
+            long firstPlaybackToken
+    ) {
+        this(
+                presentation,
+                initialDialogueOpacity,
+                ActionSnapshots.client()::find,
+                firstPlaybackToken
+        );
+    }
+
+    public SceneRuntime(
+            Presentation presentation,
+            float initialDialogueOpacity,
+            Function<ResourceLocation, Optional<PresentationAction>>
+                    actionLookup
+    ) {
+        this(presentation, initialDialogueOpacity, actionLookup, 1L);
+    }
+
+    public SceneRuntime(
+            Presentation presentation,
+            float initialDialogueOpacity,
+            Function<ResourceLocation, Optional<PresentationAction>>
+                    actionLookup,
+            long firstPlaybackToken
+    ) {
+        this.actionLookup = Objects.requireNonNull(
+                actionLookup,
+                "actionLookup"
+        );
+        nextPlaybackToken = firstPlaybackToken;
+        current = SceneState.initial(presentation, initialDialogueOpacity);
+    }
+
+    public SceneState current() {
+        return current;
+    }
+
+    public ScenePreparation prepare(List<ActionCall> actionCalls) {
+        SceneState start = current;
+        SceneState end;
+        List<ResolvedActionCall> resolved = new ArrayList<>();
+        List<String> errors = new ArrayList<>();
+        Map<String, EnumSet<ActionProperty>> writes = new HashMap<>();
+        int totalDuration = 0;
+        int blockingDuration = 0;
+
+        for (ActionCall call : actionCalls) {
+            PresentationAction action = resolve(call.action());
+            if (action == null) {
+                if (call.action() instanceof ActionDefinition.Reference reference) {
+                    errors.add("Client is missing PresentationAction "
+                            + reference.id());
+                }
+                continue;
+            }
+
+            EnumSet<ActionProperty> targetWrites = writes.computeIfAbsent(
+                    call.target(),
+                    ignored -> EnumSet.noneOf(ActionProperty.class)
+            );
+            EnumSet<ActionProperty> actionWrites =
+                    EnumSet.noneOf(ActionProperty.class);
+            for (ActionProperty property : ActionProperty.values()) {
+                if (action.writes(property)) {
+                    actionWrites.add(property);
+                }
+            }
+            EnumSet<ActionProperty> conflicts =
+                    EnumSet.copyOf(actionWrites);
+            conflicts.retainAll(targetWrites);
+            if (!conflicts.isEmpty()) {
+                for (ActionProperty conflict : conflicts) {
+                    errors.add("Multiple PresentationActions write "
+                            + call.target() + "."
+                            + conflict.name().toLowerCase());
+                }
+                continue;
+            }
+
+            boolean validTarget;
+            if (call.target().equals("dialogue")) {
+                validTarget = validateDialogue(
+                        start.dialogueOpacity(),
+                        action,
+                        actionWrites,
+                        errors
+                );
+            } else if (call.target().equals("background")) {
+                validTarget = validateBackground(
+                        start.background().orElse(null),
+                        action,
+                        actionWrites,
+                        errors
+                );
+            } else {
+                SceneObjectState initial = start.find(call.target())
+                        .orElse(null);
+                if (initial == null) {
+                    errors.add(
+                            "PresentationAction targets undeclared "
+                                    + "VisualObject " + call.target()
+                    );
+                    validTarget = false;
+                } else {
+                    validTarget = validateFinalState(
+                            initial,
+                            action,
+                            errors,
+                            call.target()
+                    );
+                }
+            }
+            if (!validTarget) {
+                continue;
+            }
+            targetWrites.addAll(actionWrites);
+
+            ResolvedActionCall resolvedCall = new ResolvedActionCall(
+                    call.target(),
+                    call.delayMs(),
+                    action
+            );
+            resolved.add(resolvedCall);
+            totalDuration = Math.max(
+                    totalDuration,
+                    resolvedCall.endTimeMs()
+            );
+            if (action.blocking()) {
+                blockingDuration = Math.max(
+                        blockingDuration,
+                        resolvedCall.endTimeMs()
+                );
+            }
+        }
+
+        ScenePlayback provisional = new ScenePlayback(
+                nextPlaybackToken++,
+                start,
+                start,
+                resolved,
+                totalDuration,
+                blockingDuration
+        );
+        end = provisional.stateAt(totalDuration);
+        ScenePlayback playback = new ScenePlayback(
+                provisional.token(),
+                start,
+                end,
+                resolved,
+                totalDuration,
+                blockingDuration
+        );
+        current = end;
+        return new ScenePreparation(playback, errors);
+    }
+
+    private PresentationAction resolve(ActionDefinition definition) {
+        if (definition instanceof ActionDefinition.Inline inline) {
+            return inline.action();
+        }
+        if (definition instanceof ActionDefinition.Reference reference) {
+            return actionLookup.apply(reference.id()).orElse(null);
+        }
+        return null;
+    }
+
+    private static boolean validateFinalState(
+            SceneObjectState initial,
+            PresentationAction action,
+            List<String> errors,
+            String target
+    ) {
+        float finalScale = initial.scale() + action.scale()
+                .map(track -> track.finalValue())
+                .orElse(0.0F);
+        if (finalScale <= 0.0F) {
+            errors.add("PresentationAction leaves " + target
+                    + " with non-positive scale.");
+            return false;
+        }
+        float finalOpacity = initial.opacity() + action.opacity()
+                .map(track -> track.finalValue())
+                .orElse(0.0F);
+        if (finalOpacity < 0.0F || finalOpacity > 1.0F) {
+            errors.add("PresentationAction leaves " + target
+                    + " opacity outside 0..1.");
+            return false;
+        }
+        String finalVariant = action.variant()
+                .map(change -> change.variant())
+                .orElse(initial.variant());
+        if (!initial.variants().containsKey(finalVariant)) {
+            errors.add("PresentationAction selects missing variant "
+                    + finalVariant + " on " + target + ".");
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean validateBackground(
+            SceneBackgroundState initial,
+            PresentationAction action,
+            EnumSet<ActionProperty> writes,
+            List<String> errors
+    ) {
+        if (initial == null) {
+            errors.add(
+                    "PresentationAction targets an undeclared background."
+            );
+            return false;
+        }
+        EnumSet<ActionProperty> unsupported = EnumSet.copyOf(writes);
+        unsupported.remove(ActionProperty.VARIANT);
+        if (!unsupported.isEmpty()) {
+            errors.add(
+                    "Background PresentationAction only supports variant."
+            );
+            return false;
+        }
+        String finalVariant = action.variant()
+                .map(change -> change.variant())
+                .orElse(initial.variant());
+        if (!initial.variants().containsKey(finalVariant)) {
+            errors.add(
+                    "PresentationAction selects missing Background variant "
+                            + finalVariant + "."
+            );
+            return false;
+        }
+        return true;
+    }
+
+    private static boolean validateDialogue(
+            float initialOpacity,
+            PresentationAction action,
+            EnumSet<ActionProperty> writes,
+            List<String> errors
+    ) {
+        EnumSet<ActionProperty> unsupported = EnumSet.copyOf(writes);
+        unsupported.remove(ActionProperty.OPACITY);
+        if (!unsupported.isEmpty()) {
+            errors.add(
+                    "Dialogue PresentationAction only supports opacity."
+            );
+            return false;
+        }
+        float finalOpacity = initialOpacity + action.opacity()
+                .map(NumericTrack::finalValue)
+                .orElse(0.0F);
+        if (finalOpacity < 0.0F || finalOpacity > 1.0F) {
+            errors.add(
+                    "PresentationAction leaves Dialogue opacity outside 0..1."
+            );
+            return false;
+        }
+        return true;
+    }
+}

@@ -1,0 +1,48 @@
+package top.rookiestwo.maimai_dialogue.presentation.action.resource;
+
+import net.minecraft.server.packs.resources.PreparableReloadListener;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.util.profiling.ProfilerFiller;
+import top.rookiestwo.maimai_dialogue.MaiMaiDialogue;
+
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Consumer;
+
+public final class ActionReloadListener implements PreparableReloadListener {
+    private final Consumer<ActionSnapshot> snapshotConsumer;
+
+    public ActionReloadListener(Consumer<ActionSnapshot> snapshotConsumer) {
+        this.snapshotConsumer = Objects.requireNonNull(
+                snapshotConsumer,
+                "snapshotConsumer"
+        );
+    }
+
+    @Override
+    public CompletableFuture<Void> reload(
+            PreparationBarrier barrier,
+            ResourceManager resourceManager,
+            ProfilerFiller preparationProfiler,
+            ProfilerFiller reloadProfiler,
+            Executor backgroundExecutor,
+            Executor gameExecutor
+    ) {
+        return CompletableFuture
+                .supplyAsync(
+                        () -> ActionResourceLoader.load(resourceManager),
+                        backgroundExecutor
+                )
+                .thenCompose(barrier::wait)
+                .thenAcceptAsync(result -> {
+                    result.logErrors(MaiMaiDialogue.LOGGER);
+                    snapshotConsumer.accept(result.snapshot());
+                    MaiMaiDialogue.LOGGER.info(
+                            "Loaded {} presentation actions with {} errors.",
+                            result.snapshot().size(),
+                            result.errors().size()
+                    );
+                }, gameExecutor);
+    }
+}

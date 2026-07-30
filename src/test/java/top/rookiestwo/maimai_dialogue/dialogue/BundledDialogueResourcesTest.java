@@ -4,6 +4,8 @@ import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import org.junit.jupiter.api.Test;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.action.PresentationAction;
+import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -16,7 +18,9 @@ class BundledDialogueResourcesTest {
     private static final List<String> DIALOGUES = List.of(
             "root",
             "public",
-            "locked"
+            "locked",
+            "theme",
+            "crt"
     );
 
     @Test
@@ -61,7 +65,41 @@ class BundledDialogueResourcesTest {
         }
     }
 
+    @Test
+    void bundledThemeAndPresentationActionDecode() {
+        ThemeDefinition theme = decodeResource(
+                "assets/maimai_dialogue/dialogue_themes/default.json",
+                ThemeDefinition.CODEC
+        );
+        ThemeDefinition parchment = decodeResource(
+                "assets/maimai_dialogue/dialogue_themes/"
+                        + "demo/parchment.json",
+                ThemeDefinition.CODEC
+        );
+        PresentationAction action = decodeResource(
+                "assets/maimai_dialogue/presentation_actions/"
+                        + "demo/marker_enter.json",
+                PresentationAction.CODEC
+        );
+
+        assertEquals(1, theme.box().cornerRadiusDp());
+        assertEquals(
+                0xFF2B1A10,
+                parchment.text().primary().argb()
+        );
+        assertEquals(4, theme.controls().scrollbarWidthDp());
+        assertEquals(5, parchment.controls().scrollbarWidthDp());
+        assertEquals(700, action.durationMs());
+    }
+
     private static DialogueDefinition decode(String path) {
+        return decodeResource(path, DialogueDefinition.CODEC);
+    }
+
+    private static <T> T decodeResource(
+            String path,
+            com.mojang.serialization.Codec<T> codec
+    ) {
         var stream = BundledDialogueResourcesTest.class
                 .getClassLoader()
                 .getResourceAsStream(path);
@@ -71,7 +109,7 @@ class BundledDialogueResourcesTest {
                 stream,
                 StandardCharsets.UTF_8
         )) {
-            return DialogueDefinition.CODEC.parse(
+            return codec.parse(
                     JsonOps.INSTANCE,
                     JsonParser.parseReader(reader)
             ).getOrThrow(AssertionError::new);

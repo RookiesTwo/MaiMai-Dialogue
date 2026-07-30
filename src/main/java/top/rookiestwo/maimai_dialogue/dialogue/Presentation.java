@@ -70,6 +70,13 @@ public record Presentation(
             Presentation presentation
     ) {
         for (String objectId : presentation.visualObjects.keySet()) {
+            if (objectId.equals("background")
+                    || objectId.equals("dialogue")) {
+                return DataResult.error(
+                        () -> "VisualObject ID '" + objectId
+                                + "' is reserved."
+                );
+            }
             if (!objectId.matches("[a-z0-9_-]+")) {
                 return DataResult.error(
                         () -> "Invalid VisualObject ID '" + objectId + "'."

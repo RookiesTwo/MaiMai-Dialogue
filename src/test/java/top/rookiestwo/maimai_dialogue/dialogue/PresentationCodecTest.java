@@ -5,6 +5,7 @@ import com.mojang.serialization.JsonOps;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -15,7 +16,11 @@ class PresentationCodecTest {
                 {
                   "theme": "maimai_dialogue:default",
                   "background": {
-                    "image": "maimai_dialogue:demo/background.png",
+                    "variants": {
+                      "day": "maimai_dialogue:demo/background.png",
+                      "night": "maimai_dialogue:demo/background_night.png"
+                    },
+                    "initial_variant": "day",
                     "fit": "cover",
                     "opacity": 0.9
                   },
@@ -54,6 +59,13 @@ class PresentationCodecTest {
 
         assertEquals(1, presentation.visualObjects().size());
         assertEquals(
+                "maimai_dialogue:demo/background.png",
+                presentation.background()
+                        .orElseThrow()
+                        .initialImage()
+                        .toString()
+        );
+        assertEquals(
                 "maimai_dialogue:demo/guide.png",
                 presentation.visualObjects()
                         .get("guide")
@@ -83,6 +95,17 @@ class PresentationCodecTest {
         );
         assertEquals(0.22F, filter.scanlineStrength());
         assertEquals(1.0F, filter.chromaticAberration());
+        assertTrue(filter.animated());
+        assertFalse(new CrtFilter(
+                0.1F,
+                0.2F,
+                0.1F,
+                1.0F,
+                0.2F,
+                0.0F,
+                0.0F,
+                0.2F
+        ).animated());
     }
 
     @Test

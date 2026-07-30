@@ -65,4 +65,8 @@ public record CrtFilter(
     public Type type() {
         return Type.CRT;
     }
+
+    public boolean animated() {
+        return noise > 0.0F || flicker > 0.0F;
+    }
 }

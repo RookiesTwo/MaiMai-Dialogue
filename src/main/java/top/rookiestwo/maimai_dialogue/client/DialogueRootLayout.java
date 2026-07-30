@@ -1,6 +1,8 @@
 package top.rookiestwo.maimai_dialogue.client;
 
 import icyllis.modernui.core.Context;
+import icyllis.modernui.annotation.NonNull;
+import icyllis.modernui.view.KeyEvent;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
 import icyllis.modernui.widget.FrameLayout;
@@ -12,16 +14,30 @@ import java.util.Objects;
 final class DialogueRootLayout extends FrameLayout {
     private final DialogueSceneLayer sceneLayer;
     private final View dialogueBox;
+    private final View historyEntry;
+    private final View historyOverlay;
     private DialogueBoxLayout dialogueBoxLayout = DialogueBoxLayout.DEFAULT;
+    private Runnable advanceAction = () -> {
+    };
 
     DialogueRootLayout(
             Context context,
             DialogueSceneLayer sceneLayer,
-            View dialogueBox
+            View dialogueBox,
+            View historyEntry,
+            View historyOverlay
     ) {
         super(context);
         this.sceneLayer = Objects.requireNonNull(sceneLayer, "sceneLayer");
         this.dialogueBox = Objects.requireNonNull(dialogueBox, "dialogueBox");
+        this.historyEntry = Objects.requireNonNull(
+                historyEntry,
+                "historyEntry"
+        );
+        this.historyOverlay = Objects.requireNonNull(
+                historyOverlay,
+                "historyOverlay"
+        );
         addView(
                 sceneLayer,
                 new LayoutParams(
@@ -36,11 +52,51 @@ final class DialogueRootLayout extends FrameLayout {
                         LayoutParams.WRAP_CONTENT
                 )
         );
+        addView(
+                historyEntry,
+                new LayoutParams(
+                        LayoutParams.WRAP_CONTENT,
+                        LayoutParams.WRAP_CONTENT
+                )
+        );
+        addView(
+                historyOverlay,
+                new LayoutParams(
+                        LayoutParams.MATCH_PARENT,
+                        LayoutParams.MATCH_PARENT
+                )
+        );
     }
 
     void setDialogueBoxLayout(DialogueBoxLayout layout) {
         dialogueBoxLayout = Objects.requireNonNull(layout, "layout");
         requestLayout();
+    }
+
+    void setAdvanceAction(Runnable advanceAction) {
+        this.advanceAction = Objects.requireNonNull(
+                advanceAction,
+                "advanceAction"
+        );
+    }
+
+    void setDialogueOpacity(float opacity) {
+        float clamped = Math.clamp(opacity, 0.0F, 1.0F);
+        sceneLayer.setAlpha(clamped);
+        dialogueBox.setAlpha(clamped);
+        historyEntry.setAlpha(clamped);
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
+        if (event.getKeyCode() == KeyEvent.KEY_SPACE) {
+            if (event.getAction() == KeyEvent.ACTION_UP
+                    && !event.isCanceled()) {
+                advanceAction.run();
+            }
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
     }
 
     @Override
@@ -65,6 +121,16 @@ final class DialogueRootLayout extends FrameLayout {
                 MeasureSpec.makeMeasureSpec(boxWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(boxMaxHeight, MeasureSpec.AT_MOST)
         );
+        historyEntry.measure(
+                MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST),
+                MeasureSpec.makeMeasureSpec(height, MeasureSpec.AT_MOST)
+        );
+        if (historyOverlay.getVisibility() != GONE) {
+            historyOverlay.measure(
+                    MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
+            );
+        }
 
         setMeasuredDimension(
                 View.resolveSize(width, widthMeasureSpec),
@@ -100,6 +166,20 @@ final class DialogueRootLayout extends FrameLayout {
                 boxLeft + boxWidth,
                 boxTop + boxHeight
         );
+        int historyWidth = historyEntry.getMeasuredWidth();
+        int historyHeight = historyEntry.getMeasuredHeight();
+        int historyMargin = dp(12);
+        int historyLeft = width - historyMargin - historyWidth;
+        int historyTop = (height - historyHeight) / 2;
+        historyEntry.layout(
+                historyLeft,
+                historyTop,
+                historyLeft + historyWidth,
+                historyTop + historyHeight
+        );
+        if (historyOverlay.getVisibility() != GONE) {
+            historyOverlay.layout(0, 0, width, height);
+        }
     }
 
     private static float horizontalAnchor(VisualAnchor anchor) {

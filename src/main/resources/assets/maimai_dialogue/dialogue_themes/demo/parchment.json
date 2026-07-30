@@ -1,0 +1,43 @@
+{
+  "box": {
+    "background": "#E8F2E2BE",
+    "border": "#FF593A22",
+    "divider": "#98593A22",
+    "corner_radius": 2,
+    "border_width": 1
+  },
+  "text": {
+    "primary": "#FF2B1A10",
+    "error": "#FF9E241C",
+    "speaker_size": 16,
+    "dialogue_size": 17,
+    "option_size": 15,
+    "auxiliary_size": 13
+  },
+  "option": {
+    "background": "#28FFFFFF",
+    "hover_background": "#807A5634",
+    "pressed_background": "#A05A351D",
+    "border": "#80593A22",
+    "hover_border": "#FF2B1A10",
+    "corner_radius": 2,
+    "horizontal_padding": 14,
+    "vertical_padding": 9,
+    "spacing": 3
+  },
+  "spacing": {
+    "header_horizontal": 14,
+    "header_vertical": 8,
+    "content_horizontal": 14,
+    "content_vertical": 12,
+    "options_padding": 8,
+    "options_collapsed_max_height": 160,
+    "options_expanded_max_height": 320
+  },
+  "controls": {
+    "icon": "#FF7E3F20",
+    "scrollbar_thumb": "#D0593A22",
+    "scrollbar_track": "#40593A22",
+    "scrollbar_width": 5
+  }
+}

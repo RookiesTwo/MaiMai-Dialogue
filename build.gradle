@@ -125,6 +125,9 @@ dependencies {
     }
 
     testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
+    testImplementation("dev.icyllis:modernui-core:${modernui_version}") {
+        transitive = false
+    }
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 
     // Example mod dependency with JEI

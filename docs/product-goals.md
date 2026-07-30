@@ -91,9 +91,11 @@ Minecraft 游戏世界
 ### 3.4 历史记录
 
 - 历史记录入口位于整个界面的右侧，不放在对话框头部。
-- 客户端可以选择是否显示该入口。
 - 历史记录以右侧抽屉形式打开。
-- 历史内容的保存范围和具体数据结构尚未确定。
+- 历史只属于当前一次 Dialogue UI session；首次打开任意 Dialogue 时创建，切换 root/子 Dialogue 和 Return 时继承，关闭 MOD Dialogue UI 后立即清空。
+- 每次进入一个有正文的 Step 时记录当时解析出的 Speaker 显示名称和完整正文；选择 Option 且本地或服务端确认分支后记录 Option 文本。
+- 历史仅保存在客户端内存，不写入 NBT、不发送 payload，也不保留旧 View、Fragment、DialogueDefinition 或 Scene 引用。
+- 抽屉内容可滚动，每条记录之间绘制分割线；Dialogue 正文按 Markdown 渲染，Option 记录保持普通文本。
 
 ### 3.5 主题与客户端设置
 
@@ -107,7 +109,7 @@ Minecraft 游戏世界
 
 对话播放与选项选择是两个不同的交互阶段：
 
-- 播放句子时，鼠标左键点击非按钮区域或按下可重绑的“推进对话”KeyMapping，完成或推进内容。
+- 播放句子时，鼠标左键点击非按钮区域或按空格键，完成或推进内容；空格只在 Dialogue UI 打开时消费，不注册全局 KeyMapping。
 - 如果当前句子的打字机动画尚未结束，第一次推进只立即显示完整当前句，不进入下一句。
 - 当前句已经完整显示后，再次推进才进入下一句。
 - 出现选项时，空白区域点击不推进；只有选项行及历史、展开等独立 UI controls 可点击。
@@ -157,9 +159,9 @@ DialogueDefinition
 - `steps` 省略等价于空列表。
 - `presentation`、`end` 和 EndStep 的 `exit` 必填。
 - Step 的 `text` 省略表示没有文字，可用于纯画面 Step；不使用 JSON `null`。
-- TextContent、Markdown 和本地化模型暂不实现，首阶段使用普通 String。
+- 首阶段仍使用普通 String；客户端仅把 Dialogue 正文 String 解释为 Markdown，Speaker、Option 和其他 controls 保持普通文本。本地化模型暂不实现。
 - JSON 语法、Codec 或 ProgressExpression 解析失败时，只跳过当前 Dialogue 并记录带 ResourceLocation 的错误。
-- 不在加载时强制目标 Dialogue 存在；两端文件不一致由运行时存在性校验和客户端错误处理覆盖。
+- 客户端资源 reload 完成后统一校验 Dialogue 对 Theme、Speaker、PresentationAction、目标 Dialogue 和 Scene 图片的引用；错误用于内容包开发，运行时存在性检查仍作为两端文件不一致时的最后防线。
 
 示例：
 
@@ -243,6 +245,10 @@ Step
 
 Theme 只定义 UI 样式，包括对话框、选项行、字体、颜色、边框、间距、历史抽屉和 controls，不包含背景或 VisualObject。
 
+- Theme 资源位于客户端资源包的 `assets/<namespace>/dialogue_themes/<path>.json`，资源 ID 为 `<namespace>:<path>`。
+- `Presentation.theme` 引用外部 Theme；引用缺失时报告内容包开发错误并临时回退内置 `ThemeDefinition.DEFAULT`。
+- ThemeDefinition 作为单一 Theme 根统一驱动 DialogueBox、正文、Option、滚动区域、展开按钮和历史抽屉；`box`、`text`、`option`、`spacing`、`controls` 共同覆盖这些控件，其中 controls 统一提供 Option icon 与 Options/历史 scrollbar 样式。
+
 ```text
 Presentation
 ├─ theme：外部引用或内联，必填
@@ -253,14 +259,14 @@ Presentation
 ```
 
 - Scene Filter 只作用于 Presentation 的 background 和全部 VisualObject，不影响 DialogueBox、Options、历史记录或其他 UI controls，也不影响透明区域后方的 Minecraft 世界。
-- 渲染时先将 background 与 VisualObject 合成到独立 Scene RenderTarget，再执行 Filter pass，最后在其上方绘制 UI layer。
+- 静态单 pass 色彩滤镜直接应用于 Scene layer 内的 background 与 VisualObject ImageView；DialogueBox 位于该 layer 之外，因此不受影响。需要合成结果的多 pass 滤镜再使用 ModernUI 实际支持的离屏渲染路径。
 - `filter` 省略表示不启用滤镜；首版提供内置静态 `color_adjust`，支持 brightness、contrast、saturation 和 tint。
-- `background` 首版支持 image、cover/contain/stretch fit 与 opacity。
+- `background` 支持预声明 variants、initial_variant、cover/contain/stretch fit 与 opacity；Action 只负责切换已声明贴图，不动态发明差分。
 - `dialogue_box` 首版支持归一化 x/y、width、max_height 与九宫格 anchor。
 - `visual_objects` 首版静态状态支持 variants、initial_variant、归一化 x/y、九宫格 anchor、scale、opacity、visible 与 z_index。
 - Filter 随当前 Dialogue 的 Presentation 初始化和销毁；切换 Dialogue 或 Return 到 root 时重新创建，不继承前一个场景状态。
 - 首版 Filter 不参与 PresentationAction 动画，也不允许 Data Pack 提供任意 shader；后续可以增加 blur、vignette、grayscale 等内置类型或扩展为多 pass filter list。
-- 内置 Filter 待办包含 `crt`：支持曲面畸变、扫描线、RGB shadow mask、轻微色差、暗角、噪点和闪烁；可选 Bloom 使用额外 pass。CRT 只处理 Scene RenderTarget 并保留 alpha，因此不影响 Dialogue UI 或透明区域后方的 Minecraft 世界。
+- 内置 `crt` Filter 使用 Arc3D GPU RenderTarget 合成 Scene：执行分条曲率采样、扫描线、RGB shadow mask、轻微色差、暗角、噪点和闪烁，并以额外 pass 叠加 Bloom。效果保留 alpha，只处理 Scene，不影响 Dialogue UI 或透明区域后方的 Minecraft 世界。
 - 所有 VisualObject 必须在 Presentation 中预先声明；Step 不能动态创建未声明对象。
 - 暂不显示的对象使用 `visible: false`。
 - 每个对象包含稳定 ID、图片差分表、初始差分、位置、缩放、透明度、可见性和场景内层级。
@@ -269,12 +275,17 @@ Presentation
 Step 使用 PresentationAction 描述表现变化：
 
 - Action 可以作为外部 ResourceLocation 预制，也可以在 Step 中内联。
+- 外部 Action 位于客户端资源包的 `assets/<namespace>/presentation_actions/<path>.json`。
 - ActionCall 在调用时指定目标；同一 Step 的调用同时调度并通过 delay 控制开始时间。
 - 数值轨道使用相对值；图片差分、visible 等离散属性使用显式设置值。
+- 首个运行版本支持有限 Action 的 `duration_ms`、`delay_ms`、`easing`、`blocking`，以及 x、y、scale、opacity 数值 keyframes和 variant、visible 定时设置。
+- keyframe 的 `at` 为 Action 内 0 到 1 的归一化时间；数值 value 是相对进入 Step 时 S0 的偏移量。
+- 外部与内联 Action 统一使用显式 `type: reference/inline`，不根据 JSON 值类型猜测。
 - 有限 Action 默认阻塞 Step；循环 Action 永不阻塞。
 - 多个 Action 在同一 Step 写入同一对象的同一属性属于加载错误。
 - 进入 Step 时以 S0 预计算 S1；正常播放按 keyframes 从 S0 到 S1，跳过时直接提交 S1，不能从中间状态再次叠加相对值。
 - Action 数据不直接保存 ModernUI View、Animator 或其他运行时对象。
+- Scene/Dialogue 转场作为 PresentationAction 接入同一 PlaybackPhase、跳过和 S1 结算管线，不建立独立 Transition 状态机；默认转场为 fade，首版保持最小可维护配置。
 
 ### 5.5 Exit 与 Option
 
@@ -380,13 +391,10 @@ MaiMaiDialogueApi.get()
 
 `PlayerProgressRepository` 属于内部实现，不直接作为公共 API 暴露。
 
-### 5.7 仍待确定
+### 5.7 延后项
 
-- Theme 与 PresentationAction 的最终 JSON/Codec；
-- VisualObject 差分切换与运行时 Action；当前仅实现 Presentation 初始化时的 initial_variant 静态状态；
-- Action 支持的具体属性、keyframe 字段和 easing 集合；
-- 历史记录的保存范围和展示数据；
-- 文字本地化和 Markdown 支持，首阶段明确延期。
+- 循环 Action 的持久运行、取消和跨 Step 组合规则；首个运行版本只执行有限 Action；
+- 文字本地化模型；Markdown 已仅在 Dialogue 正文启用。
 
 ## 6. 无 session 网络协议
 
@@ -590,7 +598,7 @@ NeoForge payload handler
 6. 再细化 PresentationAction、Theme、VisualObject、资源校验与错误展示；
 7. 最后处理历史记录、本地化和 Markdown。
 
-## 9. 当前实现状态（2026-07-29）
+## 9. 当前实现状态（2026-07-30）
 
 首个最小闭环的基础实现已经落地：
 
@@ -603,13 +611,41 @@ NeoForge payload handler
 - 已实现最小 ClientDialogueController 与 ModernUI Screen；
 - OptionsExit 的目标访问状态在 Dialogue 激活时预取，点击目标时再次向服务端校验；
 - 已实现 root/current 识别、Return 导航、客户端文件缺失开发错误，以及已有 Dialogue UI 时忽略 OpenDialogueS2C；
-- 已加入 `maimai_dialogue:demo/root`、`public`、`locked` 双端示例资源和基础 JUnit 测试。
+- 已加入 `maimai_dialogue:demo/root`、`public`、`locked`、`theme`、`crt` 双端示例资源和基础 JUnit 测试。
 - 已实现客户端 SpeakerDefinition、资源快照与 reload；默认 demo 使用 `maimai_dialogue:demo/guide`。
 - 默认 Dialogue UI 已改为稳定的 Header、Content、Options 三栏 View tree，并实现近直角半透明黑底、白色描边、分割线、Option padding、左对齐和 hover 状态。
 - 已实现 Presentation、Background、DialogueBoxLayout、VisualObject 与 SceneFilter Codec。
 - 已实现按 Dialogue generation 创建和销毁的静态 Scene layer，支持背景、VisualObject 初始差分、位置、缩放、透明度、可见性和 z_index。
-- 已实现独立 Arc3D Scene RenderTarget；`color_adjust` 在合成后的 Scene 上执行 ColorMatrix pass，不处理 DialogueBox 和其他 UI。
-- 已实现 `crt` 配置 Codec 与 Scene composite effect 扩展边界；CRT shader/multi-pass 渲染仍为明确待办。
+- 已实现 `color_adjust`：通过 ModernUI ImageView 的 ColorFilter 对 background 与 VisualObject 执行同一 ColorMatrix，不处理 DialogueBox 和其他 UI。当前 ModernUI UI Canvas 不支持通过 `Canvas.makeSurface` 创建子 Surface，因此不再使用该无效 RenderTarget 路径。
+- 已实现 `crt` 配置 Codec 与 Arc3D Scene composite renderer：曲率、扫描线、RGB mask、色差、暗角、噪点、闪烁及 Bloom multi-pass 均只作用于 Scene；另有 `maimai_dialogue:demo/crt` 示例。
 - `maimai_dialogue:demo/root` 已加入 Minecraft 内置 panorama 背景、emerald VisualObject 和可见的 `color_adjust` 示例。进入世界后可执行 `/maimai_dialogue open @s maimai_dialogue:demo/root` 查看。
+- 已实现 ThemeDefinition 外部资源、snapshot/reload 和内置 `maimai_dialogue:default`；默认 Dialogue UI 的 box、text、option 与 spacing 已由 Theme 驱动。
+- 已实现有限 PresentationAction、外部 Action 资源、内联 ActionCall、相对数值 keyframes、variant/visible 离散变更、属性冲突检查与 S1 预计算。
+- 已接入 PlaybackPhase：阻塞 Action 播放中第一次推进只跳过并提交 S1，自然完成后进入 READY；EndStep Options 等到 READY 才显示。
+- demo 的 emerald 使用外部入场 Action；进入 EndStep 时使用内联 Action 横移并切换为 diamond。
+- 已接入 ModernUI-Markflow，仅 Dialogue 正文解析 Markdown；正文使用打字机动画，并与阻塞 Scene Action 共同决定 PlaybackPhase，第一次推进同时结算文字和 Scene。
+- 已实现 Dialogue UI 内固定空格推进，不注册全局 KeyMapping。
+- Options 已使用滚动视口；仅在内容实际溢出时显示 Expand，展开后仍保留滚动，折叠/展开高度由统一 Theme spacing 控制。
+- 已实现纯客户端 session 历史：记录正文与已确认 Option，Dialogue 切换继承，界面关闭清空；右侧入口打开可滚动、带分割线的历史抽屉。
+- 已加入明显不同的 `maimai_dialogue:demo/parchment` 浅色 Theme，并提供 `maimai_dialogue:demo/theme` 双端示例 Dialogue。
+- Background 已资源化为预声明 variants，并可由同一 PresentationAction 管线切换；root demo 在 EndStep 切换 panorama。
+- Dialogue 默认 fade-in 已作为普通 `dialogue.opacity` Action 注入，与其他 Action 共用 PlaybackPhase、skip 和 S1 结算，不存在独立 Transition 状态机。
+- 客户端 reload 末尾统一执行全局引用校验，集中报告缺失 Theme、Speaker、PresentationAction、目标 Dialogue、Scene 图片，以及非法 Action target/variant。
 
-当前 ModernUI Screen 已具备静态 Presentation 场景和默认三栏 Dialogue UI。打字机 PlaybackPhase、可重绑推进 KeyMapping、Theme 资源、PresentationAction、VisualObject 动态差分/动画、CRT shader、历史记录、本地化和 Markdown 仍按前述顺序后续实现。
+当前确认的 11 项实现顺序已完成。仍明确延后的内容包括循环/跨 Step Action、Background/DialogueBox/Filter 通用动画、复杂 easing、自定义字体、本地化、动态 VisualObject 生命周期和更复杂的 Scene 转场组合。
+
+### 10.1 11 项客户端手测验收
+
+使用 `/maimai_dialogue open @s maimai_dialogue:demo/root` 打开示例，并按顺序检查：
+
+1. 首次打开使用默认 fade，Scene 与 DialogueBox 同步渐入；渐入仍处于 PlaybackPhase，第一次推进可以直接结算。
+2. 正文逐字显示；播放中第一次按 Space 只显示完整当前句并结算当前 Scene Action，第二次才进入下一 Step。
+3. `demo/theme` 的标题、粗体、斜体和 inline code 只在 Dialogue 正文按 Markdown 渲染；Speaker 与 Option 不解析 Markdown。
+4. root 的 Options 超出折叠高度时出现 Expand；折叠与展开状态均可滚动，Collapse 能恢复折叠高度。
+5. 默认 Theme 为近直角半透明黑底、白色描边和明显分割线；Option 左对齐、有 padding，hover 时背景或描边高亮。
+6. Option icon、Expand/History/Close controls，以及 Options 与历史 scrollbar 均随当前 Theme 改变；`demo/theme` 的 parchment 视觉应明显不同。
+7. 打开 History 后可以滚动，记录间有分割线；正文和已确认 Option 均出现。进入子 Dialogue、Return 到 root 时保留记录；关闭 MOD UI 后重新打开任意 Dialogue，旧记录清空。
+8. root 从 ContinueStep 推进到 EndStep 时，Background 从 panorama default variant 切换为 alternate；只切换预声明贴图。
+9. 进入 root、子 Dialogue、Return root 时均通过同一 `dialogue.opacity` Action 执行默认 fade；Space 跳过与普通 Scene Action 使用同一结算行为。
+10. `demo/crt` 中背景和 redstone VisualObject 出现曲率、扫描线、RGB mask、色差、暗角、轻微噪点/闪烁和 Bloom；DialogueBox、Options 与历史保持清晰，透明 Scene 区域不覆盖 Minecraft 世界。
+11. 执行资源 reload 后日志出现 `Validated all client Dialogue resource references successfully.`，且不再反复出现 `Could not create the Dialogue Scene RenderTarget`；缺失引用仅作为内容包开发错误集中报告。
