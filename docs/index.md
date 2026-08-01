@@ -30,11 +30,12 @@ features:
 
 如果你负责服务器管理，可以直接查看[命令与管理](./publish/commands.md)。如果你正在开发另一个 NeoForge MOD，可以从 [Java API](./integration/java-api.md) 接入。
 
-## 三步开始
+## 四步开始
 
 1. [安装 MaiMai Dialogue](./start/installation.md)，准备一个 Minecraft 1.21.1 测试实例。
-2. [创建内容包](./start/content-project.md)，建立配套的 Resource Pack 与 Data Pack。
-3. [制作第一段对话](./start/first-dialogue.md)，进入世界亲自打开它。
+2. [了解 MOD 如何工作](./start/dialogue-structure.md)，看懂 Data Pack、Resource Pack 与 MOD 怎样配合。
+3. [创建内容包](./start/content-project.md)，建立配套的 Resource Pack 与 Data Pack。
+4. [制作第一段对话](./start/first-dialogue.md)，进入世界亲自打开它。
 
 完成后，沿左侧目录逐章加入 Speaker、Markdown、选项、Progress、背景、立绘、动画和 Theme。所有教程都会继续使用同一个 `example` 示例工程。
 

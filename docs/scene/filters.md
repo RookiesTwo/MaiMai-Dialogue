@@ -11,106 +11,38 @@ description: 使用 color_adjust 或 crt 改变背景与 VisualObject 的画面�
 
 ## 开始前
 
-你已经完成[调整对话框布局](./dialogue-box.md)，root 的 `presentation` 中已有背景和 `guide_marker`。
+你已经完成[调整对话框布局](./dialogue-box.md)，`welcome` 的 `presentation` 中已有背景和 `guide_marker`。
 
 ## 需要修改的文件
 
 同步修改资源包与数据包中的：
 
 ```text
-<资源包>/assets/example/dialogues/guide/root.json
-<数据包>/data/example/dialogues/guide/root.json
+<资源包>/assets/example/dialogues/guide/welcome.json
+<数据包>/data/example/dialogues/guide/welcome.json
 ```
 
 ## 跟着做
 
-1. 在 `presentation` 中加入：
+在 `presentation` 中加入 `filter`。本章使用 `color_adjust`：
 
-```json
+::: code-group
+
+```json{3-9} [本章改动]
 {
-  "filter": {
-    "type": "color_adjust",
-    "brightness": -0.03,
-    "contrast": 1.08,
-    "saturation": 0.6,
-    "tint": "#30A0C8FF"
-  }
-}
-```
-
-上面展示的是要合并进 `presentation` 的完整字段。
-
-加入后，root 的完整 `presentation` 应为：
-
-```json
-{
-  "theme": "maimai_dialogue:default",
-  "background": {
-    "variants": {
-      "default": "minecraft:gui/title/background/panorama_0.png",
-      "alternate": "minecraft:gui/title/background/panorama_1.png"
-    },
-    "initial_variant": "default",
-    "fit": "cover",
-    "opacity": 0.82
-  },
-  "dialogue_box": {
-    "x": 0.5,
-    "y": 0.95,
-    "width": 0.82,
-    "max_height": 0.42,
-    "anchor": "bottom_center"
-  },
-  "visual_objects": {
-    "guide_marker": {
-      "variants": {
-        "default": "minecraft:item/emerald.png",
-        "alternate": "minecraft:item/diamond.png"
-      },
-      "initial_variant": "default",
-      "x": 0.5,
-      "y": 0.3,
-      "anchor": "center",
-      "scale": 8.0,
-      "sampling": "nearest",
-      "opacity": 1.0,
-      "visible": true,
-      "z_index": 10
+  "presentation": {
+    "filter": {
+      "type": "color_adjust",
+      "brightness": -0.03,
+      "contrast": 1.08,
+      "saturation": 0.6,
+      "tint": "#30A0C8FF"
     }
-  },
-  "filter": {
-    "type": "color_adjust",
-    "brightness": -0.03,
-    "contrast": 1.08,
-    "saturation": 0.6,
-    "tint": "#30A0C8FF"
   }
 }
 ```
 
-Filter 只处理当前 Dialogue 的背景和 VisualObject，不会改变 DialogueBox、Options、历史记录或后方的 Minecraft 世界。
-
-如果你想尝试 CRT 效果，可将 `filter` 完整替换为：
-
-```json
-{
-  "type": "crt",
-  "curvature": 0.14,
-  "scanline_strength": 0.32,
-  "mask_strength": 0.2,
-  "chromatic_aberration": 1.3,
-  "vignette": 0.3,
-  "noise": 0.05,
-  "flicker": 0.025,
-  "bloom": 0.24
-}
-```
-
-2. 当前阶段可直接复制的完整 `root.json` 如下；两个位置都使用相同内容：
-
-::: details 展开完整 root.json
-
-```json
+```json:line-numbers {41-47} [完整 welcome.json]
 {
   "presentation": {
     "theme": "maimai_dialogue:default",
@@ -161,7 +93,7 @@ Filter 只处理当前 Dialogue 的背景和 VisualObject，不会改变 Dialogu
         "type": "set",
         "id": "example:guide"
       },
-      "text": "# 欢迎来到村庄\n\n你想了解什么？",
+      "text": "# 欢迎来到村庄\n\n我是这里的 **向导**。",
       "actions": [
         {
           "target": "guide_marker",
@@ -171,9 +103,15 @@ Filter 只处理当前 Dialogue 的背景和 VisualObject，不会改变 Dialogu
           }
         }
       ]
+    },
+    {
+      "text": "沿着 *石路* 向前，就能找到 `market`。"
     }
   ],
   "end": {
+    "speaker": {
+      "type": "hide"
+    },
     "text": "请选择一个话题。",
     "actions": [
       {
@@ -241,9 +179,27 @@ Filter 只处理当前 Dialogue 的背景和 VisualObject，不会改变 Dialogu
 
 :::
 
+把完整文件同步保存到两个 Pack。Filter 只处理当前 Dialogue 的背景和 VisualObject，不会改变 DialogueBox、Options、历史记录或后方的 Minecraft 世界。
+
+如果你想尝试 CRT 效果，可将 `filter` 完整替换为：
+
+```json{2-10} [CRT filter]
+{
+  "type": "crt",
+  "curvature": 0.14,
+  "scanline_strength": 0.32,
+  "mask_strength": 0.2,
+  "chromatic_aberration": 1.3,
+  "vignette": 0.3,
+  "noise": 0.05,
+  "flicker": 0.025,
+  "bloom": 0.24
+}
+```
+
 ## 进入游戏验证
 
-重载后打开 root。背景和 emerald/diamond 应明显降低饱和度并带有冷色调，对话框文字颜色不应变化。
+重载后打开 `example:guide/welcome`。背景和 emerald/diamond 应明显降低饱和度并带有冷色调，对话框文字颜色不应变化。
 
 ## 如果没有生效
 

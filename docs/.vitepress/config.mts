@@ -29,7 +29,8 @@ export default defineConfig({
       {
         text: "开始使用",
         items: [
-          { text: "安装", link: "/start/installation" },
+            { text: "安装", link: "/start/installation" },
+            { text: "MOD 如何工作", link: "/start/dialogue-structure" },
             { text: "创建内容包", link: "/start/content-project" },
           { text: "第一段对话", link: "/start/first-dialogue" },
         ],

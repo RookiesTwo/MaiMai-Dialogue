@@ -59,4 +59,4 @@ description: 安装 MaiMai Dialogue，并确认内置示例可以正常打开。
 
 ## 下一步
 
-继续[创建内容包](./content-project.md)，为自己的 Dialogue 准备 Resource Pack 与 Data Pack。
+继续[了解 MOD 如何工作](./dialogue-structure.md)，看看 Data Pack、Resource Pack 和 MOD 怎样一起把对话显示给玩家。

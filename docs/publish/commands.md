@@ -28,7 +28,7 @@ description: 使用 /maimai_dialogue 打开对话并管理在线玩家的 Progre
 例如：
 
 ```text
-/maimai_dialogue open @s example:guide/root
+/maimai_dialogue open @s example:guide/welcome
 ```
 
 服务端会检查 Dialogue 是否存在、玩家进度是否可用以及 `requires` 是否满足。“已发送”表示打开请求已经发给客户端，不保证缺少本地资源的客户端一定能显示。

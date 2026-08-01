@@ -68,7 +68,7 @@ require-resource-pack=true
 ```text
 /reload
 /datapack list enabled
-/maimai_dialogue open @s example:guide/root
+/maimai_dialogue open @s example:guide/welcome
 ```
 
 确认列表中存在 `example_dialogue_data`，并在客户端测试：公开选项、受 Progress 限制的选项、子 Dialogue Return、背景、动画、Filter 和 Theme。

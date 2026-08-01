@@ -11,7 +11,7 @@ description: 向玩家说明推进、跳过、选择、滚动、历史和关闭�
 
 ## 开始前
 
-打开任意可用 Dialogue；推荐使用教程中的 `example:guide/root` 或内置 Demo。
+打开任意可用 Dialogue；推荐使用教程中的 `example:guide/welcome` 或内置 Demo。
 
 ## 需要修改的文件
 
@@ -35,13 +35,13 @@ description: 向玩家说明推进、跳过、选择、滚动、历史和关闭�
 ### 历史记录
 
 - 右侧 History 入口会显示本次界面中已经播放的正文和已确认的选项。
-- 进入子 Dialogue 或 Return 到 root 时，历史仍然保留。
+- 进入子 Dialogue 或 Return 到入口 Dialogue 时，历史仍然保留。
 - 关闭界面、死亡、断线或被其他 Screen 替换后，历史会清空且不会写入存档。
 
 ### Return 与关闭
 
-- 子 Dialogue 的 Return 会重新进入 root 的开头。
-- root 的 Return 会关闭界面。
+- 子 Dialogue 的 Return 会重新进入入口 Dialogue 的开头。
+- 入口 Dialogue 的 Return 会关闭界面。
 - Esc 和界面关闭操作会结束当前对话。
 - Dialogue 不会暂停游戏世界，也没有自动播放。
 

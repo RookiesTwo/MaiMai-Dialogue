@@ -67,7 +67,7 @@ import top.rookiestwo.maimai_dialogue.api.MaiMaiDialogueApi;
 ServerPlayer player = /* 当前在线玩家 */;
 ResourceLocation dialogueId = ResourceLocation.fromNamespaceAndPath(
         "example",
-        "guide/root"
+        "guide/welcome"
 );
 
 MaiMaiDialogueApi.get()
@@ -133,7 +133,7 @@ progress.remove(player, node).thenAccept(result -> {
 
 1. 为在线玩家添加 `guide.secret_unlocked`；
 2. 等待 CompletionStage 成功完成；
-3. 调用 `dialogues().open(player, example:guide/root)`；
+3. 调用 `dialogues().open(player, example:guide/welcome)`；
 4. 确认受保护选项已经出现。
 
 ## 如果没有生效

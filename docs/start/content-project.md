@@ -11,7 +11,7 @@ description: 为 example namespace 建立 Resource Pack 与 Data Pack。
 
 ## 开始前
 
-你已经完成[安装](./installation.md)，并创建了一个用于测试的单人世界。退出世界后，在单人游戏列表中选择该世界，通过“编辑 → 打开世界文件夹”可以找到它的目录。
+你已经[了解 MOD 如何工作](./dialogue-structure.md)，并创建了一个用于测试的单人世界。退出世界后，在单人游戏列表中选择该世界，通过“编辑 → 打开世界文件夹”可以找到它的目录。
 
 本教程固定使用：
 
@@ -49,7 +49,7 @@ description: 为 example namespace 建立 Resource Pack 与 Data Pack。
 1. 在 `<游戏实例>/resourcepacks/` 中创建 `example_dialogue_resources`。
 2. 在资源包根目录创建 `pack.mcmeta`：
 
-```json
+```json:line-numbers {2-5} [资源包 pack.mcmeta]
 {
   "pack": {
     "pack_format": 34,
@@ -62,7 +62,7 @@ description: 为 example namespace 建立 Resource Pack 与 Data Pack。
 4. 在 `<测试世界>/datapacks/` 中创建 `example_dialogue_data`。
 5. 在数据包根目录创建另一份 `pack.mcmeta`：
 
-```json
+```json:line-numbers {2-5} [数据包 pack.mcmeta]
 {
   "pack": {
     "pack_format": 48,
@@ -78,9 +78,9 @@ description: 为 example namespace 建立 Resource Pack 与 Data Pack。
 资源 ID 由 namespace 和定义文件的相对路径组成。例如资源包中的：
 
 ```text
-assets/example/dialogues/guide/root.json
+assets/example/dialogues/guide/welcome.json
                          ↓
-              example:guide/root
+            example:guide/welcome
 ```
 
 每个 Dialogue 都要有两份同 ID 文件：

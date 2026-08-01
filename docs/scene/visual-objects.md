@@ -18,15 +18,41 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 同步替换资源包与数据包中的：
 
 ```text
-<资源包>/assets/example/dialogues/guide/root.json
-<数据包>/data/example/dialogues/guide/root.json
+<资源包>/assets/example/dialogues/guide/welcome.json
+<数据包>/data/example/dialogues/guide/welcome.json
 ```
 
 ## 跟着做
 
-把两个 `root.json` 都替换为：
+在 `presentation` 中加入 `visual_objects`。`guide_marker` 是本章新增的对象 ID：
 
-```json
+::: code-group
+
+```json{3-22} [本章改动]
+{
+  "presentation": {
+    "visual_objects": {
+      "guide_marker": {
+        "variants": {
+          "default": "minecraft:item/emerald.png",
+          "alternate": "minecraft:item/diamond.png"
+        },
+        "initial_variant": "default",
+        "x": 0.5,
+        "y": 0.3,
+        "anchor": "center",
+        "scale": 8.0,
+        "sampling": "nearest",
+        "opacity": 1.0,
+        "visible": true,
+        "z_index": 10
+      }
+    }
+  }
+}
+```
+
+```json:line-numbers {15-34} [完整 welcome.json]
 {
   "presentation": {
     "theme": "maimai_dialogue:default",
@@ -63,10 +89,16 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
         "type": "set",
         "id": "example:guide"
       },
-      "text": "# 欢迎来到村庄\n\n你想了解什么？"
+      "text": "# 欢迎来到村庄\n\n我是这里的 **向导**。"
+    },
+    {
+      "text": "沿着 *石路* 向前，就能找到 `market`。"
     }
   ],
   "end": {
+    "speaker": {
+      "type": "hide"
+    },
     "text": "请选择一个话题。",
     "exit": {
       "type": "options",
@@ -99,11 +131,13 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 }
 ```
 
-`guide_marker` 是本场 Dialogue 内部使用的对象 ID。`x`、`y` 使用画面比例位置，`anchor` 决定哪个点对齐到该坐标，`z_index` 越大越靠前。像素图使用 `nearest` 可避免放大后变模糊。
+:::
+
+把完整文件同步保存到两个 Pack。`x`、`y` 使用画面比例位置，`anchor` 决定哪个点对齐到该坐标，`z_index` 越大越靠前。像素图使用 `nearest` 可避免放大后变模糊。
 
 ## 进入游戏验证
 
-重载后打开 root。背景前方应出现放大的 emerald；它位于画面水平中央、约三成高度处。
+重载后打开 `example:guide/welcome`。背景前方应出现放大的 emerald；它位于画面水平中央、约三成高度处。
 
 ## 如果没有生效
 

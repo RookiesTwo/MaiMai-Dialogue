@@ -15,29 +15,53 @@ description: 创建可复用的 Speaker，并在步骤中显示或隐藏名称�
 
 ## 需要修改的文件
 
-新增 Speaker：
+在资源包中新增 Speaker：
 
 ```text
 <资源包>/assets/example/speakers/guide.json
 ```
 
-并同步修改资源包与数据包中的两个 `root.json`。
+并同步修改资源包与数据包中的两个 `welcome.json`。
 
 ## 跟着做
 
-1. 在资源包中创建 `assets/example/speakers/guide.json`：
+1. 创建 Speaker 文件。这个小文件的全部内容都是本章新增的：
 
-```json
+```json:line-numbers {2} [guide.json]
 {
   "name": "村庄向导"
 }
 ```
 
-这个文件的 ID 是 `example:guide`。
+它的资源 ID 是 `example:guide`。
 
-2. 将资源包和数据包中的 `guide/root.json` 都替换为：
+2. 在第一步设置 Speaker，在结束点隐藏 Speaker。先看改动，再切换到完整文件复制：
 
-```json
+::: code-group
+
+```json{4-7,13-15} [本章改动]
+{
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "example:guide"
+      },
+      "text": "欢迎来到村庄。"
+    },
+    {
+      "text": "沿着石路向前，就能找到集市。"
+    }
+  ],
+  "end": {
+    "speaker": {
+      "type": "hide"
+    }
+  }
+}
+```
+
+```json:line-numbers {7-10,18-20} [完整 welcome.json]
 {
   "presentation": {
     "theme": "maimai_dialogue:default"
@@ -66,11 +90,13 @@ description: 创建可复用的 Speaker，并在步骤中显示或隐藏名称�
 }
 ```
 
-`set` 切换当前 Speaker；后续省略 `speaker` 的步骤会继承它。`hide` 会隐藏名称栏。
+:::
+
+`set` 切换当前 Speaker；后续省略 `speaker` 的步骤会继承它。`hide` 会隐藏名称栏。把完整 `welcome.json` 同步保存到两个 Pack。
 
 ## 进入游戏验证
 
-执行 `/reload`、按 `F3 + T`，再打开 `example:guide/root`。前两页应显示“村庄向导”，最后一页不显示名称。
+执行 `/reload`、按 `F3 + T`，再打开 `example:guide/welcome`。前两页应显示“村庄向导”，最后一页不显示名称。
 
 ## 如果没有生效
 

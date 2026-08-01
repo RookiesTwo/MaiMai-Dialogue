@@ -7,7 +7,7 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 
 ## 本章要实现什么
 
-打开 root 时，`guide_marker` 会从左侧淡入；到达选项页时，它会向右移动并切换为 diamond，背景也会切换差分。
+打开 `welcome` 时，`guide_marker` 会从左侧淡入；到达结束点时，它会向右移动并切换为 diamond，背景也会切换差分。
 
 ## 开始前
 
@@ -21,13 +21,13 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 <资源包>/assets/example/presentation_actions/guide/enter.json
 ```
 
-并同步修改资源包与数据包中的两个 `dialogues/guide/root.json`。
+并同步修改资源包与数据包中的两个 `dialogues/guide/welcome.json`。
 
 ## 跟着做
 
-1. 创建 `presentation_actions/guide/enter.json`：
+1. 创建外部 SceneAction `enter.json`。它定义 500 ms 的横向移动与淡入：
 
-```json
+```json:line-numbers {2-14} [enter.json]
 {
   "duration_ms": 500,
   "easing": "ease_out",
@@ -45,9 +45,64 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 
 这个资源的 ID 是 `example:guide/enter`。
 
-2. 将资源包和数据包中的 `root.json` 都替换为下面的完整内容：
+2. 在第一步调用外部 Action，在结束点加入两个 inline Action。先看新增调用，再切换到完整 Dialogue：
 
-```json
+::: code-group
+
+```json{4-12,16-46} [本章改动]
+{
+  "steps": [
+    {
+      "actions": [
+        {
+          "target": "guide_marker",
+          "action": {
+            "type": "reference",
+            "id": "example:guide/enter"
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "actions": [
+      {
+        "target": "guide_marker",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 500,
+            "easing": "ease_in_out",
+            "x": [
+              { "at": 1.0, "value": 0.18 }
+            ],
+            "variant": {
+              "at": 0.55,
+              "value": "alternate"
+            }
+          }
+        }
+      },
+      {
+        "target": "background",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 500,
+            "easing": "ease_in_out",
+            "variant": {
+              "at": 0.55,
+              "value": "alternate"
+            }
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+```json:line-numbers {39-48,58-90} [完整 welcome.json]
 {
   "presentation": {
     "theme": "maimai_dialogue:default",
@@ -84,7 +139,7 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
         "type": "set",
         "id": "example:guide"
       },
-      "text": "# 欢迎来到村庄\n\n你想了解什么？",
+      "text": "# 欢迎来到村庄\n\n我是这里的 **向导**。",
       "actions": [
         {
           "target": "guide_marker",
@@ -94,9 +149,15 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
           }
         }
       ]
+    },
+    {
+      "text": "沿着 *石路* 向前，就能找到 `market`。"
     }
   ],
   "end": {
+    "speaker": {
+      "type": "hide"
+    },
     "text": "请选择一个话题。",
     "actions": [
       {
@@ -162,15 +223,17 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 }
 ```
 
-SceneAction 的数值轨道是相对于进入当前步骤时状态的偏移，不是绝对坐标。
+:::
+
+把完整 `welcome.json` 同步保存到两个 Pack。SceneAction 的数值轨道是相对于进入当前步骤时状态的偏移，不是绝对坐标。
 
 ## 进入游戏验证
 
-重载两端后打开 root：
+重载后打开 `example:guide/welcome`：
 
 1. emerald 应从左侧淡入；
 2. 播放中推进会直接完成入场，不会立刻换页；
-3. 进入选项页后，emerald 向右移动并变成 diamond；
+3. 进入结束点后，emerald 向右移动并变成 diamond；
 4. 背景同时切换为另一张全景图。
 
 ## 如果没有生效

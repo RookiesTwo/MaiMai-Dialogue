@@ -78,8 +78,8 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 }
 ```
 
-- root Dialogue 的 Return 关闭界面。
-- 子 Dialogue 的 Return 从 root 开头重新播放。
+- 入口 Dialogue 的 Return 关闭界面。
+- 子 Dialogue 的 Return 从本次入口 Dialogue 开头重新播放。
 - 系统没有导航栈或恢复位置。
 
 ## Options

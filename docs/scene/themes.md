@@ -7,7 +7,7 @@ description: 创建可复用 Theme，定制对话框、文字、选项和滚动�
 
 ## 本章要实现什么
 
-把 root 的默认深色界面改成浅色羊皮纸风格，同时保持背景、VisualObject 和滤镜不变。
+把 `welcome` 的默认深色界面改成浅色羊皮纸风格，同时保持背景、VisualObject 和滤镜不变。
 
 ## 开始前
 
@@ -21,13 +21,13 @@ description: 创建可复用 Theme，定制对话框、文字、选项和滚动�
 <资源包>/assets/example/dialogue_themes/parchment.json
 ```
 
-并同步修改资源包与数据包中的两个 `dialogues/guide/root.json`。
+并同步修改资源包与数据包中的两个 `dialogues/guide/welcome.json`。
 
 ## 跟着做
 
 1. 创建 `dialogue_themes/parchment.json`：
 
-```json
+```json:line-numbers {2-44} [parchment.json]
 {
   "box": {
     "background": "#E8F3E2C2",
@@ -75,31 +75,23 @@ description: 创建可复用 Theme，定制对话框、文字、选项和滚动�
 
 它的资源 ID 是 `example:parchment`。
 
-2. 在资源包和数据包的 root 中，将：
+2. 在资源包和数据包的 `welcome.json` 中，把 `presentation.theme` 改为：
 
-```json
-{
-  "theme": "maimai_dialogue:default"
-}
-```
-
-替换为：
-
-```json
+```json{2} [本章改动]
 {
   "theme": "example:parchment"
 }
 ```
 
-两个代码块展示的是 `presentation` 中替换前后的完整 Theme 字段。
+高亮行就是本章对 Dialogue 的唯一修改。
 
 Theme 的每个区块和字段都可以省略；省略部分会使用内置默认值。上面给出完整结构，方便你从一份可运行配置开始调整。
 
-3. 如果要直接复制整个 Dialogue，当前完整 `root.json` 如下：
+3. 如果要直接复制整个 Dialogue，当前完整 `welcome.json` 如下：
 
-::: details 展开完整 root.json
+::: details 展开完整 welcome.json
 
-```json
+```json:line-numbers {3}
 {
   "presentation": {
     "theme": "example:parchment",
@@ -150,7 +142,7 @@ Theme 的每个区块和字段都可以省略；省略部分会使用内置默�
         "type": "set",
         "id": "example:guide"
       },
-      "text": "# 欢迎来到村庄\n\n你想了解什么？",
+      "text": "# 欢迎来到村庄\n\n我是这里的 **向导**。",
       "actions": [
         {
           "target": "guide_marker",
@@ -160,9 +152,15 @@ Theme 的每个区块和字段都可以省略；省略部分会使用内置默�
           }
         }
       ]
+    },
+    {
+      "text": "沿着 *石路* 向前，就能找到 `market`。"
     }
   ],
   "end": {
+    "speaker": {
+      "type": "hide"
+    },
     "text": "请选择一个话题。",
     "actions": [
       {
@@ -228,13 +226,13 @@ Theme 的每个区块和字段都可以省略；省略部分会使用内置默�
 }
 ```
 
-把这份 JSON 同步保存到资源包 `assets` 与数据包 `data` 中的 root 文件。
+把这份 JSON 同步保存到资源包 `assets` 与数据包 `data` 中的 `welcome.json`。
 
 :::
 
 ## 进入游戏验证
 
-按 `F3 + T` 重载客户端资源，并执行 `/reload` 后重新打开 root。对话框、选项、图标与滚动条应变为浅色羊皮纸风格；背景和场景滤镜不应变化。
+按 `F3 + T` 重载客户端资源，并执行 `/reload` 后重新打开 `example:guide/welcome`。对话框、选项、图标与滚动条应变为浅色羊皮纸风格；背景和场景滤镜不应变化。
 
 ## 如果没有生效
 

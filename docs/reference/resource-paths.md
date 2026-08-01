@@ -20,18 +20,18 @@ description: 查询 Dialogue、Speaker、Theme、SceneAction 和图片的目录�
 
 | 资源 | 文件路径 | ID 示例 |
 |---|---|---|
-| 服务端 Dialogue | `<数据包>/data/<namespace>/dialogues/<path>.json` | `example:guide/root` |
-| 客户端 Dialogue | `<资源包>/assets/<namespace>/dialogues/<path>.json` | `example:guide/root` |
+| 服务端 Dialogue | `<数据包>/data/<namespace>/dialogues/<path>.json` | `example:guide/welcome` |
+| 客户端 Dialogue | `<资源包>/assets/<namespace>/dialogues/<path>.json` | `example:guide/welcome` |
 | Speaker | `<资源包>/assets/<namespace>/speakers/<path>.json` | `example:guide` |
 | Theme | `<资源包>/assets/<namespace>/dialogue_themes/<path>.json` | `example:parchment` |
 | SceneAction | `<资源包>/assets/<namespace>/presentation_actions/<path>.json` | `example:guide/enter` |
 | 图片 | `<资源包>/assets/<namespace>/textures/<path>` | `example:dialogue/guide.png` |
 
-例如下面两个文件都映射为 `example:guide/root`：
+例如下面两个文件都映射为 `example:guide/welcome`：
 
 ```text
-<资源包>/assets/example/dialogues/guide/root.json
-<数据包>/data/example/dialogues/guide/root.json
+<资源包>/assets/example/dialogues/guide/welcome.json
+<数据包>/data/example/dialogues/guide/welcome.json
 ```
 
 图片 ID 不包含 `textures/`。`example:dialogue/guide.png` 对应：

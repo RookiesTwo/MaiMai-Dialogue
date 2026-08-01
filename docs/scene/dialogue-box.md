@@ -18,72 +18,31 @@ description: 使用归一化坐标改变对话框的位置、宽度和最大高�
 同步修改资源包与数据包中的：
 
 ```text
-<资源包>/assets/example/dialogues/guide/root.json
-<数据包>/data/example/dialogues/guide/root.json
+<资源包>/assets/example/dialogues/guide/welcome.json
+<数据包>/data/example/dialogues/guide/welcome.json
 ```
 
 ## 跟着做
 
-1. 在 `presentation` 中加入完整的 `dialogue_box`：
+在 `presentation` 中加入 `dialogue_box`。先看新增字段，需要复制时切换到完整文件：
 
-```json
+::: code-group
+
+```json{3-9} [本章改动]
 {
-  "x": 0.5,
-  "y": 0.95,
-  "width": 0.82,
-  "max_height": 0.42,
-  "anchor": "bottom_center"
-}
-```
-
-加入后，root 的完整 `presentation` 应为：
-
-```json
-{
-  "theme": "maimai_dialogue:default",
-  "background": {
-    "variants": {
-      "default": "minecraft:gui/title/background/panorama_0.png",
-      "alternate": "minecraft:gui/title/background/panorama_1.png"
-    },
-    "initial_variant": "default",
-    "fit": "cover",
-    "opacity": 0.82
-  },
-  "dialogue_box": {
-    "x": 0.5,
-    "y": 0.95,
-    "width": 0.82,
-    "max_height": 0.42,
-    "anchor": "bottom_center"
-  },
-  "visual_objects": {
-    "guide_marker": {
-      "variants": {
-        "default": "minecraft:item/emerald.png",
-        "alternate": "minecraft:item/diamond.png"
-      },
-      "initial_variant": "default",
+  "presentation": {
+    "dialogue_box": {
       "x": 0.5,
-      "y": 0.3,
-      "anchor": "center",
-      "scale": 8.0,
-      "sampling": "nearest",
-      "opacity": 1.0,
-      "visible": true,
-      "z_index": 10
+      "y": 0.95,
+      "width": 0.82,
+      "max_height": 0.42,
+      "anchor": "bottom_center"
     }
   }
 }
 ```
 
-将这段作为 root 顶层的 `presentation` 值；`steps` 与 `end` 保持上一章不变。`x`、`y` 是锚点在屏幕中的比例位置，`width` 和 `max_height` 是相对于可用画面的比例。
-
-2. 如果不想手工拼接字段，可将两个 `root.json` 直接替换为下面的完整内容：
-
-::: details 展开完整 root.json
-
-```json
+```json:line-numbers {14-20} [完整 welcome.json]
 {
   "presentation": {
     "theme": "maimai_dialogue:default",
@@ -127,7 +86,7 @@ description: 使用归一化坐标改变对话框的位置、宽度和最大高�
         "type": "set",
         "id": "example:guide"
       },
-      "text": "# 欢迎来到村庄\n\n你想了解什么？",
+      "text": "# 欢迎来到村庄\n\n我是这里的 **向导**。",
       "actions": [
         {
           "target": "guide_marker",
@@ -137,9 +96,15 @@ description: 使用归一化坐标改变对话框的位置、宽度和最大高�
           }
         }
       ]
+    },
+    {
+      "text": "沿着 *石路* 向前，就能找到 `market`。"
     }
   ],
   "end": {
+    "speaker": {
+      "type": "hide"
+    },
     "text": "请选择一个话题。",
     "actions": [
       {
@@ -207,9 +172,11 @@ description: 使用归一化坐标改变对话框的位置、宽度和最大高�
 
 :::
 
+把完整文件同步保存到两个 Pack。`x`、`y` 是锚点在屏幕中的比例位置，`width` 和 `max_height` 是相对于可用画面的比例。
+
 ## 进入游戏验证
 
-重载后打开 root。对话框应仍然以底部中心为锚点，但比默认布局更窄，并与屏幕底边留出更明显的距离。
+重载后打开 `example:guide/welcome`。对话框应仍然以底部中心为锚点，但比默认布局更窄，并与屏幕底边留出更明显的距离。
 
 ## 如果没有生效
 
