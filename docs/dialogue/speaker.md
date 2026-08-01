@@ -1,0 +1,83 @@
+---
+title: 显示 Speaker
+description: 创建可复用的 Speaker，并在步骤中显示或隐藏名称。
+---
+
+# 显示 Speaker
+
+## 本章要实现什么
+
+玩家会看到说话者（Speaker）“村庄向导”。后续步骤会继承这位 Speaker，最后一页则作为旁白隐藏名称。
+
+## 开始前
+
+你已经完成[步骤与推进](./steps.md)。
+
+## 需要修改的文件
+
+新增 Speaker：
+
+```text
+src/main/resources/assets/example/speakers/guide.json
+```
+
+并同步修改两个 `root.json`。
+
+## 跟着做
+
+1. 创建 `assets/example/speakers/guide.json`：
+
+```json
+{
+  "name": "村庄向导"
+}
+```
+
+这个文件的 ID 是 `example:guide`。
+
+2. 将客户端和服务端的 `guide/root.json` 都替换为：
+
+```json
+{
+  "presentation": {
+    "theme": "maimai_dialogue:default"
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "example:guide"
+      },
+      "text": "欢迎来到村庄。"
+    },
+    {
+      "text": "沿着石路向前，就能找到集市。"
+    }
+  ],
+  "end": {
+    "speaker": {
+      "type": "hide"
+    },
+    "text": "向导向你挥了挥手。",
+    "exit": {
+      "type": "return"
+    }
+  }
+}
+```
+
+`set` 切换当前 Speaker；后续省略 `speaker` 的步骤会继承它。`hide` 会隐藏名称栏。
+
+## 进入游戏验证
+
+重载两端资源并打开 `example:guide/root`。前两页应显示“村庄向导”，最后一页不显示名称。
+
+## 如果没有生效
+
+- 名称显示成 `example:guide`：客户端没有成功加载 Speaker 文件。
+- 第二页没有名称：检查第一步是否成功执行了 `speaker.type: set`。
+- 名称栏没有隐藏：确认 `hide` 写在实际播放的 `end` 中。
+
+## 下一步
+
+继续[编写 Markdown 正文](./markdown.md)。

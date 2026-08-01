@@ -5,36 +5,39 @@ titleTemplate: false
 
 hero:
   name: MaiMai Dialogue
-  text: 数据驱动的现代对话引擎
-  tagline: 面向 Minecraft 1.21.1、NeoForge 与 Modern UI，为整合包和 MOD 提供 Dialogue、分支、进度条件与场景表现。
+  text: 从第一句话开始制作 Minecraft 对话
+  tagline: 用 JSON 编写正文、分支、任务条件、立绘、动画和主题，不必为每段内容编写 Java 代码。
   actions:
     - theme: brand
-      text: 快速入门
-      link: /guide/quick-start
+      text: 从安装开始
+      link: /start/installation
     - theme: alt
-      text: 对话格式
-      link: /content/dialogues
+      text: 创建第一段对话
+      link: /start/first-dialogue
 
 features:
-  - title: 数据驱动
-    details: 使用 JSON 定义对话、说话者、主题、场景对象和动画，无需为每段内容编写 Java 代码。
-  - title: 服务端校验
-    details: logical server 根据 ProgressNode 和 requires 权威决定玩家能否打开目标 Dialogue。
-  - title: 可定制表现
-    details: 支持 Markdown 正文、打字机、背景、多个 VisualObject、关键帧 Action、Theme 与场景滤镜。
+  - title: 写内容，不写界面代码
+    details: Dialogue、Speaker、背景、画面对象、动画和 Theme 都由资源文件定义。
+  - title: 做出有条件的分支
+    details: 使用选项、子 Dialogue 和 ProgressNode，根据玩家进度决定哪些内容可以进入。
+  - title: 同一套内容用于单人与服务器
+    details: 服务端判断访问权限，客户端负责显示；文档会带你正确准备并分发双端资源。
 ---
 
-## 选择你的入口
+## 它适合谁
 
-- 第一次制作内容：从[快速入门](./guide/quick-start.md)开始。
-- 安装或发布整合包：阅读[安装与双端分发](./guide/installation.md)和[资源组织](./content/resources.md)。
-- 编写对话：阅读[Dialogue 与流程](./content/dialogues.md)。
-- 制作演出：阅读[场景表现](./content/presentation.md)、[SceneAction](./content/actions.md)和[Theme](./content/themes.md)。
-- 管理任务进度：阅读[ProgressNode 与访问条件](./content/progress.md)和[命令参考](./administration/commands.md)。
-- 从其他 MOD 接入：阅读[Java API](./integration/java-api.md)。
+这套文档主要写给整合包作者和附属内容 MOD 作者。你只需要会创建目录、编辑 JSON，并能在测试世界中执行命令；不需要先理解 MaiMai Dialogue 的内部代码。
 
-::: warning Alpha 状态
-当前版本为 `0.1.0-alpha`。数据格式、Java API 和表现行为仍可能发生不兼容变更，请先在测试环境验证并备份重要存档。
+如果你负责服务器管理，可以直接查看[命令与管理](./publish/commands.md)。如果你正在开发另一个 NeoForge MOD，可以从 [Java API](./integration/java-api.md) 接入。
+
+## 三步开始
+
+1. [安装 MaiMai Dialogue](./start/installation.md)，准备一个 Minecraft 1.21.1 测试实例。
+2. [创建内容工程](./start/content-project.md)，建立 `assets` 与 `data` 目录。
+3. [制作第一段对话](./start/first-dialogue.md)，进入世界亲自打开它。
+
+完成后，沿左侧目录逐章加入 Speaker、Markdown、选项、Progress、背景、立绘、动画和 Theme。所有教程都会继续使用同一个 `example` 示例工程。
+
+::: warning 当前版本
+MaiMai Dialogue 当前为 `0.1.0-alpha`。正式发布内容包前，请在测试环境走完所有对话路径，并备份重要存档。
 :::
-
-MaiMai Dialogue 是专注的通用对话引擎，不绑定特定 NPC、实体或任务系统。它不会替代任务系统，也不会自动修改任务进度；由命令、数据包逻辑或第三方 MOD 决定何时打开对话及何时变更 ProgressNode。

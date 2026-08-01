@@ -1,9 +1,4 @@
----
-title: 开发架构
-description: MaiMai Dialogue 的模块边界、运行流程与依赖规则。
----
-
-# 开发架构
+# MaiMai Dialogue 开发架构（内部）
 
 MaiMai Dialogue 将内容定义、运行时规则和平台适配分开。JSON 与 Codec 只描述内容，Dialogue session 和 Scene runtime 负责纯状态变化，NeoForge、Network、Modern UI 与 NBT 位于边界层。
 
@@ -23,9 +18,9 @@ logical server 负责 Dialogue 访问权限和玩家进度，client 只负责内
 - `dialogue`、`presentation`、`theme`、`speaker`：数据模型与 Codec。
 - `content`：通用资源加载、不可变 registry 和 snapshot 发布。
 - `client.session`：Dialogue 导航与播放状态。
-- `client.ui`：Modern UI 视图，不包含导航规则。
+- `client`、`client.scene`：Modern UI 视图与场景播放组件。
 - `server`：访问检查和服务端用例。
-- `progress`：进度模型、在线状态和持久化协调。
+- `progress`、`server.progress.storage`：在线进度状态与持久化。
 - `network`、`command`：NeoForge 边界适配。
 
 ## 依赖规则

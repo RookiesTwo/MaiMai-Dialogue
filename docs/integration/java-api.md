@@ -1,19 +1,62 @@
 ---
 title: Java API
-description: 从第三方 NeoForge MOD 打开对话并管理玩家进度。
+description: 从第三方 NeoForge MOD 打开 Dialogue 并管理在线玩家进度。
 ---
 
 # Java API
 
-公开入口为：
+## 本章要实现什么
+
+让另一个 NeoForge MOD 在服务端为在线玩家打开 Dialogue、读取 Progress 快照，并可靠地添加或删除 ProgressNode。
+
+## 开始前
+
+- Minecraft 1.21.1、NeoForge 21.x 与 Java 21 开发环境；
+- 你的运行实例已经安装 MaiMai Dialogue；
+- 要打开的 Dialogue 已按[双端发布](../publish/client-server.md)提供给服务端和客户端。
+
+## 需要修改的文件
+
+通常需要修改第三方 MOD 的构建依赖、`neoforge.mods.toml` 和调用 API 的服务端 Java 类。
+
+## 跟着做
+
+### 1. 声明构建依赖
+
+当前仓库没有承诺公开 Maven 坐标。使用本地 jar 时，将 MaiMai Dialogue 放入调用方工程的 `libs`，并在 Gradle 中加入：
+
+```groovy
+dependencies {
+    implementation files("libs/maimai_dialogue-0.1.0-alpha.jar")
+}
+```
+
+如果两个 MOD 位于同一个多项目构建中，可改用对应的 `project(...)` 依赖。
+
+### 2. 声明 MOD 依赖
+
+在调用方的 `neoforge.mods.toml` 中加入，并把 `your_mod_id` 替换成自己的 mod ID：
+
+```toml
+[[dependencies.your_mod_id]]
+modId = "maimai_dialogue"
+type = "required"
+versionRange = "[0.1.0-alpha,)"
+ordering = "AFTER"
+side = "BOTH"
+```
+
+### 3. 获取公开入口
 
 ```java
+import top.rookiestwo.maimai_dialogue.api.MaiMaiDialogueApi;
+
 MaiMaiDialogueApi api = MaiMaiDialogueApi.get();
 ```
 
-调用方需要通过自己的构建配置依赖 MaiMai Dialogue，并把它声明为 MOD 依赖。本文只描述当前公开 API，不建议引用 `client`、`network`、`server` 或内部 repository 实现。
+不要直接依赖 `client`、`network`、`server`、`internal` 或具体的 progress 实现类。
 
-## 打开 Dialogue
+### 4. 打开 Dialogue
 
 ```java
 import net.minecraft.resources.ResourceLocation;
@@ -21,24 +64,24 @@ import net.minecraft.server.level.ServerPlayer;
 import top.rookiestwo.maimai_dialogue.api.DialogueOpenResult;
 import top.rookiestwo.maimai_dialogue.api.MaiMaiDialogueApi;
 
-ServerPlayer player = /* 在线玩家 */;
-ResourceLocation id = ResourceLocation.fromNamespaceAndPath(
+ServerPlayer player = /* 当前在线玩家 */;
+ResourceLocation dialogueId = ResourceLocation.fromNamespaceAndPath(
         "example",
         "guide/root"
 );
 
 MaiMaiDialogueApi.get()
         .dialogues()
-        .open(player, id)
+        .open(player, dialogueId)
         .whenComplete((result, error) -> {
             if (error != null) {
-                // 记录或处理异常
+                // 记录异常并向玩家提供失败反馈。
                 return;
             }
 
             switch (result) {
                 case SENT -> {
-                    // S2C 打开请求已发送
+                    // 服务端已经向客户端发送打开请求。
                 }
                 case DIALOGUE_NOT_FOUND -> {
                 }
@@ -52,31 +95,23 @@ MaiMaiDialogueApi.get()
         });
 ```
 
-签名：
+`SENT` 只表示 payload 已发送。客户端缺少本地资源或已经打开另一个 Dialogue 时，仍可能不显示新界面。
 
-```java
-CompletionStage<DialogueOpenResult> open(
-        ServerPlayer player,
-        ResourceLocation dialogueId
-);
-```
-
-`SENT` 只表示已发送 payload；若客户端缺少资源或已经打开对话，仍可能不显示。
-
-## Progress API
+### 5. 管理 Progress
 
 ```java
 import top.rookiestwo.maimai_dialogue.api.MaiMaiDialogueApi;
 import top.rookiestwo.maimai_dialogue.progress.ProgressNode;
 
 var progress = MaiMaiDialogueApi.get().progress();
-var node = new ProgressNode("quest.guide.started");
+var node = new ProgressNode("guide.secret_unlocked");
 
 progress.add(player, node).thenAccept(result -> {
     // ADDED 或 ALREADY_PRESENT
 });
 
 progress.contains(player, node).thenAccept(present -> {
+    // present 表示当前快照中是否存在节点。
 });
 
 progress.snapshot(player).thenAccept(snapshot -> {
@@ -90,9 +125,33 @@ progress.remove(player, node).thenAccept(result -> {
 });
 ```
 
-接口：
+`ProgressSnapshot.nodes()` 是不可变集合。`add` 与 `remove` 返回的 CompletionStage 会在持久化成功后完成。
+
+## 进入游戏验证
+
+从调用方 MOD 的服务端事件、命令或任务完成回调中执行 API：
+
+1. 为在线玩家添加 `guide.secret_unlocked`；
+2. 等待 CompletionStage 成功完成；
+3. 调用 `dialogues().open(player, example:guide/root)`；
+4. 确认受保护选项已经出现。
+
+## 如果没有生效
+
+- 启动时报缺失 MOD：检查 `neoforge.mods.toml` 的 `modId` 和运行环境 jar。
+- 编译找不到 API：检查本地 jar 是否在调用方 compile classpath。
+- 抛出线程异常：从玩家所属 logical server thread 发起 Progress API 调用。
+- CompletionStage 异常完成：记录原始异常，不要把进度保存失败当成成功。
+- 使用离线玩家失败：当前 API 只接受在线 `ServerPlayer`。
+
+## API 签名
 
 ```java
+CompletionStage<DialogueOpenResult> open(
+        ServerPlayer player,
+        ResourceLocation dialogueId
+);
+
 CompletionStage<ProgressSnapshot> snapshot(ServerPlayer player);
 CompletionStage<Boolean> contains(ServerPlayer player, ProgressNode node);
 CompletionStage<ProgressChangeResult> add(
@@ -105,19 +164,6 @@ CompletionStage<ProgressChangeResult> remove(
 );
 ```
 
-`ProgressSnapshot.nodes()` 是不可变快照。`add`/`remove` 的 CompletionStage 在持久化完成后结束，调用方必须处理异常。
+## 下一步
 
-## 调用约束
-
-- API 只接受在线 `ServerPlayer`。
-- Progress API 应从玩家所属 logical server thread 调用；错误线程会抛出 `IllegalStateException`。
-- 玩家进度尚未加载或已损坏时，操作可能同步失败或返回 exceptional CompletionStage。
-- 不要直接修改 Progress NBT 文件或依赖内部 `DefaultPlayerProgressService`。
-- 当前没有公开的客户端侧“请求打开” API；NPC、任务或事件集成应在服务端调用 `DialogueService.open`。
-
-## 推荐集成方式
-
-1. 第三方系统完成任务或事件时，通过 `progress().add/remove(...)` 更新节点。
-2. 保存成功后，根据业务需要调用 `dialogues().open(...)`。
-3. Dialogue 的 `requires` 仍作为服务端最终访问边界。
-4. 对每种 `DialogueOpenResult` 和异常提供日志或玩家反馈。
+查阅 [Dialogue JSON](../reference/dialogue-json.md) 和 [Progress 表达式](../reference/progress-expression.md)，确保代码使用的 ID 与内容包一致。

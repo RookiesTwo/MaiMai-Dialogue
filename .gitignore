@@ -21,8 +21,9 @@ hs_err_pid*
 run
 /src/test/
 
-# Local project notes
-/.project-notes/
+# Local project notes（仅保留共享的架构说明）
+/.project-notes/*
+!/.project-notes/architecture.md
 
 # Node.js and VitePress
 /node_modules/

@@ -1,29 +1,19 @@
 ---
-title: Theme
-description: 定制对话框、文字、选项、间距和控制件样式。
+title: Theme JSON
+description: DialogueBox、文字、选项、间距和控制件的 Theme 字段参考。
 ---
 
-# Theme
+# Theme JSON
 
-Theme 只控制 Dialogue UI，不包含背景、VisualObject 或 Scene Filter。
-
-路径：
+Theme 文件位于：
 
 ```text
 assets/<namespace>/dialogue_themes/<path>.json
 ```
 
-空对象 `{}` 会完整使用内置默认值。Dialogue 也可以直接引用内置 Theme：
+空对象 `{}` 会使用全部内置默认值。顶层区块和区块内字段都可以省略。
 
-```json
-{
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  }
-}
-```
-
-## 完整结构
+## 完整默认结构
 
 ```json
 {
@@ -71,19 +61,21 @@ assets/<namespace>/dialogue_themes/<path>.json
 }
 ```
 
-## 字段范围
+## 数值范围
 
 - 颜色：`#RRGGBB` 或 `#AARRGGBB`。
-- 普通 dp 值：`0..64`。
+- 普通 dp 字段：`0..64`。
 - `scrollbar_width`：`1..64`。
 - 文字大小：`8..64`。
-- 折叠/展开选项数：`1..32`；展开数若小于折叠数，会自动提升到折叠数。
+- `options_collapsed_limit`、`options_expanded_limit`：`1..32`。
+- expanded limit 小于 collapsed limit 时，会自动提升到 collapsed limit。
 
-顶层区块和区块内字段都可省略，省略部分继承默认值。
+## 作用范围
 
-## 缺失 Theme
+- `box`：对话框背景、边框、分割线和圆角。
+- `text`：Speaker、正文、Option、错误和辅助文字。
+- `option`：选项与控制按钮的普通、hover、pressed 状态和 padding。
+- `spacing`：Header、正文、选项区域和折叠/展开数量。
+- `controls`：Option icon、History/Options 滚动条。
 
-客户端会报告资源错误并临时回退到内置默认 Theme。该回退只用于诊断，发布前仍应修复引用。
-
-当前不支持自定义字体、普通玩家主题编辑、动画倍率或 reduced motion 设置。
-
+Theme 不控制背景、VisualObject 或 Scene Filter。缺失 Theme 时客户端会报告错误并临时回退内置默认值；发布内容不应依赖该回退。
