@@ -18,10 +18,10 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 新增可复用 SceneAction：
 
 ```text
-src/main/resources/assets/example/presentation_actions/guide/enter.json
+<资源包>/assets/example/presentation_actions/guide/enter.json
 ```
 
-并同步修改两个 `dialogues/guide/root.json`。
+并同步修改资源包与数据包中的两个 `dialogues/guide/root.json`。
 
 ## 跟着做
 
@@ -45,7 +45,7 @@ src/main/resources/assets/example/presentation_actions/guide/enter.json
 
 这个资源的 ID 是 `example:guide/enter`。
 
-2. 将客户端和服务端的 `root.json` 都替换为下面的完整内容：
+2. 将资源包和数据包中的 `root.json` 都替换为下面的完整内容：
 
 ```json
 {

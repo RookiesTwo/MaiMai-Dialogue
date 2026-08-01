@@ -5,34 +5,45 @@ description: 查询 Dialogue、Speaker、Theme、SceneAction 和图片的目录�
 
 # 资源路径与 ID
 
+## Pack 根目录
+
+教程中的两个占位符分别表示：
+
+```text
+<资源包> = <游戏实例>/resourcepacks/example_dialogue_resources
+<数据包> = <世界目录>/datapacks/example_dialogue_data
+```
+
+两个目录根部都需要 `pack.mcmeta`。Minecraft 1.21.1 的 Resource Pack 使用 `pack_format: 34`，Data Pack 使用 `pack_format: 48`。
+
 ## 路径映射
 
 | 资源 | 文件路径 | ID 示例 |
 |---|---|---|
-| 服务端 Dialogue | `data/<namespace>/dialogues/<path>.json` | `example:guide/root` |
-| 客户端 Dialogue | `assets/<namespace>/dialogues/<path>.json` | `example:guide/root` |
-| Speaker | `assets/<namespace>/speakers/<path>.json` | `example:guide` |
-| Theme | `assets/<namespace>/dialogue_themes/<path>.json` | `example:parchment` |
-| SceneAction | `assets/<namespace>/presentation_actions/<path>.json` | `example:guide/enter` |
-| 图片 | `assets/<namespace>/textures/<path>` | `example:dialogue/guide.png` |
+| 服务端 Dialogue | `<数据包>/data/<namespace>/dialogues/<path>.json` | `example:guide/root` |
+| 客户端 Dialogue | `<资源包>/assets/<namespace>/dialogues/<path>.json` | `example:guide/root` |
+| Speaker | `<资源包>/assets/<namespace>/speakers/<path>.json` | `example:guide` |
+| Theme | `<资源包>/assets/<namespace>/dialogue_themes/<path>.json` | `example:parchment` |
+| SceneAction | `<资源包>/assets/<namespace>/presentation_actions/<path>.json` | `example:guide/enter` |
+| 图片 | `<资源包>/assets/<namespace>/textures/<path>` | `example:dialogue/guide.png` |
 
 例如下面两个文件都映射为 `example:guide/root`：
 
 ```text
-assets/example/dialogues/guide/root.json
-data/example/dialogues/guide/root.json
+<资源包>/assets/example/dialogues/guide/root.json
+<数据包>/data/example/dialogues/guide/root.json
 ```
 
 图片 ID 不包含 `textures/`。`example:dialogue/guide.png` 对应：
 
 ```text
-assets/example/textures/dialogue/guide.png
+<资源包>/assets/example/textures/dialogue/guide.png
 ```
 
 ## 双端职责
 
-- 服务端读取 `data` 中的 Dialogue，检查 ID、`requires` 和访问权限。
-- 客户端读取 `assets` 中的 Dialogue，显示正文、场景和 UI。
+- 服务端从启用的 Data Pack 读取 `data` Dialogue，检查 ID、`requires` 和访问权限。
+- 客户端从启用的 Resource Pack 读取 `assets` Dialogue，显示正文、场景和 UI。
 - Speaker、Theme、SceneAction 与图片只由客户端加载。
 - 同一 Dialogue 的两份 JSON 应保持一致。
 

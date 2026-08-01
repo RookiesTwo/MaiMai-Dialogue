@@ -1,8 +1,8 @@
 # MaiMai Dialogue
 
-MaiMai Dialogue 是面向 Minecraft 1.21.1、NeoForge 与 Modern UI 的数据驱动对话引擎，主要服务于整合包作者、内容 MOD 作者和需要接入对话功能的 MOD 开发者。
+MaiMai Dialogue 是面向 Minecraft 1.21.1、NeoForge 与 Modern UI 的数据驱动对话引擎，主要服务于整合包作者、服务器内容作者和需要接入对话功能的 MOD 开发者。
 
-你可以使用 JSON 制作 Dialogue、Speaker、选项分支、Progress 条件、背景、VisualObject、SceneAction 和 Theme。
+你可以通过 Resource Pack 与 Data Pack，使用 JSON 制作 Dialogue、Speaker、选项分支、Progress 条件、背景、VisualObject、SceneAction 和 Theme。
 
 ## 开始使用
 

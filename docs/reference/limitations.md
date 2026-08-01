@@ -13,7 +13,8 @@ description: MaiMai Dialogue 0.1.0-alpha 当前支持范围与尚未提供的功
 - Dialogue 内部步骤线性播放，分支只出现在唯一结尾。
 - Return 始终返回 root 开头；root Return 关闭界面。
 - 没有导航栈、恢复点、Option ID、脚本动作或自动修改进度。
-- 客户端和服务端必须预装内容，不支持运行时下发 Dialogue。
+- 服务端 Dialogue 必须来自已启用的 Data Pack；客户端 Dialogue 与画面资源必须来自已启用的 Resource Pack。
+- MaiMai Dialogue 的 network payload 不会传输正文、Theme、SceneAction 或图片；服务器资源包仍可使用 Minecraft 自带的资源包下载流程交付客户端内容。
 
 ## 文字与操作
 

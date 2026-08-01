@@ -15,7 +15,12 @@ description: 使用 color_adjust 或 crt 改变背景与 VisualObject 的画面�
 
 ## 需要修改的文件
 
-同步修改两个 `assets/data` 位置的 `dialogues/guide/root.json`。
+同步修改资源包与数据包中的：
+
+```text
+<资源包>/assets/example/dialogues/guide/root.json
+<数据包>/data/example/dialogues/guide/root.json
+```
 
 ## 跟着做
 

@@ -11,11 +11,11 @@ description: 创建并打开 example:guide/root。
 
 ## 开始前
 
-你已经完成[创建内容工程](./content-project.md)，并拥有以下两个目录：
+你已经完成[创建内容包](./content-project.md)，并拥有以下两个目录：
 
 ```text
-assets/example/dialogues/guide/
-data/example/dialogues/guide/
+<资源包>/assets/example/dialogues/guide/
+<数据包>/data/example/dialogues/guide/
 ```
 
 ## 需要修改的文件
@@ -23,14 +23,14 @@ data/example/dialogues/guide/
 把相同内容分别保存到：
 
 ```text
-src/main/resources/assets/example/dialogues/guide/root.json
-src/main/resources/data/example/dialogues/guide/root.json
+<资源包>/assets/example/dialogues/guide/root.json
+<数据包>/data/example/dialogues/guide/root.json
 ```
 
 ## 跟着做
 
-1. 在两个位置都创建 `root.json`。
-2. 将下面的完整 JSON 复制到两个文件中：
+1. 在资源包和数据包对应位置都创建 `root.json`。
+2. 将下面的完整 JSON 原样复制到两个文件中：
 
 ```json
 {
@@ -66,8 +66,8 @@ src/main/resources/data/example/dialogues/guide/root.json
 
 ## 如果没有生效
 
-- 提示 Dialogue 不存在：检查 `data/example/dialogues/guide/root.json`。
-- 命令成功但界面不显示：检查 `assets` 下是否有相同 ID 的文件。
+- 提示 Dialogue 不存在：检查数据包中的 `data/example/dialogues/guide/root.json`。
+- 命令成功但界面不显示：检查资源包的 `assets` 下是否有相同 ID 的文件，并确认该资源包已启用。
 - JSON 加载失败：检查逗号、引号和花括号，并查看日志中的资源 ID。
 - 修改后仍是旧内容：同时执行 `/reload` 和 `F3 + T`。
 

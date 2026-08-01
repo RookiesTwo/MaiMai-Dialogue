@@ -15,11 +15,11 @@ description: 为 Dialogue 场景添加可切换的背景图片。
 
 ## 需要修改的文件
 
-同步替换客户端与服务端的：
+同步替换资源包与数据包中的：
 
 ```text
-assets/example/dialogues/guide/root.json
-data/example/dialogues/guide/root.json
+<资源包>/assets/example/dialogues/guide/root.json
+<数据包>/data/example/dialogues/guide/root.json
 ```
 
 ## 跟着做
@@ -87,7 +87,7 @@ data/example/dialogues/guide/root.json
 使用自己的图片时，例如：
 
 ```text
-assets/example/textures/dialogue/village.png
+<资源包>/assets/example/textures/dialogue/village.png
 ```
 
 对应的 JSON ID 是 `example:dialogue/village.png`，ID 中不重复写 `textures/`。

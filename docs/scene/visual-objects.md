@@ -15,7 +15,12 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 
 ## 需要修改的文件
 
-同步替换两个 `assets/data` 位置的 `dialogues/guide/root.json`。
+同步替换资源包与数据包中的：
+
+```text
+<资源包>/assets/example/dialogues/guide/root.json
+<数据包>/data/example/dialogues/guide/root.json
+```
 
 ## 跟着做
 

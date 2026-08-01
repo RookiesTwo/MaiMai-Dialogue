@@ -18,14 +18,14 @@ description: 创建可复用的 Speaker，并在步骤中显示或隐藏名称�
 新增 Speaker：
 
 ```text
-src/main/resources/assets/example/speakers/guide.json
+<资源包>/assets/example/speakers/guide.json
 ```
 
-并同步修改两个 `root.json`。
+并同步修改资源包与数据包中的两个 `root.json`。
 
 ## 跟着做
 
-1. 创建 `assets/example/speakers/guide.json`：
+1. 在资源包中创建 `assets/example/speakers/guide.json`：
 
 ```json
 {
@@ -35,7 +35,7 @@ src/main/resources/assets/example/speakers/guide.json
 
 这个文件的 ID 是 `example:guide`。
 
-2. 将客户端和服务端的 `guide/root.json` 都替换为：
+2. 将资源包和数据包中的 `guide/root.json` 都替换为：
 
 ```json
 {
@@ -70,7 +70,7 @@ src/main/resources/assets/example/speakers/guide.json
 
 ## 进入游戏验证
 
-重载两端资源并打开 `example:guide/root`。前两页应显示“村庄向导”，最后一页不显示名称。
+执行 `/reload`、按 `F3 + T`，再打开 `example:guide/root`。前两页应显示“村庄向导”，最后一页不显示名称。
 
 ## 如果没有生效
 

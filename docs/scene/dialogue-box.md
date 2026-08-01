@@ -15,7 +15,12 @@ description: 使用归一化坐标改变对话框的位置、宽度和最大高�
 
 ## 需要修改的文件
 
-同步修改两个 `assets/data` 位置的 `dialogues/guide/root.json`。
+同步修改资源包与数据包中的：
+
+```text
+<资源包>/assets/example/dialogues/guide/root.json
+<数据包>/data/example/dialogues/guide/root.json
+```
 
 ## 跟着做
 

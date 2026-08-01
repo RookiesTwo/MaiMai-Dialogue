@@ -15,10 +15,11 @@ description: 在 Dialogue 正文中使用标题、强调和行内代码。
 
 ## 需要修改的文件
 
-同步修改客户端与服务端的：
+同步修改资源包与数据包中的：
 
 ```text
-dialogues/guide/root.json
+<资源包>/assets/example/dialogues/guide/root.json
+<数据包>/data/example/dialogues/guide/root.json
 ```
 
 ## 跟着做

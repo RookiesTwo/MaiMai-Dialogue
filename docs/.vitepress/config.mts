@@ -30,7 +30,7 @@ export default defineConfig({
         text: "开始使用",
         items: [
           { text: "安装", link: "/start/installation" },
-          { text: "创建内容工程", link: "/start/content-project" },
+            { text: "创建内容包", link: "/start/content-project" },
           { text: "第一段对话", link: "/start/first-dialogue" },
         ],
       },

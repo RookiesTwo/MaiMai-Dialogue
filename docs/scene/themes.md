@@ -18,10 +18,10 @@ description: 创建可复用 Theme，定制对话框、文字、选项和滚动�
 新增：
 
 ```text
-src/main/resources/assets/example/dialogue_themes/parchment.json
+<资源包>/assets/example/dialogue_themes/parchment.json
 ```
 
-并同步修改两个 `dialogues/guide/root.json`。
+并同步修改资源包与数据包中的两个 `dialogues/guide/root.json`。
 
 ## 跟着做
 
@@ -75,7 +75,7 @@ src/main/resources/assets/example/dialogue_themes/parchment.json
 
 它的资源 ID 是 `example:parchment`。
 
-2. 在客户端和服务端的 root 中，将：
+2. 在资源包和数据包的 root 中，将：
 
 ```json
 {
@@ -228,7 +228,7 @@ Theme 的每个区块和字段都可以省略；省略部分会使用内置默�
 }
 ```
 
-把这份 JSON 同步保存到 `assets` 与 `data` 中的 root 文件。
+把这份 JSON 同步保存到资源包 `assets` 与数据包 `data` 中的 root 文件。
 
 :::
 

@@ -5,6 +5,8 @@ description: 按玩家看到的现象排查安装、双端资源、选项、图�
 
 # 故障排查
 
+下文中的 `<资源包>` 表示已启用 Resource Pack 的根目录；完整映射见[资源路径与 ID](./resource-paths.md)。
+
 ## 先验证内置 Demo
 
 ```text
@@ -18,10 +20,11 @@ description: 按玩家看到的现象排查安装、双端资源、选项、图�
 
 依次检查：
 
-1. 服务端是否存在 `data/<namespace>/dialogues/<path>.json`；
-2. 文件路径是否正确映射为命令中的 ID；
-3. 是否执行了 `/reload`；
-4. 服务端日志是否报告 JSON、字段或 Progress 表达式错误。
+1. Data Pack 是否出现在 `/datapack list enabled` 中；
+2. 数据包内是否存在 `data/<namespace>/dialogues/<path>.json`；
+3. 文件路径是否正确映射为命令中的 ID；
+4. 是否执行了 `/reload`；
+5. 服务端日志是否报告 JSON、字段或 Progress 表达式错误。
 
 加载失败的资源会被跳过，所以“文件存在”不等于服务端已经加载。
 
@@ -29,12 +32,13 @@ description: 按玩家看到的现象排查安装、双端资源、选项、图�
 
 依次检查：
 
-1. 客户端是否存在同 ID 的 `assets/<namespace>/dialogues/<path>.json`；
-2. 是否按过 `F3 + T`；
-3. 玩家是否已经打开另一个 MaiMai Dialogue；
-4. 客户端日志是否报告 Theme、Speaker、目标 Dialogue、Action 或图片缺失。
+1. 客户端是否启用了对应 Resource Pack；
+2. 资源包内是否存在同 ID 的 `assets/<namespace>/dialogues/<path>.json`；
+3. 是否按过 `F3 + T`；
+4. 玩家是否已经打开另一个 MaiMai Dialogue；
+5. 客户端日志是否报告 Theme、Speaker、目标 Dialogue、Action 或图片缺失。
 
-这通常表示服务端与客户端内容包版本不一致。
+这通常表示服务端 Data Pack 与客户端 Resource Pack 不是同一个发布版本。
 
 ## 选项没有出现
 
@@ -49,7 +53,7 @@ description: 按玩家看到的现象排查安装、双端资源、选项、图�
 客户端缺少或无法解析：
 
 ```text
-assets/<namespace>/speakers/<path>.json
+<资源包>/assets/<namespace>/speakers/<path>.json
 ```
 
 检查 `speaker.id`、文件 ID 和非空 `name`。显示 ID 只是诊断回退。
@@ -59,7 +63,7 @@ assets/<namespace>/speakers/<path>.json
 检查 `presentation.theme` 对应的：
 
 ```text
-assets/<namespace>/dialogue_themes/<path>.json
+<资源包>/assets/<namespace>/dialogue_themes/<path>.json
 ```
 
 颜色格式与字段范围见 [Theme JSON](./theme-json.md)。修改后按 `F3 + T`。
@@ -75,14 +79,14 @@ JSON 中的：
 对应：
 
 ```text
-assets/example/textures/dialogue/guide.png
+<资源包>/assets/example/textures/dialogue/guide.png
 ```
 
 检查 namespace、大小写、扩展名和 `initial_variant`。图片 ID 中不要写 `textures/`。
 
 ## SceneAction 没有播放
 
-- 外部 Action 是否位于 `assets/<namespace>/presentation_actions/`；
+- 外部 Action 是否位于 `<资源包>/assets/<namespace>/presentation_actions/`；
 - `target` 是否已经声明；
 - `background` 是否只修改 `variant`；
 - `dialogue` 是否只修改 `opacity`；

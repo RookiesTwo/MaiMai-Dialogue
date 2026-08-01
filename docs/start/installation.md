@@ -59,4 +59,4 @@ description: 安装 MaiMai Dialogue，并确认内置示例可以正常打开。
 
 ## 下一步
 
-继续[创建内容工程](./content-project.md)，为自己的 Dialogue 准备资源目录。
+继续[创建内容包](./content-project.md)，为自己的 Dialogue 准备 Resource Pack 与 Data Pack。

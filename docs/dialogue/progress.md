@@ -15,11 +15,11 @@ description: 使用 ProgressNode 控制 Dialogue 和选项是否可访问。
 
 ## 需要修改的文件
 
-同步修改两个 `root.json`，并新增：
+同步修改资源包与数据包中的两个 `root.json`，并新增：
 
 ```text
-assets/example/dialogues/guide/secret.json
-data/example/dialogues/guide/secret.json
+<资源包>/assets/example/dialogues/guide/secret.json
+<数据包>/data/example/dialogues/guide/secret.json
 ```
 
 ## 跟着做

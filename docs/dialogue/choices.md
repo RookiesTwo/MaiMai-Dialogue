@@ -15,13 +15,13 @@ root Dialogue 结束后会出现“了解村庄”和“离开”两个选项。
 
 ## 需要修改的文件
 
-同步修改 root，并在客户端与服务端各新增一份子 Dialogue：
+同步修改 root，并在资源包与数据包中各新增一份子 Dialogue：
 
 ```text
-assets/example/dialogues/guide/root.json
-data/example/dialogues/guide/root.json
-assets/example/dialogues/guide/about.json
-data/example/dialogues/guide/about.json
+<资源包>/assets/example/dialogues/guide/root.json
+<数据包>/data/example/dialogues/guide/root.json
+<资源包>/assets/example/dialogues/guide/about.json
+<数据包>/data/example/dialogues/guide/about.json
 ```
 
 ## 跟着做
@@ -101,8 +101,8 @@ data/example/dialogues/guide/about.json
 
 ## 如果没有生效
 
-- 选项消失：确认服务端存在目标 `data/example/dialogues/guide/about.json`。
-- 点击后提示缺失：确认客户端也存在同 ID 的 `about.json`。
+- 选项消失：确认数据包中存在目标 `data/example/dialogues/guide/about.json`。
+- 点击后提示缺失：确认已启用的资源包中也存在同 ID 的 `about.json`。
 - Return 直接关闭：检查最初是否确实打开了 `example:guide/root`。
 - 选项文字没有 Markdown：这是正常行为，Option 使用普通文本。
 

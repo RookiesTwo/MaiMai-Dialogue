@@ -15,11 +15,11 @@ description: 使用 steps 把一段对话拆成多个阅读步骤。
 
 ## 需要修改的文件
 
-同步替换两个 `root.json`：
+同步替换资源包与数据包中的两个 `root.json`：
 
 ```text
-src/main/resources/assets/example/dialogues/guide/root.json
-src/main/resources/data/example/dialogues/guide/root.json
+<资源包>/assets/example/dialogues/guide/root.json
+<数据包>/data/example/dialogues/guide/root.json
 ```
 
 ## 跟着做
