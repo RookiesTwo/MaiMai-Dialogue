@@ -13,20 +13,20 @@ public final class ClientDialoguePayloadHandlers {
             OpenDialogueS2C payload,
             IPayloadContext context
     ) {
-        ClientDialogueController.INSTANCE.handleOpen(payload);
+        ClientServices.get().dialogues().handleOpen(payload);
     }
 
     public static void handleDialogueRequestResult(
             DialogueRequestResultS2C payload,
             IPayloadContext context
     ) {
-        ClientDialogueController.INSTANCE.handleRequestResult(payload);
+        ClientServices.get().dialogues().handleRequestResult(payload);
     }
 
     public static void handleDialogueAccessResult(
             DialogueAccessResultS2C payload,
             IPayloadContext context
     ) {
-        ClientDialogueController.INSTANCE.handleAccessResult(payload);
+        ClientServices.get().dialogues().handleAccessResult(payload);
     }
 }

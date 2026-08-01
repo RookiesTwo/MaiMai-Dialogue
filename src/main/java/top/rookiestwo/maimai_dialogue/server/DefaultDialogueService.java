@@ -11,18 +11,19 @@ import top.rookiestwo.maimai_dialogue.network.payload.OpenDialogueS2C;
 import java.util.concurrent.CompletionStage;
 
 public final class DefaultDialogueService implements DialogueService {
-    public static final DefaultDialogueService INSTANCE =
-            new DefaultDialogueService();
+    private final DialogueAccessService access;
 
-    private DefaultDialogueService() {
+    public DefaultDialogueService(DialogueAccessService access) {
+        this.access = java.util.Objects.requireNonNull(access, "access");
     }
 
     @Override
+    // 完成服务端访问检查后向目标玩家发送打开 payload。
     public CompletionStage<DialogueOpenResult> open(
             ServerPlayer player,
             ResourceLocation dialogueId
     ) {
-        return DialogueAccessService.INSTANCE.evaluate(player, dialogueId)
+        return access.evaluate(player, dialogueId)
                 .thenApply(status -> {
                     if (status == DialogueAccessStatus.ALLOWED) {
                         PacketDistributor.sendToPlayer(

@@ -15,7 +15,7 @@ import java.util.Objects;
 final class DialogueRootLayout extends FrameLayout {
     private static final int HEIGHT_ANIMATION_DURATION_MS = 220;
 
-    private final DialogueSceneLayer sceneLayer;
+    private final DialogueSceneView sceneLayer;
     private final View dialogueBox;
     private final View historyEntry;
     private final View historyOverlay;
@@ -29,7 +29,7 @@ final class DialogueRootLayout extends FrameLayout {
 
     DialogueRootLayout(
             Context context,
-            DialogueSceneLayer sceneLayer,
+            DialogueSceneView sceneLayer,
             View dialogueBox,
             View historyEntry,
             View historyOverlay

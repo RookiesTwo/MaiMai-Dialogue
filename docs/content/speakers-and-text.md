@@ -67,7 +67,6 @@ Speaker 名称、Option 文本和其他 controls 都按普通字符串显示。�
 正文按 Unicode code point 播放打字机效果。文字和本 Step 的阻塞 Action 都完成后才进入 READY：
 
 - 播放中推进：立刻显示完整正文并结算阻塞 Action；
-- READY 后推进：进入下一 Step 或执行 EndStep 的 Exit。
+- READY 后推进：进入下一 Step 或执行 DialogueEnd 的 DialogueExit。
 
 因此，长文本应按自然阅读段落拆分为多个 Step，而不是依赖玩家一次跳过整页内容。
-

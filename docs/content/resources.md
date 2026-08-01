@@ -13,7 +13,7 @@ description: 组织 Dialogue、Speaker、Theme、Action 和纹理资源。
 | 客户端 Dialogue | `assets/<namespace>/dialogues/<path>.json` | `example:intro/start` |
 | Speaker | `assets/<namespace>/speakers/<path>.json` | `example:npc/guide` |
 | Theme | `assets/<namespace>/dialogue_themes/<path>.json` | `example:dark` |
-| PresentationAction | `assets/<namespace>/presentation_actions/<path>.json` | `example:entrance/fade` |
+| SceneAction | `assets/<namespace>/presentation_actions/<path>.json` | `example:entrance/fade` |
 | 图片 | `assets/<namespace>/textures/<path>` | `example:dialogue/guide.png` |
 
 例如 `data/example/dialogues/intro/start.json` 和 `assets/example/dialogues/intro/start.json` 都映射为 `example:intro/start`。

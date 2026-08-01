@@ -12,8 +12,6 @@ public final class ServerDialogueReloadEvents {
 
     @SubscribeEvent
     public static void addReloadListener(AddReloadListenerEvent event) {
-        event.addListener(new DialogueReloadListener(
-                DialogueSnapshots::replaceServer
-        ));
+        event.addListener(new ServerDialogueReloadListener());
     }
 }

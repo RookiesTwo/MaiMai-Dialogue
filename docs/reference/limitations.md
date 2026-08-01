@@ -12,7 +12,7 @@ description: 0.1.0-alpha 已知边界和尚未支持的能力。
 - OptionTarget 只有 `dialogue` 和 `return`。
 - 没有导航栈、恢复点、Option ID、脚本动作或自动修改进度。
 - Return 总是返回 root 的开头；root Return 关闭界面。
-- Dialogue 内部 Step 线性播放，分支只出现在 EndStep。
+- Dialogue 内部 Step 线性播放，分支只出现在 DialogueEnd。
 - 客户端和服务端必须预装本地内容，不支持运行时动态下发 Dialogue。
 
 ## 文字与交互
@@ -47,4 +47,3 @@ description: 0.1.0-alpha 已知边界和尚未支持的能力。
 - 客户端已经打开 Dialogue 时，新的服务端打开请求会被忽略。
 
 这些限制可能在后续版本变化。升级 alpha 版本前，请阅读变更记录并重新验证全部内容资源。
-

@@ -2,23 +2,23 @@ package top.rookiestwo.maimai_dialogue.client.resource;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
+import top.rookiestwo.maimai_dialogue.content.DefinitionRegistry;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePreparation;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneRuntime;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneTransitions;
-import top.rookiestwo.maimai_dialogue.dialogue.ContinueStep;
+import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueTarget;
-import top.rookiestwo.maimai_dialogue.dialogue.EndStep;
-import top.rookiestwo.maimai_dialogue.dialogue.OptionsExit;
+import top.rookiestwo.maimai_dialogue.dialogue.DialogueEnd;
+import top.rookiestwo.maimai_dialogue.dialogue.ChoiceExit;
 import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
 import top.rookiestwo.maimai_dialogue.dialogue.SetSpeaker;
 import top.rookiestwo.maimai_dialogue.dialogue.SpeakerOperation;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualObject;
-import top.rookiestwo.maimai_dialogue.dialogue.resource.DialogueSnapshot;
-import top.rookiestwo.maimai_dialogue.presentation.action.ActionCall;
-import top.rookiestwo.maimai_dialogue.presentation.action.resource.ActionSnapshot;
-import top.rookiestwo.maimai_dialogue.speaker.resource.SpeakerSnapshot;
-import top.rookiestwo.maimai_dialogue.theme.resource.ThemeSnapshot;
+import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
+import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
+import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
+import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -30,18 +30,16 @@ public final class ClientResourceValidator {
     private ClientResourceValidator() {
     }
 
+    // 校验客户端全部 definition 之间的引用和图片资源。
     public static List<String> validate(
             ResourceManager resourceManager,
-            DialogueSnapshot dialogues,
-            SpeakerSnapshot speakers,
-            ThemeSnapshot themes,
-            ActionSnapshot actions
+            ClientContentSnapshot snapshot
     ) {
         return validate(
-                dialogues,
-                speakers,
-                themes,
-                actions,
+                snapshot.dialogues(),
+                snapshot.speakers(),
+                snapshot.themes(),
+                snapshot.actions(),
                 imageId -> resourceManager.getResource(
                         ResourceLocation.fromNamespaceAndPath(
                                 imageId.getNamespace(),
@@ -52,14 +50,14 @@ public final class ClientResourceValidator {
     }
 
     static List<String> validate(
-            DialogueSnapshot dialogues,
-            SpeakerSnapshot speakers,
-            ThemeSnapshot themes,
-            ActionSnapshot actions,
+            DefinitionRegistry<DialogueDefinition> dialogues,
+            DefinitionRegistry<SpeakerDefinition> speakers,
+            DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<SceneAction> actions,
             Predicate<ResourceLocation> imageExists
     ) {
         List<String> errors = new ArrayList<>();
-        dialogues.definitions().entrySet().stream()
+        dialogues.entries().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey(
                         Comparator.comparing(ResourceLocation::toString)
                 ))
@@ -79,10 +77,10 @@ public final class ClientResourceValidator {
     private static void validateDialogue(
             ResourceLocation dialogueId,
             DialogueDefinition dialogue,
-            DialogueSnapshot dialogues,
-            SpeakerSnapshot speakers,
-            ThemeSnapshot themes,
-            ActionSnapshot actions,
+            DefinitionRegistry<DialogueDefinition> dialogues,
+            DefinitionRegistry<SpeakerDefinition> speakers,
+            DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<SceneAction> actions,
             Predicate<ResourceLocation> imageExists,
             List<String> errors
     ) {
@@ -119,7 +117,7 @@ public final class ClientResourceValidator {
         );
         boolean initialStep = true;
         for (int index = 0; index < dialogue.steps().size(); index++) {
-            ContinueStep step = dialogue.steps().get(index);
+            DialogueStep step = dialogue.steps().get(index);
             validateSpeaker(
                     dialogueId,
                     "step " + index,
@@ -127,7 +125,7 @@ public final class ClientResourceValidator {
                     speakers,
                     errors
             );
-            List<ActionCall> stepActions = initialStep
+            List<SceneActionCall> stepActions = initialStep
                     ? SceneTransitions.withDefaultFadeIn(step.actions())
                     : step.actions();
             initialStep = false;
@@ -140,7 +138,7 @@ public final class ClientResourceValidator {
             );
         }
 
-        EndStep end = dialogue.end();
+        DialogueEnd end = dialogue.end();
         validateSpeaker(
                 dialogueId,
                 "end",
@@ -148,7 +146,7 @@ public final class ClientResourceValidator {
                 speakers,
                 errors
         );
-        List<ActionCall> endActions = initialStep
+        List<SceneActionCall> endActions = initialStep
                 ? SceneTransitions.withDefaultFadeIn(end.actions())
                 : end.actions();
         validateActions(
@@ -158,7 +156,7 @@ public final class ClientResourceValidator {
                 runtime,
                 errors
         );
-        if (end.exit() instanceof OptionsExit options) {
+        if (end.exit() instanceof ChoiceExit options) {
             options.options().forEach(option -> {
                 if (option.target() instanceof DialogueTarget target
                         && !dialogues.contains(target.dialogue())) {
@@ -206,7 +204,7 @@ public final class ClientResourceValidator {
             ResourceLocation dialogueId,
             String location,
             SpeakerOperation operation,
-            SpeakerSnapshot speakers,
+            DefinitionRegistry<SpeakerDefinition> speakers,
             List<String> errors
     ) {
         if (operation instanceof SetSpeaker set
@@ -219,7 +217,7 @@ public final class ClientResourceValidator {
     private static void validateActions(
             ResourceLocation dialogueId,
             String location,
-            List<ActionCall> calls,
+            List<SceneActionCall> calls,
             SceneRuntime runtime,
             List<String> errors
     ) {

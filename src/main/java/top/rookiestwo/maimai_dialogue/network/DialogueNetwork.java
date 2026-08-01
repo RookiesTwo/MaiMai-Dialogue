@@ -23,6 +23,7 @@ public final class DialogueNetwork {
     }
 
     @SubscribeEvent
+    // 注册 Dialogue 打开、请求和权限查询使用的全部 payload。
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
         var registrar = event.registrar(PROTOCOL_VERSION);
 

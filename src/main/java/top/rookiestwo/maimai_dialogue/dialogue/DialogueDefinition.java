@@ -11,8 +11,8 @@ import java.util.Optional;
 public record DialogueDefinition(
         Optional<ProgressExpression> requires,
         Presentation presentation,
-        List<ContinueStep> steps,
-        EndStep end
+        List<DialogueStep> steps,
+        DialogueEnd end
 ) {
     public static final Codec<DialogueDefinition> CODEC =
             RecordCodecBuilder.create(instance ->
@@ -21,10 +21,10 @@ public record DialogueDefinition(
                                     .forGetter(DialogueDefinition::requires),
                             Presentation.CODEC.fieldOf("presentation")
                                     .forGetter(DialogueDefinition::presentation),
-                            ContinueStep.CODEC.listOf()
+                            DialogueStep.CODEC.listOf()
                                     .optionalFieldOf("steps", List.of())
                                     .forGetter(DialogueDefinition::steps),
-                            EndStep.CODEC.fieldOf("end")
+                            DialogueEnd.CODEC.fieldOf("end")
                                     .forGetter(DialogueDefinition::end)
                     ).apply(instance, DialogueDefinition::new)
             );

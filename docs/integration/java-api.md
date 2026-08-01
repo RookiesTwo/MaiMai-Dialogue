@@ -112,7 +112,7 @@ CompletionStage<ProgressChangeResult> remove(
 - API 只接受在线 `ServerPlayer`。
 - Progress API 应从玩家所属 logical server thread 调用；错误线程会抛出 `IllegalStateException`。
 - 玩家进度尚未加载或已损坏时，操作可能同步失败或返回 exceptional CompletionStage。
-- 不要直接修改 Progress NBT 文件或依赖内部 `PlayerProgressRepository`。
+- 不要直接修改 Progress NBT 文件或依赖内部 `DefaultPlayerProgressService`。
 - 当前没有公开的客户端侧“请求打开” API；NPC、任务或事件集成应在服务端调用 `DialogueService.open`。
 
 ## 推荐集成方式
@@ -121,4 +121,3 @@ CompletionStage<ProgressChangeResult> remove(
 2. 保存成功后，根据业务需要调用 `dialogues().open(...)`。
 3. Dialogue 的 `requires` 仍作为服务端最终访问边界。
 4. 对每种 `DialogueOpenResult` 和异常提供日志或玩家反馈。
-

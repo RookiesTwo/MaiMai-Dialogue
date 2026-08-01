@@ -1,13 +1,13 @@
 ---
-title: PresentationAction
+title: SceneAction
 description: 使用内联或可复用 Action 制作有限关键帧动画。
 ---
 
-# PresentationAction
+# SceneAction
 
 每个 Step 的 `actions` 可同时调度多个有限 Action。
 
-## ActionCall
+## SceneActionCall
 
 ```json
 {
@@ -56,7 +56,7 @@ assets/<namespace>/presentation_actions/<path>.json
 }
 ```
 
-PresentationAction 字段：
+SceneAction 字段：
 
 | 字段 | 默认/约束 |
 |---|---|
@@ -113,9 +113,8 @@ PresentationAction 字段：
 
 `blocking: true` 的 Action 会和打字机共同阻止 Step 进入 READY。播放中推进会立即提交预先计算的最终状态 S1，不会从中途状态重复叠加相对值。
 
-首个 Step（或没有 ContinueStep 时的 EndStep）如果没有显式控制 `dialogue`，系统会自动加入 250ms `ease_out` 的阻塞淡入。
+首个 Step（或没有 DialogueStep 时的 DialogueEnd）如果没有显式控制 `dialogue`，系统会自动加入 250ms `ease_out` 的阻塞淡入。
 
 ::: warning 当前限制
 当前只支持有限 Action，不支持循环、跨 Step 持久动画、任意 shader、复杂 easing 或动态 VisualObject 生命周期。
 :::
-

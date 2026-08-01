@@ -29,7 +29,7 @@ features:
 - 第一次制作内容：从[快速入门](./guide/quick-start.md)开始。
 - 安装或发布整合包：阅读[安装与双端分发](./guide/installation.md)和[资源组织](./content/resources.md)。
 - 编写对话：阅读[Dialogue 与流程](./content/dialogues.md)。
-- 制作演出：阅读[场景表现](./content/presentation.md)、[PresentationAction](./content/actions.md)和[Theme](./content/themes.md)。
+- 制作演出：阅读[场景表现](./content/presentation.md)、[SceneAction](./content/actions.md)和[Theme](./content/themes.md)。
 - 管理任务进度：阅读[ProgressNode 与访问条件](./content/progress.md)和[命令参考](./administration/commands.md)。
 - 从其他 MOD 接入：阅读[Java API](./integration/java-api.md)。
 
@@ -38,4 +38,3 @@ features:
 :::
 
 MaiMai Dialogue 是专注的通用对话引擎，不绑定特定 NPC、实体或任务系统。它不会替代任务系统，也不会自动修改任务进度；由命令、数据包逻辑或第三方 MOD 决定何时打开对话及何时变更 ProgressNode。
-

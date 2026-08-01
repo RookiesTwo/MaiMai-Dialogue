@@ -1,21 +1,21 @@
 package top.rookiestwo.maimai_dialogue.client.scene;
 
-import top.rookiestwo.maimai_dialogue.presentation.action.ActionCall;
-import top.rookiestwo.maimai_dialogue.presentation.action.ActionDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
+import top.rookiestwo.maimai_dialogue.presentation.action.ActionSpec;
 import top.rookiestwo.maimai_dialogue.presentation.action.ActionEasing;
 import top.rookiestwo.maimai_dialogue.presentation.action.NumericKeyframe;
 import top.rookiestwo.maimai_dialogue.presentation.action.NumericTrack;
-import top.rookiestwo.maimai_dialogue.presentation.action.PresentationAction;
+import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 public final class SceneTransitions {
-    private static final ActionCall DEFAULT_FADE_IN = new ActionCall(
+    private static final SceneActionCall DEFAULT_FADE_IN = new SceneActionCall(
             "dialogue",
             0,
-            new ActionDefinition.Inline(new PresentationAction(
+            new ActionSpec.Inline(new SceneAction(
                     250,
                     ActionEasing.EASE_OUT,
                     true,
@@ -33,15 +33,15 @@ public final class SceneTransitions {
     private SceneTransitions() {
     }
 
-    public static List<ActionCall> withDefaultFadeIn(
-            List<ActionCall> actions
+    public static List<SceneActionCall> withDefaultFadeIn(
+            List<SceneActionCall> actions
     ) {
         if (actions.stream().anyMatch(
                 call -> call.target().equals("dialogue")
         )) {
             return actions;
         }
-        List<ActionCall> withFade =
+        List<SceneActionCall> withFade =
                 new ArrayList<>(actions.size() + 1);
         withFade.add(DEFAULT_FADE_IN);
         withFade.addAll(actions);

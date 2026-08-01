@@ -3,25 +3,32 @@ package top.rookiestwo.maimai_dialogue.server;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
-import top.rookiestwo.maimai_dialogue.dialogue.resource.DialogueSnapshots;
+import top.rookiestwo.maimai_dialogue.api.progress.PlayerProgressService;
+import top.rookiestwo.maimai_dialogue.content.DefinitionRegistry;
 import top.rookiestwo.maimai_dialogue.network.DialogueAccessEntry;
 import top.rookiestwo.maimai_dialogue.network.DialogueAccessStatus;
 import top.rookiestwo.maimai_dialogue.progress.ProgressDataException;
-import top.rookiestwo.maimai_dialogue.progress.ProgressServices;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Supplier;
 
 public final class DialogueAccessService {
-    public static final DialogueAccessService INSTANCE =
-            new DialogueAccessService();
+    private final Supplier<DefinitionRegistry<DialogueDefinition>> dialogues;
+    private final PlayerProgressService progress;
 
-    private DialogueAccessService() {
+    public DialogueAccessService(
+            Supplier<DefinitionRegistry<DialogueDefinition>> dialogues,
+            PlayerProgressService progress
+    ) {
+        this.dialogues = Objects.requireNonNull(dialogues, "dialogues");
+        this.progress = Objects.requireNonNull(progress, "progress");
     }
 
+    // 根据服务端 Dialogue definition 和玩家进度计算访问状态。
     public CompletionStage<DialogueAccessStatus> evaluate(
             ServerPlayer player,
             ResourceLocation dialogueId
@@ -29,7 +36,7 @@ public final class DialogueAccessService {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(dialogueId, "dialogueId");
 
-        DialogueDefinition definition = DialogueSnapshots.server()
+        DialogueDefinition definition = dialogues.get()
                 .find(dialogueId)
                 .orElse(null);
         if (definition == null) {
@@ -43,7 +50,7 @@ public final class DialogueAccessService {
             );
         }
 
-        return ProgressServices.repository().snapshot(player)
+        return progress.snapshot(player)
                 .handle((snapshot, error) -> {
                     if (error != null) {
                         Throwable cause = unwrap(error);

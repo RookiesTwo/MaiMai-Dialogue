@@ -1,13 +1,13 @@
 package top.rookiestwo.maimai_dialogue.client.scene;
 
-import top.rookiestwo.maimai_dialogue.presentation.action.PresentationAction;
+import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 
 import java.util.Objects;
 
 public record ResolvedActionCall(
         String target,
         int delayMs,
-        PresentationAction action
+        SceneAction action
 ) {
     public ResolvedActionCall {
         Objects.requireNonNull(target, "target");

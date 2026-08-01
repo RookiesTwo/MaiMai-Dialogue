@@ -2,12 +2,11 @@ package top.rookiestwo.maimai_dialogue.client.scene;
 
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
-import top.rookiestwo.maimai_dialogue.presentation.action.ActionCall;
-import top.rookiestwo.maimai_dialogue.presentation.action.ActionDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
+import top.rookiestwo.maimai_dialogue.presentation.action.ActionSpec;
 import top.rookiestwo.maimai_dialogue.presentation.action.ActionProperty;
-import top.rookiestwo.maimai_dialogue.presentation.action.PresentationAction;
+import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 import top.rookiestwo.maimai_dialogue.presentation.action.NumericTrack;
-import top.rookiestwo.maimai_dialogue.presentation.action.resource.ActionSnapshots;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -19,7 +18,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public final class SceneRuntime {
-    private final Function<ResourceLocation, Optional<PresentationAction>>
+    private final Function<ResourceLocation, Optional<SceneAction>>
             actionLookup;
     private SceneState current;
     private long nextPlaybackToken;
@@ -43,7 +42,7 @@ public final class SceneRuntime {
         this(
                 presentation,
                 initialDialogueOpacity,
-                ActionSnapshots.client()::find,
+                ignored -> Optional.empty(),
                 firstPlaybackToken
         );
     }
@@ -51,7 +50,7 @@ public final class SceneRuntime {
     public SceneRuntime(
             Presentation presentation,
             float initialDialogueOpacity,
-            Function<ResourceLocation, Optional<PresentationAction>>
+            Function<ResourceLocation, Optional<SceneAction>>
                     actionLookup
     ) {
         this(presentation, initialDialogueOpacity, actionLookup, 1L);
@@ -60,7 +59,7 @@ public final class SceneRuntime {
     public SceneRuntime(
             Presentation presentation,
             float initialDialogueOpacity,
-            Function<ResourceLocation, Optional<PresentationAction>>
+            Function<ResourceLocation, Optional<SceneAction>>
                     actionLookup,
             long firstPlaybackToken
     ) {
@@ -76,7 +75,8 @@ public final class SceneRuntime {
         return current;
     }
 
-    public ScenePreparation prepare(List<ActionCall> actionCalls) {
+    // 解析并校验一组 SceneActionCall，生成可播放的状态变化。
+    public ScenePreparation prepare(List<SceneActionCall> actionCalls) {
         SceneState start = current;
         SceneState end;
         List<ResolvedActionCall> resolved = new ArrayList<>();
@@ -85,11 +85,11 @@ public final class SceneRuntime {
         int totalDuration = 0;
         int blockingDuration = 0;
 
-        for (ActionCall call : actionCalls) {
-            PresentationAction action = resolve(call.action());
+        for (SceneActionCall call : actionCalls) {
+            SceneAction action = resolve(call.action());
             if (action == null) {
-                if (call.action() instanceof ActionDefinition.Reference reference) {
-                    errors.add("Client is missing PresentationAction "
+                if (call.action() instanceof ActionSpec.Reference reference) {
+                    errors.add("Client is missing SceneAction "
                             + reference.id());
                 }
                 continue;
@@ -111,7 +111,7 @@ public final class SceneRuntime {
             conflicts.retainAll(targetWrites);
             if (!conflicts.isEmpty()) {
                 for (ActionProperty conflict : conflicts) {
-                    errors.add("Multiple PresentationActions write "
+                    errors.add("Multiple SceneActions write "
                             + call.target() + "."
                             + conflict.name().toLowerCase());
                 }
@@ -138,7 +138,7 @@ public final class SceneRuntime {
                         .orElse(null);
                 if (initial == null) {
                     errors.add(
-                            "PresentationAction targets undeclared "
+                            "SceneAction targets undeclared "
                                     + "VisualObject " + call.target()
                     );
                     validTarget = false;
@@ -195,11 +195,11 @@ public final class SceneRuntime {
         return new ScenePreparation(playback, errors);
     }
 
-    private PresentationAction resolve(ActionDefinition definition) {
-        if (definition instanceof ActionDefinition.Inline inline) {
+    private SceneAction resolve(ActionSpec definition) {
+        if (definition instanceof ActionSpec.Inline inline) {
             return inline.action();
         }
-        if (definition instanceof ActionDefinition.Reference reference) {
+        if (definition instanceof ActionSpec.Reference reference) {
             return actionLookup.apply(reference.id()).orElse(null);
         }
         return null;
@@ -207,7 +207,7 @@ public final class SceneRuntime {
 
     private static boolean validateFinalState(
             SceneObjectState initial,
-            PresentationAction action,
+            SceneAction action,
             List<String> errors,
             String target
     ) {
@@ -215,7 +215,7 @@ public final class SceneRuntime {
                 .map(track -> track.finalValue())
                 .orElse(0.0F);
         if (finalScale <= 0.0F) {
-            errors.add("PresentationAction leaves " + target
+            errors.add("SceneAction leaves " + target
                     + " with non-positive scale.");
             return false;
         }
@@ -223,7 +223,7 @@ public final class SceneRuntime {
                 .map(track -> track.finalValue())
                 .orElse(0.0F);
         if (finalOpacity < 0.0F || finalOpacity > 1.0F) {
-            errors.add("PresentationAction leaves " + target
+            errors.add("SceneAction leaves " + target
                     + " opacity outside 0..1.");
             return false;
         }
@@ -231,7 +231,7 @@ public final class SceneRuntime {
                 .map(change -> change.variant())
                 .orElse(initial.variant());
         if (!initial.variants().containsKey(finalVariant)) {
-            errors.add("PresentationAction selects missing variant "
+            errors.add("SceneAction selects missing variant "
                     + finalVariant + " on " + target + ".");
             return false;
         }
@@ -240,13 +240,13 @@ public final class SceneRuntime {
 
     private static boolean validateBackground(
             SceneBackgroundState initial,
-            PresentationAction action,
+            SceneAction action,
             EnumSet<ActionProperty> writes,
             List<String> errors
     ) {
         if (initial == null) {
             errors.add(
-                    "PresentationAction targets an undeclared background."
+                    "SceneAction targets an undeclared background."
             );
             return false;
         }
@@ -254,7 +254,7 @@ public final class SceneRuntime {
         unsupported.remove(ActionProperty.VARIANT);
         if (!unsupported.isEmpty()) {
             errors.add(
-                    "Background PresentationAction only supports variant."
+                    "Background SceneAction only supports variant."
             );
             return false;
         }
@@ -263,7 +263,7 @@ public final class SceneRuntime {
                 .orElse(initial.variant());
         if (!initial.variants().containsKey(finalVariant)) {
             errors.add(
-                    "PresentationAction selects missing Background variant "
+                    "SceneAction selects missing Background variant "
                             + finalVariant + "."
             );
             return false;
@@ -273,7 +273,7 @@ public final class SceneRuntime {
 
     private static boolean validateDialogue(
             float initialOpacity,
-            PresentationAction action,
+            SceneAction action,
             EnumSet<ActionProperty> writes,
             List<String> errors
     ) {
@@ -281,7 +281,7 @@ public final class SceneRuntime {
         unsupported.remove(ActionProperty.OPACITY);
         if (!unsupported.isEmpty()) {
             errors.add(
-                    "Dialogue PresentationAction only supports opacity."
+                    "Dialogue SceneAction only supports opacity."
             );
             return false;
         }
@@ -290,7 +290,7 @@ public final class SceneRuntime {
                 .orElse(0.0F);
         if (finalOpacity < 0.0F || finalOpacity > 1.0F) {
             errors.add(
-                    "PresentationAction leaves Dialogue opacity outside 0..1."
+                    "SceneAction leaves Dialogue opacity outside 0..1."
             );
             return false;
         }

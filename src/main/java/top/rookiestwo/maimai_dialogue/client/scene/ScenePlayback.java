@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue.client.scene;
 
-import top.rookiestwo.maimai_dialogue.presentation.action.PresentationAction;
+import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,6 +22,7 @@ public record ScenePlayback(
         calls = List.copyOf(calls);
     }
 
+    // 计算指定播放时间点的完整场景状态。
     public SceneState stateAt(int elapsedMs) {
         SceneState state = start;
         for (ResolvedActionCall call : calls) {
@@ -37,7 +38,7 @@ public record ScenePlayback(
                     .orElseThrow();
             SceneObjectState current = state.find(call.target())
                     .orElseThrow();
-            PresentationAction action = call.action();
+            SceneAction action = call.action();
             float fraction;
             if (action.durationMs() == 0) {
                 fraction = elapsedMs >= call.delayMs() ? 1.0F : 0.0F;
@@ -94,7 +95,7 @@ public record ScenePlayback(
             if (call.action().variant().isEmpty()) {
                 continue;
             }
-            PresentationAction action = call.action();
+            SceneAction action = call.action();
             int fadeStart = call.delayMs() + (int) Math.ceil(
                     action.durationMs()
                             * action.variant().orElseThrow().at()
@@ -169,7 +170,7 @@ public record ScenePlayback(
             ResolvedActionCall call,
             int elapsedMs
     ) {
-        PresentationAction action = call.action();
+        SceneAction action = call.action();
         float fraction;
         if (action.durationMs() == 0) {
             fraction = elapsedMs >= call.delayMs() ? 1.0F : 0.0F;
@@ -195,7 +196,7 @@ public record ScenePlayback(
     ) {
         SceneBackgroundState initial = start.background().orElseThrow();
         SceneBackgroundState current = state.background().orElseThrow();
-        PresentationAction action = call.action();
+        SceneAction action = call.action();
         float fraction;
         if (action.durationMs() == 0) {
             fraction = elapsedMs >= call.delayMs() ? 1.0F : 0.0F;
