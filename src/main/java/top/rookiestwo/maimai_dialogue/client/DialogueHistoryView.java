@@ -14,6 +14,7 @@ import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
+import icyllis.modernui.view.KeyEvent;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.LinearLayout;
@@ -23,6 +24,8 @@ import net.minecraft.client.resources.language.I18n;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueHistoryEntry;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeOption;
+import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
+import top.rookiestwo.maimai_dialogue.client.config.ClientControlAction;
 
 import java.util.List;
 
@@ -38,11 +41,17 @@ final class DialogueHistoryView extends FrameLayout {
     private final ScrollView scroll;
     private final LinearLayout list;
     private final Markflow markflow;
+    private final Runnable closedAction;
     private ThemeDefinition theme = ThemeDefinition.DEFAULT;
+    private DialogueTypography typography = DialogueTypography.resolve(
+            ClientConfig.get()
+    );
     private int renderedSize = -1;
+    private boolean historyKeyDown;
 
     DialogueHistoryView(Context context, Runnable closedAction) {
         super(context);
+        this.closedAction = closedAction;
         setClickable(true);
         setFocusable(true);
         setFocusableInTouchMode(true);
@@ -116,6 +125,11 @@ final class DialogueHistoryView extends FrameLayout {
         scroll.post(() -> scroll.fullScroll(View.FOCUS_DOWN));
     }
 
+    void setTypography(DialogueTypography typography) {
+        this.typography = typography;
+        applyTheme(theme);
+    }
+
     // 应用当前 Dialogue Theme 到历史面板及滚动条。
     void applyTheme(ThemeDefinition theme) {
         this.theme = theme;
@@ -130,7 +144,7 @@ final class DialogueHistoryView extends FrameLayout {
         int vertical = titleRow.dp(spacing.headerVerticalDp());
         titleRow.setPadding(horizontal, vertical, horizontal, vertical);
         closeButton.setTextColor(text.primary().argb());
-        closeButton.setTextSize(text.auxiliarySizeSp());
+        typography.apply(closeButton, text.auxiliarySizeSp());
         applyControlButtonTheme(closeButton);
         applyScrollbarTheme();
     }
@@ -147,7 +161,7 @@ final class DialogueHistoryView extends FrameLayout {
         TextView name = new TextView(getContext());
         name.setText(hasSpeaker ? "【" + speaker + "】" : "");
         name.setTextColor(theme.text().primary().argb());
-        name.setTextSize(theme.text().speakerSizeSp());
+        typography.apply(name, theme.text().speakerSizeSp());
         name.setGravity(Gravity.END | Gravity.TOP);
         LinearLayout.LayoutParams nameParams = new LinearLayout.LayoutParams(
                 0,
@@ -167,7 +181,7 @@ final class DialogueHistoryView extends FrameLayout {
         );
         if (entry.type() == DialogueHistoryEntry.Type.DIALOGUE) {
             content.setTextColor(theme.text().primary().argb());
-            content.setTextSize(theme.text().dialogueSizeSp());
+            typography.apply(content, theme.text().dialogueSizeSp());
             Spanned rendered = markflow.convert(entry.content());
             markflow.setRenderedMarkdown(content, rendered);
             if (hasSpeaker) {
@@ -188,7 +202,7 @@ final class DialogueHistoryView extends FrameLayout {
         } else {
             content.setText(styledOption(entry.content()));
             content.setTextColor(theme.option().hoverBorder().argb());
-            content.setTextSize(theme.text().optionSizeSp());
+            typography.apply(content, theme.text().optionSizeSp());
             contentColumn.addView(content, contentParams);
         }
         row.addView(contentColumn, new LinearLayout.LayoutParams(
@@ -203,8 +217,35 @@ final class DialogueHistoryView extends FrameLayout {
         TextView view = new TextView(getContext());
         view.setText(quote);
         view.setTextColor(theme.text().primary().argb());
-        view.setTextSize(theme.text().dialogueSizeSp());
+        typography.apply(view, theme.text().dialogueSizeSp());
         return view;
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (ClientConfig.get().matches(
+                ClientControlAction.HISTORY,
+                event.getKeyCode()
+        )) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN
+                    && !event.isCanceled()) {
+                historyKeyDown = true;
+            } else if (event.getAction() == KeyEvent.ACTION_UP
+                    && historyKeyDown) {
+                historyKeyDown = false;
+                closedAction.run();
+            }
+            return true;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        if (!hasWindowFocus) {
+            historyKeyDown = false;
+        }
     }
 
     private static FrameLayout.LayoutParams quoteLayoutParams(int gravity) {

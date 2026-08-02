@@ -62,6 +62,7 @@ export default defineConfig({
           { text: "双端发布", link: "/publish/client-server" },
           { text: "命令与管理", link: "/publish/commands" },
           { text: "玩家操作", link: "/publish/player-controls" },
+          { text: "客户端设置", link: "/publish/client-settings" },
         ],
       },
       {

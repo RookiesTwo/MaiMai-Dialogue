@@ -19,7 +19,11 @@ hs_err_pid*
 
 # Common working directory
 run
-/src/test/
+/src/test/**
+!/src/test/**/
+!/src/test/**/ClientPreferencesTest.java
+!/src/test/**/DialogueDefinitionCodecTest.java
+!/src/test/**/DialogueSessionTest.java
 
 # Local project notes（仅保留共享的架构说明）
 /.project-notes/*

@@ -14,6 +14,7 @@ import icyllis.modernui.widget.ScrollView;
 import icyllis.modernui.widget.TextView;
 import net.minecraft.client.resources.language.I18n;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
+import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
 
 import java.util.Objects;
 
@@ -35,6 +36,9 @@ final class DialogueSkipConfirmationView extends FrameLayout {
     private final Button confirmButton;
     private final Markflow markflow;
     private final String markdownSummary;
+    private DialogueTypography typography = DialogueTypography.resolve(
+            ClientConfig.get()
+    );
 
     DialogueSkipConfirmationView(
             Context context,
@@ -141,20 +145,28 @@ final class DialogueSkipConfirmationView extends FrameLayout {
         panel.setPadding(horizontal, vertical, horizontal, vertical);
 
         title.setTextColor(text.primary().argb());
-        title.setTextSize(text.speakerSizeSp());
+        typography.apply(title, text.speakerSizeSp());
         summary.setTextColor(text.primary().argb());
-        summary.setTextSize(text.dialogueSizeSp());
+        typography.apply(summary, text.dialogueSizeSp());
         Spanned renderedSummary = markflow.convert(markdownSummary);
         markflow.setRenderedMarkdown(summary, renderedSummary);
         int summaryPadding = dp(12);
         summary.setPadding(0, summaryPadding, 0, summaryPadding);
         cancelButton.setTextColor(text.primary().argb());
-        cancelButton.setTextSize(text.auxiliarySizeSp());
+        typography.apply(cancelButton, text.auxiliarySizeSp());
         confirmButton.setTextColor(text.primary().argb());
-        confirmButton.setTextSize(text.auxiliarySizeSp());
+        typography.apply(confirmButton, text.auxiliarySizeSp());
         DialogueBoxView.applyControlButtonTheme(cancelButton, theme);
         DialogueBoxView.applyControlButtonTheme(confirmButton, theme);
         applyScrollbarTheme(theme);
+    }
+
+    void setTypography(
+            DialogueTypography typography,
+            ThemeDefinition theme
+    ) {
+        this.typography = typography;
+        applyTheme(theme);
     }
 
     @Override

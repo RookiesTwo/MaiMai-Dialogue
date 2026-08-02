@@ -42,7 +42,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 | 字段 | 必填 | 默认值 | 说明 |
 |---|---:|---|---|
 | `text` | 否 | 无正文 | 字符串为固定正文；非空字符串数组为随机正文；仅此字段解析 Markdown |
-| `typewriter_interval_ms` | 否 | `30` | 每个 Unicode code point 的显示间隔，范围 `0..1000`；`0` 表示立即显示 |
+| `typewriter_interval_ms` | 否 | 玩家客户端默认值（初始 `30`） | 每个 Unicode code point 的显示间隔，范围 `0..1000`；`0` 表示立即显示。显式值始终优先于玩家默认值 |
 | `speaker` | 否 | 继承当前状态 | 设置、隐藏或继续沿用 Speaker |
 | `actions` | 否 | `[]` | 同时调度的 SceneActionCall |
 
@@ -152,6 +152,6 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 - 正文和全部 blocking SceneAction 完成后，当前步骤才可继续。
 - 播放期间第一次推进只提交当前文字和动画的最终状态。
 - 再次推进才进入下一步或执行 `end.exit`。
-- 按住 Ctrl 会以固定 4 倍速度播放正文和有限 SceneAction；Continue Step 就绪后会自动进入下一步，直到进入 `end`。`end` 仍以 4 倍速度播放，但不会自动执行 Exit。
-- 长按右上角跳过按钮 1 秒会结算剩余 Speaker 与 SceneAction，并直接完成 `end`；尚未进入的正文不会写入历史。
+- 默认按住 Ctrl 会以 4 倍速度播放正文和有限 SceneAction；Continue Step 就绪后会自动进入下一步，直到进入 `end`。`end` 仍会加速播放，但不会自动执行 Exit。玩家可在客户端设置中调整倍率和键位。
+- 右上角跳过按钮默认需长按 600ms；玩家可以配置统一的鼠标/键盘长按时长。触发后会结算剩余 Speaker 与 SceneAction，并直接完成 `end`；尚未进入的正文不会写入历史。
 - `exit` 和 Option 只导航，不会自动修改 ProgressNode。

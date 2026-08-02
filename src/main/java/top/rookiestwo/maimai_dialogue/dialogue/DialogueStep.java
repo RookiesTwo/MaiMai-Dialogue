@@ -13,7 +13,8 @@ public record DialogueStep(
         Optional<DialogueText> text,
         int typewriterIntervalMs,
         Optional<SpeakerOperation> speaker,
-        List<SceneActionCall> actions
+        List<SceneActionCall> actions,
+        boolean usesDefaultTypewriterInterval
 ) {
     public static final int DEFAULT_TYPEWRITER_INTERVAL_MS = 30;
     public static final int MAX_TYPEWRITER_INTERVAL_MS = 1_000;
@@ -29,16 +30,29 @@ public record DialogueStep(
                     DialogueText.optionalFieldOf("text")
                             .forGetter(DialogueStep::text),
                     TYPEWRITER_INTERVAL_CODEC.optionalFieldOf(
-                                    "typewriter_interval_ms",
-                                    DEFAULT_TYPEWRITER_INTERVAL_MS
+                                    "typewriter_interval_ms"
                             )
-                            .forGetter(DialogueStep::typewriterIntervalMs),
+                            .forGetter(step ->
+                                    step.usesDefaultTypewriterInterval()
+                                            ? Optional.empty()
+                                            : Optional.of(
+                                                    step.typewriterIntervalMs()
+                                            )
+                            ),
                     SpeakerOperation.CODEC.optionalFieldOf("speaker")
                             .forGetter(DialogueStep::speaker),
                     SceneActionCall.CODEC.listOf()
                             .optionalFieldOf("actions", List.of())
                             .forGetter(DialogueStep::actions)
-            ).apply(instance, DialogueStep::new)
+            ).apply(instance, (text, interval, speaker, actions) ->
+                    new DialogueStep(
+                            text,
+                            interval.orElse(DEFAULT_TYPEWRITER_INTERVAL_MS),
+                            speaker,
+                            actions,
+                            interval.isEmpty()
+                    )
+            )
     );
 
     public DialogueStep {
@@ -55,9 +69,24 @@ public record DialogueStep(
 
     public DialogueStep(
             Optional<DialogueText> text,
+            int typewriterIntervalMs,
+            Optional<SpeakerOperation> speaker,
+            List<SceneActionCall> actions
+    ) {
+        this(text, typewriterIntervalMs, speaker, actions, false);
+    }
+
+    public DialogueStep(
+            Optional<DialogueText> text,
             Optional<SpeakerOperation> speaker
     ) {
-        this(text, DEFAULT_TYPEWRITER_INTERVAL_MS, speaker, List.of());
+        this(
+                text,
+                DEFAULT_TYPEWRITER_INTERVAL_MS,
+                speaker,
+                List.of(),
+                true
+        );
     }
 
     public DialogueStep(
@@ -65,7 +94,28 @@ public record DialogueStep(
             Optional<SpeakerOperation> speaker,
             List<SceneActionCall> actions
     ) {
-        this(text, DEFAULT_TYPEWRITER_INTERVAL_MS, speaker, actions);
+        this(
+                text,
+                DEFAULT_TYPEWRITER_INTERVAL_MS,
+                speaker,
+                actions,
+                true
+        );
+    }
+
+    public int resolveTypewriterIntervalMs(int clientDefault) {
+        return usesDefaultTypewriterInterval
+                ? validateClientDefault(clientDefault)
+                : typewriterIntervalMs;
+    }
+
+    private static int validateClientDefault(int value) {
+        if (!isValidTypewriterInterval(value)) {
+            throw new IllegalArgumentException(
+                    "clientDefault must be between 0 and 1000."
+            );
+        }
+        return value;
     }
 
     private static boolean isValidTypewriterInterval(int value) {

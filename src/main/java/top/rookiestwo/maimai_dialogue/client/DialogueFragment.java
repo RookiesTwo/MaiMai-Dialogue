@@ -21,6 +21,8 @@ import net.minecraft.client.resources.language.I18n;
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.MaiMaiDialogue;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
+import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
+import top.rookiestwo.maimai_dialogue.client.config.ClientPreferences;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueBoxLayout;
 import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
@@ -39,7 +41,6 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     private static final int HISTORY_ICON_HOVERED_COLOR = 0xFFBFBFBF;
     private static final int HISTORY_ICON_PRESSED_COLOR = 0xFF808080;
     private static final String SKIP_ICON = "skip_icon.png";
-    private static final float FAST_FORWARD_RATE = 4.0F;
     private static final float NORMAL_PLAYBACK_RATE = 1.0F;
 
     private final ClientDialogueController controller;
@@ -76,26 +77,32 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
             @Nullable DataSet savedInstanceState
     ) {
         var context = Objects.requireNonNull(getContext(), "Fragment context");
+        ClientPreferences preferences = ClientConfig.get();
+        DialogueTypography typography = DialogueTypography.resolve(preferences);
         DialogueBoxView dialogueBox = new DialogueBoxView(
                 context,
                 option -> Minecraft.getInstance().execute(
                         () -> controller.selectOption(option)
                 )
         );
+        dialogueBox.setTypography(typography);
         ImageButton historyEntry = createHistoryButton(context);
         historyEntry.setOnClickListener(view -> openHistory());
         HoldToSkipButton skipEntry = createSkipButton(context);
+        skipEntry.setHoldDurationMs(preferences.skipHoldDurationMs());
         DialogueSceneView scene = new DialogueSceneView(context);
         DialogueRootLayout root = new DialogueRootLayout(
                 context,
                 scene,
                 dialogueBox,
                 historyEntry,
-                skipEntry
+                skipEntry,
+                preferences
         );
         root.setOnClickListener(view -> advanceFromUi());
         root.setAdvanceAction(this::advanceFromUi);
         root.setFastForwardAction(this::setFastForwarding);
+        root.setHistoryAction(this::openHistory);
         scene.setDialogueBoxStateConsumer(root::setDialogueBoxState);
         root.setFocusable(true);
         root.setFocusableInTouchMode(true);
@@ -205,7 +212,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
             autoAdvancePlaybackToken = Long.MIN_VALUE;
         }
         float playbackRate = fastForwarding
-                ? FAST_FORWARD_RATE
+                ? (float) ClientConfig.get().fastForwardMultiplier()
                 : NORMAL_PLAYBACK_RATE;
         DialogueSceneView scene = sceneView;
         if (scene != null) {
@@ -290,6 +297,10 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                         this::confirmSkipToEnd
                 );
         confirmation.applyTheme(theme);
+        confirmation.setTypography(
+                DialogueTypography.resolve(ClientConfig.get()),
+                theme
+        );
         root.showSkipConfirmation(
                 confirmation,
                 this::dismissSkipConfirmation

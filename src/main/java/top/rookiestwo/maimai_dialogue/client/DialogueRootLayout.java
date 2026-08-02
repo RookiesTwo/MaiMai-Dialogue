@@ -10,6 +10,8 @@ import icyllis.modernui.widget.FrameLayout;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueBoxLayout;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualAnchor;
 import top.rookiestwo.maimai_dialogue.client.scene.DialogueBoxState;
+import top.rookiestwo.maimai_dialogue.client.config.ClientControlAction;
+import top.rookiestwo.maimai_dialogue.client.config.ClientPreferences;
 
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -23,6 +25,7 @@ final class DialogueRootLayout extends FrameLayout {
     private final View dialogueBox;
     private final View historyEntry;
     private final HoldToSkipButton skipButton;
+    private final ClientPreferences preferences;
     private DialogueBoxLayout dialogueBoxLayout = DialogueBoxLayout.DEFAULT;
     private DialogueBoxState dialogueBoxState = DialogueBoxState.initial(
             DialogueBoxLayout.DEFAULT,
@@ -34,21 +37,26 @@ final class DialogueRootLayout extends FrameLayout {
     private boolean heightAnimationPosted;
     private Runnable advanceAction = () -> {
     };
+    private Runnable historyAction = () -> {
+    };
     private Consumer<Boolean> fastForwardAction = ignored -> {
     };
     private Runnable confirmationCancelledAction = () -> {
     };
     private View confirmationView;
     private float controlsAlpha = 1.0F;
-    private boolean leftControlDown;
-    private boolean rightControlDown;
+    private boolean fastForwardKeyDown;
+    private boolean advanceKeyDown;
+    private boolean skipKeyDown;
+    private boolean historyKeyDown;
 
     DialogueRootLayout(
             Context context,
             DialogueSceneView sceneLayer,
             View dialogueBox,
             View historyEntry,
-            HoldToSkipButton skipButton
+            HoldToSkipButton skipButton,
+            ClientPreferences preferences
     ) {
         super(context);
         this.sceneLayer = Objects.requireNonNull(sceneLayer, "sceneLayer");
@@ -58,6 +66,7 @@ final class DialogueRootLayout extends FrameLayout {
                 "historyEntry"
         );
         this.skipButton = Objects.requireNonNull(skipButton, "skipButton");
+        this.preferences = Objects.requireNonNull(preferences, "preferences");
         addView(
                 sceneLayer,
                 new LayoutParams(
@@ -107,6 +116,13 @@ final class DialogueRootLayout extends FrameLayout {
         );
     }
 
+    void setHistoryAction(Runnable historyAction) {
+        this.historyAction = Objects.requireNonNull(
+                historyAction,
+                "historyAction"
+        );
+    }
+
     void setSkipAvailable(boolean available) {
         skipButton.setEnabled(available);
         skipButton.setAlpha(
@@ -151,8 +167,10 @@ final class DialogueRootLayout extends FrameLayout {
     }
 
     void cancelTransientInput() {
-        leftControlDown = false;
-        rightControlDown = false;
+        fastForwardKeyDown = false;
+        advanceKeyDown = false;
+        skipKeyDown = false;
+        historyKeyDown = false;
         fastForwardAction.accept(false);
         skipButton.cancelHold();
     }
@@ -181,22 +199,45 @@ final class DialogueRootLayout extends FrameLayout {
             }
             return true;
         }
-        if (event.getKeyCode() == KeyEvent.KEY_LEFT_CONTROL
-                || event.getKeyCode() == KeyEvent.KEY_RIGHT_CONTROL) {
-            boolean pressed = event.getAction() == KeyEvent.ACTION_DOWN
-                    && !event.isCanceled();
-            if (event.getKeyCode() == KeyEvent.KEY_LEFT_CONTROL) {
-                leftControlDown = pressed;
-            } else {
-                rightControlDown = pressed;
+        int keyCode = event.getKeyCode();
+        boolean down = event.getAction() == KeyEvent.ACTION_DOWN
+                && !event.isCanceled();
+        boolean up = event.getAction() == KeyEvent.ACTION_UP;
+        if (preferences.matches(ClientControlAction.FAST_FORWARD, keyCode)) {
+            if (down && !fastForwardKeyDown) {
+                fastForwardKeyDown = true;
+                fastForwardAction.accept(true);
+            } else if (up && fastForwardKeyDown) {
+                fastForwardKeyDown = false;
+                fastForwardAction.accept(false);
             }
-            fastForwardAction.accept(leftControlDown || rightControlDown);
             return true;
         }
-        if (event.getKeyCode() == KeyEvent.KEY_SPACE) {
-            if (event.getAction() == KeyEvent.ACTION_UP
-                    && !event.isCanceled()) {
+        if (preferences.matches(ClientControlAction.ADVANCE, keyCode)) {
+            if (down) {
+                advanceKeyDown = true;
+            } else if (up && advanceKeyDown) {
+                advanceKeyDown = false;
                 advanceAction.run();
+            }
+            return true;
+        }
+        if (preferences.matches(ClientControlAction.SKIP, keyCode)) {
+            if (down && !skipKeyDown) {
+                skipKeyDown = true;
+                skipButton.beginHold();
+            } else if (up && skipKeyDown) {
+                skipKeyDown = false;
+                skipButton.cancelHold();
+            }
+            return true;
+        }
+        if (preferences.matches(ClientControlAction.HISTORY, keyCode)) {
+            if (down) {
+                historyKeyDown = true;
+            } else if (up && historyKeyDown) {
+                historyKeyDown = false;
+                historyAction.run();
             }
             return true;
         }

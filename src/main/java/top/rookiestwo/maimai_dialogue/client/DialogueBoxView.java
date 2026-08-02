@@ -17,6 +17,7 @@ import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeOption;
+import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
 
 import java.util.function.Consumer;
 
@@ -31,6 +32,9 @@ final class DialogueBoxView extends LinearLayout {
     private final TextView errorText;
     private final DialogueOptionsView options;
     private ThemeDefinition theme = ThemeDefinition.DEFAULT;
+    private DialogueTypography typography = DialogueTypography.resolve(
+            ClientConfig.get()
+    );
 
     DialogueBoxView(
             Context context,
@@ -137,6 +141,12 @@ final class DialogueBoxView extends LinearLayout {
         options.reset();
     }
 
+    void setTypography(DialogueTypography typography) {
+        this.typography = typography;
+        options.setTypography(typography);
+        applyTheme(theme);
+    }
+
     void setPlaybackRate(float playbackRate) {
         textPlayer.setPlaybackRate(playbackRate);
     }
@@ -171,14 +181,14 @@ final class DialogueBoxView extends LinearLayout {
         options.applyTheme(theme);
 
         speakerName.setTextColor(textTheme.primary().argb());
-        speakerName.setTextSize(textTheme.speakerSizeSp());
+        typography.apply(speakerName, textTheme.speakerSizeSp());
         expandButton.setTextColor(textTheme.primary().argb());
-        expandButton.setTextSize(textTheme.auxiliarySizeSp());
+        typography.apply(expandButton, textTheme.auxiliarySizeSp());
         applyControlButtonTheme(expandButton, theme);
         dialogueText.setTextColor(textTheme.primary().argb());
-        dialogueText.setTextSize(textTheme.dialogueSizeSp());
+        typography.apply(dialogueText, textTheme.dialogueSizeSp());
         errorText.setTextColor(textTheme.error().argb());
-        errorText.setTextSize(textTheme.auxiliarySizeSp());
+        typography.apply(errorText, textTheme.auxiliarySizeSp());
     }
 
     static void applyControlButtonTheme(

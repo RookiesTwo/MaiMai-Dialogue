@@ -16,7 +16,6 @@ import java.util.Objects;
  * Icon control that requires a one-second pointer hold to activate.
  */
 final class HoldToSkipButton extends ImageButton {
-    static final int HOLD_DURATION_MS = 600;
     static final int ICON_PADDING_DP = 10;
 
     private final Paint progressPaint = new Paint();
@@ -24,6 +23,7 @@ final class HoldToSkipButton extends ImageButton {
     private ValueAnimator holdAnimator;
     private float holdProgress;
     private boolean triggered;
+    private int holdDurationMs = 600;
 
     HoldToSkipButton(Context context, Runnable completedAction) {
         super(context);
@@ -51,6 +51,16 @@ final class HoldToSkipButton extends ImageButton {
         setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
         progressPaint.setColor(theme.option().hoverBorder().argb());
         invalidate();
+    }
+
+    void setHoldDurationMs(int holdDurationMs) {
+        this.holdDurationMs = Math.clamp(holdDurationMs, 200, 3_000);
+    }
+
+    void beginHold() {
+        if (isEnabled()) {
+            startHold();
+        }
     }
 
     void cancelHold() {
@@ -128,7 +138,7 @@ final class HoldToSkipButton extends ImageButton {
         cancelHold();
         setPressed(true);
         ValueAnimator next = ValueAnimator.ofFloat(0.0F, 1.0F);
-        next.setDuration(HOLD_DURATION_MS);
+        next.setDuration(holdDurationMs);
         next.setInterpolator(TimeInterpolator.LINEAR);
         next.addUpdateListener(animator -> {
             if (holdAnimator != next) {

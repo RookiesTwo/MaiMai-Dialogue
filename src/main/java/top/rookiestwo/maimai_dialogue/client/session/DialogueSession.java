@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.random.RandomGenerator;
+import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 
 public final class DialogueSession {
@@ -42,6 +43,7 @@ public final class DialogueSession {
     private final List<DialogueSessionEffect> initialEffects = new ArrayList<>();
     private final Map<DialogueTextKey, String> resolvedTexts = new HashMap<>();
     private final RandomGenerator random;
+    private final IntSupplier defaultTypewriterIntervalMs;
     private long nextRequestId = 1L;
     private long generation;
     private ActiveDialogue active;
@@ -61,6 +63,24 @@ public final class DialogueSession {
                 rootDialogueId,
                 definition,
                 firstGeneration,
+                () -> DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
+                RandomGenerator.getDefault()
+        );
+    }
+
+    public DialogueSession(
+            DialogueContentLookup content,
+            ResourceLocation rootDialogueId,
+            DialogueDefinition definition,
+            long firstGeneration,
+            IntSupplier defaultTypewriterIntervalMs
+    ) {
+        this(
+                content,
+                rootDialogueId,
+                definition,
+                firstGeneration,
+                defaultTypewriterIntervalMs,
                 RandomGenerator.getDefault()
         );
     }
@@ -72,12 +92,34 @@ public final class DialogueSession {
             long firstGeneration,
             RandomGenerator random
     ) {
+        this(
+                content,
+                rootDialogueId,
+                definition,
+                firstGeneration,
+                () -> DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
+                random
+        );
+    }
+
+    DialogueSession(
+            DialogueContentLookup content,
+            ResourceLocation rootDialogueId,
+            DialogueDefinition definition,
+            long firstGeneration,
+            IntSupplier defaultTypewriterIntervalMs,
+            RandomGenerator random
+    ) {
         this.content = Objects.requireNonNull(content, "content");
         this.rootDialogueId = Objects.requireNonNull(
                 rootDialogueId,
                 "rootDialogueId"
         );
         this.random = Objects.requireNonNull(random, "random");
+        this.defaultTypewriterIntervalMs = Objects.requireNonNull(
+                defaultTypewriterIntervalMs,
+                "defaultTypewriterIntervalMs"
+        );
         generation = firstGeneration - 1;
         active = createActive(rootDialogueId, definition, initialEffects);
     }
@@ -324,7 +366,9 @@ public final class DialogueSession {
                 active.playbackSkipped,
                 active.definition.skipSummary(),
                 !atEnd && pendingTargetRequest == null,
-                active.currentTypewriterIntervalMs(),
+                active.currentTypewriterIntervalMs(
+                        defaultTypewriterIntervalMs.getAsInt()
+                ),
                 Optional.ofNullable(active.speakerName),
                 active.resolvedText,
                 Optional.ofNullable(active.errorMessage),
@@ -625,12 +669,12 @@ public final class DialogueSession {
             return definition.end().text();
         }
 
-        private int currentTypewriterIntervalMs() {
+        private int currentTypewriterIntervalMs(int clientDefault) {
             if (stepIndex < definition.steps().size()) {
                 return definition.steps().get(stepIndex)
-                        .typewriterIntervalMs();
+                        .resolveTypewriterIntervalMs(clientDefault);
             }
-            return definition.end().typewriterIntervalMs();
+            return definition.end().resolveTypewriterIntervalMs(clientDefault);
         }
     }
 

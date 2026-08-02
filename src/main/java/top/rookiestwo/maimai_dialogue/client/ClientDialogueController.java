@@ -8,6 +8,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import top.rookiestwo.maimai_dialogue.MaiMaiDialogue;
 import top.rookiestwo.maimai_dialogue.client.resource.ClientContentSnapshot;
+import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueAccessDecision;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueContentLookup;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
@@ -231,7 +232,8 @@ public final class ClientDialogueController {
                 contentLookup(),
                 rootDialogueId,
                 definition,
-                nextGeneration++
+                nextGeneration++,
+                () -> ClientConfig.get().defaultTypewriterIntervalMs()
         );
         session = next;
         DialogueFragment newFragment = new DialogueFragment(this);

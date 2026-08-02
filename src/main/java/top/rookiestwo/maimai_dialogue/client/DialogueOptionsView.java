@@ -18,6 +18,7 @@ import net.minecraft.client.resources.language.I18n;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeOption;
+import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -30,6 +31,9 @@ final class DialogueOptionsView extends LinearLayout {
     private final LinearLayout list;
     private final Consumer<DialogueOption> selectionConsumer;
     private ThemeDefinition theme = ThemeDefinition.DEFAULT;
+    private DialogueTypography typography = DialogueTypography.resolve(
+            ClientConfig.get()
+    );
     private Button expandButton;
     private Runnable expandVisibilityChanged = () -> {
     };
@@ -105,6 +109,11 @@ final class DialogueOptionsView extends LinearLayout {
         updateExpandVisibility();
     }
 
+    void setTypography(DialogueTypography typography) {
+        this.typography = typography;
+        applyTheme(theme);
+    }
+
     // 应用选项间距、文字和滚动条 Theme。
     void applyTheme(ThemeDefinition theme) {
         this.theme = theme;
@@ -114,7 +123,7 @@ final class DialogueOptionsView extends LinearLayout {
         int padding = section.dp(theme.spacing().optionsPaddingDp());
         section.setPadding(padding, padding, padding, padding);
         loading.setTextColor(theme.text().primary().argb());
-        loading.setTextSize(theme.text().auxiliarySizeSp());
+        typography.apply(loading, theme.text().auxiliarySizeSp());
         scroll.setOptionLimits(
                 theme.spacing().optionsCollapsedLimit(),
                 theme.spacing().optionsExpandedLimit()
@@ -151,7 +160,7 @@ final class DialogueOptionsView extends LinearLayout {
         button.setText(optionLabel(option));
         ThemeOption optionTheme = theme.option();
         button.setTextColor(theme.text().primary().argb());
-        button.setTextSize(theme.text().optionSizeSp());
+        typography.apply(button, theme.text().optionSizeSp());
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         button.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
         int horizontal = button.dp(optionTheme.horizontalPaddingDp());
