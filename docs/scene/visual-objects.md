@@ -7,7 +7,7 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 
 ## 本章要实现什么
 
-在场景中央偏上位置显示一个放大的 emerald，并预先声明 diamond 差分，供下一章动画切换。
+先把 emerald 与 diamond 差分定义为可复用 VisualAsset，再在场景中央偏上位置创建一个 VisualObject，供下一章动画切换。
 
 ## 开始前
 
@@ -15,7 +15,13 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 
 ## 需要修改的文件
 
-同步替换资源包与数据包中的：
+新增只属于资源包的 VisualAsset：
+
+```text
+<资源包>/assets/example/visual_assets/guide/marker.json
+```
+
+并同步替换资源包与数据包中的 Dialogue：
 
 ```text
 <资源包>/assets/example/dialogues/guide/welcome.json
@@ -24,7 +30,19 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 
 ## 跟着做
 
-在 `presentation` 中加入 `visual_objects`。`guide_marker` 是本章新增的对象 ID：
+先创建 `marker.json`。它只定义可复用的差分和图片采样方式：
+
+```json:line-numbers [visual_assets/guide/marker.json]
+{
+  "variants": {
+    "default": "minecraft:item/emerald.png",
+    "alternate": "minecraft:item/diamond.png"
+  },
+  "sampling": "nearest"
+}
+```
+
+文件 ID 是 `example:guide/marker`。接着在 `presentation` 中加入 `visual_objects`。`guide_marker` 是场景内的对象 ID，`asset` 指向刚才创建的 VisualAsset：
 
 ::: code-group
 
@@ -33,16 +51,12 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
   "presentation": {
     "visual_objects": {
       "guide_marker": {
-        "variants": {
-          "default": "minecraft:item/emerald.png",
-          "alternate": "minecraft:item/diamond.png"
-        },
+        "asset": "example:guide/marker",
         "initial_variant": "default",
         "x": 0.5,
         "y": 0.3,
         "anchor": "center",
         "scale": 8.0,
-        "sampling": "nearest",
         "opacity": 1.0,
         "visible": true,
         "z_index": 10
@@ -67,16 +81,12 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
     },
     "visual_objects": {
       "guide_marker": {
-        "variants": {
-          "default": "minecraft:item/emerald.png",
-          "alternate": "minecraft:item/diamond.png"
-        },
+        "asset": "example:guide/marker",
         "initial_variant": "default",
         "x": 0.5,
         "y": 0.3,
         "anchor": "center",
         "scale": 8.0,
-        "sampling": "nearest",
         "opacity": 1.0,
         "visible": true,
         "z_index": 10
@@ -133,7 +143,7 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 
 :::
 
-把完整文件同步保存到两个 Pack。`x`、`y` 使用画面比例位置，`anchor` 决定哪个点对齐到该坐标，`z_index` 越大越靠前。像素图使用 `nearest` 可避免放大后变模糊。
+把 VisualAsset 只保存到 Resource Pack，并把完整 Dialogue 同步保存到两个 Pack。`x`、`y` 使用画面比例位置，`anchor` 决定哪个点对齐到该坐标，`z_index` 越大越靠前。VisualObject 省略 `sampling` 后会继承 VisualAsset 的 `nearest`，避免像素图放大后变模糊。
 
 ## 进入游戏验证
 
@@ -141,10 +151,12 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 
 ## 如果没有生效
 
-- 对象完全不显示：检查 `visible`、`initial_variant` 和图片 ID。
-- 图片模糊：将 `sampling` 设为 `nearest`。
+- 对象完全不显示：检查 `asset` ID、`visible`、`initial_variant` 和图片 ID。
+- 图片模糊：在 VisualAsset 中将 `sampling` 设为 `nearest`，或在单个 VisualObject 中覆盖它。
 - 对象位置异常：先使用 `anchor: center`，再调整 `x`、`y`。
 - 对象 ID 使用了 `background` 或 `dialogue`：这两个名称是保留 target，不能作为 VisualObject ID。
+
+同一个 VisualAsset 可以被任意多个 Dialogue 引用；每次引用都可以选择不同 `initial_variant`、位置、缩放和层级。只使用一次的简单对象也可以继续在 VisualObject 内直接写 `variants`。
 
 ## 下一步
 

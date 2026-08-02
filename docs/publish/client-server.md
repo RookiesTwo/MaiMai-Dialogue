@@ -24,6 +24,7 @@ example_dialogue_resources-1.0.0.zip
    ├─ dialogues/
    ├─ speakers/
    ├─ dialogue_themes/
+   ├─ visual_assets/
    ├─ presentation_actions/
    └─ textures/
 
@@ -37,7 +38,7 @@ example_dialogue_data-1.0.0.zip
 
 1. 确认每个 `assets/example/dialogues/<path>.json` 都有同 ID 的 `data` 副本。
 2. 确认两份 Dialogue 内容一致，尤其是 `requires`、Option 顺序、`command`、目标 ID 和文件名。command 最终只采用服务端 Data Pack 中的内容。
-3. 确认所有 Speaker、Theme、SceneAction 和图片都已包含在资源包的 `assets` 中。
+3. 确认所有 Speaker、Theme、VisualAsset、SceneAction 和图片都已包含在资源包的 `assets` 中。
 4. 分别压缩资源包和数据包根目录。不要把外层文件夹一起套进 ZIP。
 5. 为两个 ZIP 使用相同版本号，例如 `example_dialogue_resources-1.0.0.zip` 与 `example_dialogue_data-1.0.0.zip`。
 

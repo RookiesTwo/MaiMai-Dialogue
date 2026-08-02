@@ -348,6 +348,12 @@ public final class ClientDialogueController {
             }
 
             @Override
+            public java.util.Optional<top.rookiestwo.maimai_dialogue.dialogue.VisualAssetDefinition>
+                    visualAsset(ResourceLocation id) {
+                return snapshot().visualAssets().find(id);
+            }
+
+            @Override
             public java.util.Optional<SceneAction>
                     action(ResourceLocation id) {
                 return snapshot().actions().find(id);

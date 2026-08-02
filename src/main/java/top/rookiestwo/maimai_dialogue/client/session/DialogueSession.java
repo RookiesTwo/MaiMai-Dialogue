@@ -16,11 +16,13 @@ import top.rookiestwo.maimai_dialogue.dialogue.DialogueTarget;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueEnd;
 import top.rookiestwo.maimai_dialogue.dialogue.HideSpeaker;
 import top.rookiestwo.maimai_dialogue.dialogue.OptionTarget;
+import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
 import top.rookiestwo.maimai_dialogue.dialogue.ChoiceExit;
 import top.rookiestwo.maimai_dialogue.dialogue.ReturnExit;
 import top.rookiestwo.maimai_dialogue.dialogue.ReturnTarget;
 import top.rookiestwo.maimai_dialogue.dialogue.SetSpeaker;
 import top.rookiestwo.maimai_dialogue.dialogue.SpeakerOperation;
+import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetResolver;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
@@ -420,7 +422,7 @@ public final class DialogueSession {
         boolean ready = active.playbackPhase == PlaybackPhase.READY;
         return new DialogueScreenState(
                 active.generation,
-                Optional.of(active.definition.presentation()),
+                Optional.of(active.presentation),
                 Optional.of(active.theme),
                 Optional.of(active.playback),
                 active.playbackPhase,
@@ -600,10 +602,20 @@ public final class DialogueSession {
             effects.add(reportMissingClient("dialogue theme", themeId));
             return ThemeDefinition.DEFAULT;
         });
+        VisualAssetResolver.Result resolved = VisualAssetResolver.resolve(
+                definition.presentation(),
+                content::visualAsset
+        );
+        resolved.errors().forEach(error -> effects.add(
+                new DialogueSessionEffect.ReportError(
+                        dialogueId + ": " + error
+                )
+        ));
         ActiveDialogue result = new ActiveDialogue(
                 generation,
                 dialogueId,
                 definition,
+                resolved.presentation(),
                 theme,
                 content
         );
@@ -751,6 +763,7 @@ public final class DialogueSession {
         private final long generation;
         private final ResourceLocation currentDialogueId;
         private final DialogueDefinition definition;
+        private final Presentation presentation;
         private final ThemeDefinition theme;
         private final SceneRuntime sceneRuntime;
         private boolean initialStep = true;
@@ -771,15 +784,17 @@ public final class DialogueSession {
                 long generation,
                 ResourceLocation currentDialogueId,
                 DialogueDefinition definition,
+                Presentation presentation,
                 ThemeDefinition theme,
                 DialogueContentLookup content
         ) {
             this.generation = generation;
             this.currentDialogueId = currentDialogueId;
             this.definition = definition;
+            this.presentation = presentation;
             this.theme = theme;
             sceneRuntime = new SceneRuntime(
-                    definition.presentation(),
+                    presentation,
                     0.0F,
                     content::action,
                     generation << 32

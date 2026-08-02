@@ -9,6 +9,7 @@ import top.rookiestwo.maimai_dialogue.content.DefinitionLoadResult;
 import top.rookiestwo.maimai_dialogue.content.DefinitionTypes;
 import top.rookiestwo.maimai_dialogue.content.JsonDefinitionLoader;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
+import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
@@ -59,6 +60,10 @@ public final class ClientContentReloadListener
                 JsonDefinitionLoader.load(manager, DefinitionTypes.DIALOGUE),
                 JsonDefinitionLoader.load(manager, DefinitionTypes.SPEAKER),
                 JsonDefinitionLoader.load(manager, DefinitionTypes.THEME),
+                JsonDefinitionLoader.load(
+                        manager,
+                        DefinitionTypes.VISUAL_ASSET
+                ),
                 JsonDefinitionLoader.load(manager, DefinitionTypes.ACTION)
         );
     }
@@ -70,10 +75,12 @@ public final class ClientContentReloadListener
     ) {
         MaiMaiDialogue.LOGGER.info(
                 "Loaded client Dialogue content: {} dialogues, {} speakers, "
-                        + "{} themes and {} actions with {} load errors.",
+                        + "{} themes, {} visual assets and {} actions with "
+                        + "{} load errors.",
                 snapshot.dialogues().size(),
                 snapshot.speakers().size(),
                 snapshot.themes().size(),
+                snapshot.visualAssets().size(),
                 snapshot.actions().size(),
                 loadIssueCount
         );
@@ -93,6 +100,7 @@ public final class ClientContentReloadListener
             DefinitionLoadResult<DialogueDefinition> dialogues,
             DefinitionLoadResult<SpeakerDefinition> speakers,
             DefinitionLoadResult<ThemeDefinition> themes,
+            DefinitionLoadResult<VisualAssetDefinition> visualAssets,
             DefinitionLoadResult<SceneAction> actions
     ) {
         private ClientContentSnapshot snapshot() {
@@ -100,6 +108,7 @@ public final class ClientContentReloadListener
                     dialogues.registry(),
                     speakers.registry(),
                     themes.registry(),
+                    visualAssets.registry(),
                     actions.registry()
             );
         }
@@ -108,6 +117,7 @@ public final class ClientContentReloadListener
             return dialogues.issues().size()
                     + speakers.issues().size()
                     + themes.issues().size()
+                    + visualAssets.issues().size()
                     + actions.issues().size();
         }
 
@@ -115,6 +125,10 @@ public final class ClientContentReloadListener
             dialogues.logIssues(MaiMaiDialogue.LOGGER, DefinitionTypes.DIALOGUE);
             speakers.logIssues(MaiMaiDialogue.LOGGER, DefinitionTypes.SPEAKER);
             themes.logIssues(MaiMaiDialogue.LOGGER, DefinitionTypes.THEME);
+            visualAssets.logIssues(
+                    MaiMaiDialogue.LOGGER,
+                    DefinitionTypes.VISUAL_ASSET
+            );
             actions.logIssues(MaiMaiDialogue.LOGGER, DefinitionTypes.ACTION);
         }
     }

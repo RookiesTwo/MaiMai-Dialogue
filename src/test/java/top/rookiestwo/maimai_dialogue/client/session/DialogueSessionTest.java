@@ -60,6 +60,71 @@ class DialogueSessionTest {
     }
 
     @Test
+    void resolvesVisualAssetBeforeCreatingScreenState() {
+        ResourceLocation assetId = id("characters/guide");
+        ResourceLocation imageId = id("characters/guide/happy.png");
+        VisualObject reference = new VisualObject(
+                Optional.of(assetId),
+                Map.of(),
+                "happy",
+                0.75F,
+                0.9F,
+                VisualAnchor.BOTTOM_CENTER,
+                1.0F,
+                Optional.empty(),
+                1.0F,
+                true,
+                5
+        );
+        Presentation presentation = new Presentation(
+                THEME,
+                Optional.empty(),
+                DialogueBoxLayout.DEFAULT,
+                Map.of("guide", reference),
+                Optional.empty()
+        );
+        DialogueDefinition root = new DialogueDefinition(
+                Optional.empty(),
+                presentation,
+                List.of(),
+                new DialogueEnd(
+                        Optional.of(DialogueText.fixed("Ready")),
+                        Optional.empty(),
+                        ReturnExit.INSTANCE
+                )
+        );
+        DialogueSession session = new DialogueSession(
+                lookup(
+                        Map.of(ROOT, root),
+                        true,
+                        Map.of(
+                                assetId,
+                                new VisualAssetDefinition(
+                                        Map.of("happy", imageId),
+                                        VisualSampling.NEAREST
+                                )
+                        )
+                ),
+                ROOT,
+                root,
+                1L
+        );
+
+        DialogueSessionUpdate started = session.start();
+        VisualObject resolved = started.state()
+                .presentation()
+                .orElseThrow()
+                .visualObjects()
+                .get("guide");
+
+        assertTrue(started.effects().isEmpty(), started.effects()::toString);
+        assertFalse(resolved.referencesAsset());
+        assertEquals(imageId, resolved.initialImage());
+        assertEquals(VisualSampling.NEAREST, resolved.sampling());
+        assertEquals(0.75F, resolved.x());
+    }
+
+    @Test
     void filtersOptionsAndNavigatesBackToRoot() {
         DialogueOption option = new DialogueOption(
                 "Open child",
@@ -674,6 +739,14 @@ class DialogueSessionTest {
             Map<ResourceLocation, DialogueDefinition> dialogues,
             boolean hasTheme
     ) {
+        return lookup(dialogues, hasTheme, Map.of());
+    }
+
+    private static DialogueContentLookup lookup(
+            Map<ResourceLocation, DialogueDefinition> dialogues,
+            boolean hasTheme,
+            Map<ResourceLocation, VisualAssetDefinition> visualAssets
+    ) {
         return new DialogueContentLookup() {
             @Override
             public Optional<DialogueDefinition> dialogue(ResourceLocation id) {
@@ -695,6 +768,13 @@ class DialogueSessionTest {
             @Override
             public Optional<SceneAction> action(ResourceLocation id) {
                 return Optional.empty();
+            }
+
+            @Override
+            public Optional<VisualAssetDefinition> visualAsset(
+                    ResourceLocation id
+            ) {
+                return Optional.ofNullable(visualAssets.get(id));
             }
         };
     }

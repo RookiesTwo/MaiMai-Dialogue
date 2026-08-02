@@ -117,16 +117,12 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
     },
     "visual_objects": {
       "guide_marker": {
-        "variants": {
-          "default": "minecraft:item/emerald.png",
-          "alternate": "minecraft:item/diamond.png"
-        },
+        "asset": "example:guide/marker",
         "initial_variant": "default",
         "x": 0.5,
         "y": 0.3,
         "anchor": "center",
         "scale": 8.0,
-        "sampling": "nearest",
         "opacity": 1.0,
         "visible": true,
         "z_index": 10

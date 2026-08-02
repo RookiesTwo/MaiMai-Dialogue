@@ -32,6 +32,7 @@ description: 为 example namespace 建立 Resource Pack 与 Data Pack。
 │        ├─ dialogues/guide/
 │        ├─ speakers/
 │        ├─ dialogue_themes/
+│        ├─ visual_assets/
 │        ├─ presentation_actions/
 │        └─ textures/dialogue/
 └─ saves/<测试世界>/
@@ -88,7 +89,7 @@ assets/example/dialogues/guide/welcome.json
 - 资源包中的 `assets` 副本供客户端显示正文和画面；
 - 数据包中的 `data` 副本供服务端检查 Dialogue、`requires` 和访问权限。
 
-后续每次修改 Dialogue，都要把相同 JSON 同步保存到两个 Pack 中。Speaker、Theme、SceneAction 和图片只放入资源包。
+后续每次修改 Dialogue，都要把相同 JSON 同步保存到两个 Pack 中。Speaker、Theme、VisualAsset、SceneAction 和图片只放入资源包。
 
 ## 进入游戏验证
 

@@ -15,6 +15,8 @@ import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
 import top.rookiestwo.maimai_dialogue.dialogue.SetSpeaker;
 import top.rookiestwo.maimai_dialogue.dialogue.SpeakerOperation;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualObject;
+import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetDefinition;
+import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetResolver;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
@@ -39,6 +41,7 @@ public final class ClientResourceValidator {
                 snapshot.dialogues(),
                 snapshot.speakers(),
                 snapshot.themes(),
+                snapshot.visualAssets(),
                 snapshot.actions(),
                 imageId -> resourceManager.getResource(
                         ResourceLocation.fromNamespaceAndPath(
@@ -56,7 +59,37 @@ public final class ClientResourceValidator {
             DefinitionRegistry<SceneAction> actions,
             Predicate<ResourceLocation> imageExists
     ) {
+        return validate(
+                dialogues,
+                speakers,
+                themes,
+                DefinitionRegistry.empty(),
+                actions,
+                imageExists
+        );
+    }
+
+    static List<String> validate(
+            DefinitionRegistry<DialogueDefinition> dialogues,
+            DefinitionRegistry<SpeakerDefinition> speakers,
+            DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<VisualAssetDefinition> visualAssets,
+            DefinitionRegistry<SceneAction> actions,
+            Predicate<ResourceLocation> imageExists
+    ) {
         List<String> errors = new ArrayList<>();
+        visualAssets.entries().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey(
+                        Comparator.comparing(ResourceLocation::toString)
+                ))
+                .forEach(entry -> entry.getValue().variants()
+                        .forEach((variant, image) -> validateImage(
+                                entry.getKey(),
+                                "VisualAsset variant " + variant,
+                                image,
+                                imageExists,
+                                errors
+                        )));
         dialogues.entries().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey(
                         Comparator.comparing(ResourceLocation::toString)
@@ -67,6 +100,7 @@ public final class ClientResourceValidator {
                         dialogues,
                         speakers,
                         themes,
+                        visualAssets,
                         actions,
                         imageExists,
                         errors
@@ -80,16 +114,17 @@ public final class ClientResourceValidator {
             DefinitionRegistry<DialogueDefinition> dialogues,
             DefinitionRegistry<SpeakerDefinition> speakers,
             DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<VisualAssetDefinition> visualAssets,
             DefinitionRegistry<SceneAction> actions,
             Predicate<ResourceLocation> imageExists,
             List<String> errors
     ) {
-        Presentation presentation = dialogue.presentation();
-        if (themes.find(presentation.theme()).isEmpty()) {
+        Presentation sourcePresentation = dialogue.presentation();
+        if (themes.find(sourcePresentation.theme()).isEmpty()) {
             errors.add(dialogueId + ": missing Theme "
-                    + presentation.theme());
+                    + sourcePresentation.theme());
         }
-        presentation.background().ifPresent(background ->
+        sourcePresentation.background().ifPresent(background ->
                 background.variants().forEach((variant, image) ->
                         validateImage(
                                 dialogueId,
@@ -100,15 +135,25 @@ public final class ClientResourceValidator {
                         )
                 )
         );
-        presentation.visualObjects().forEach((objectId, object) ->
+        sourcePresentation.visualObjects().forEach((objectId, object) -> {
+            if (!object.referencesAsset()) {
                 validateVisualObjectImages(
                         dialogueId,
                         objectId,
                         object,
                         imageExists,
                         errors
-                )
+                );
+            }
+        });
+        VisualAssetResolver.Result resolution = VisualAssetResolver.resolve(
+                sourcePresentation,
+                visualAssets::find
         );
+        resolution.errors().forEach(error ->
+                errors.add(dialogueId + ": " + error)
+        );
+        Presentation presentation = resolution.presentation();
 
         SceneRuntime runtime = new SceneRuntime(
                 presentation,

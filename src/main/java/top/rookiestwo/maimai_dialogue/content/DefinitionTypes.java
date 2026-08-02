@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue.content;
 
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
+import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
@@ -29,6 +30,12 @@ public final class DefinitionTypes {
                     "presentation_actions",
                     "presentation action",
                     SceneAction.CODEC
+            );
+    public static final DefinitionType<VisualAssetDefinition> VISUAL_ASSET =
+            new DefinitionType<>(
+                    "visual_assets",
+                    "visual asset",
+                    VisualAssetDefinition.CODEC
             );
 
     private DefinitionTypes() {

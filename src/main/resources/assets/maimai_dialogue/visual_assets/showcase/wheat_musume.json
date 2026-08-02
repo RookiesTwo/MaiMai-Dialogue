@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "neutral": "maimai_dialogue:characters/wheat_musume/neutral.png",
+    "soft_smile": "maimai_dialogue:characters/wheat_musume/soft_smile.png",
+    "happy_eyes_closed": "maimai_dialogue:characters/wheat_musume/happy_eyes_closed.png",
+    "calm_eyes_closed": "maimai_dialogue:characters/wheat_musume/calm_eyes_closed.png",
+    "annoyed_talking": "maimai_dialogue:characters/wheat_musume/annoyed_talking.png",
+    "annoyed_pout": "maimai_dialogue:characters/wheat_musume/annoyed_pout.png",
+    "sad": "maimai_dialogue:characters/wheat_musume/sad.png",
+    "sad_eyes_closed": "maimai_dialogue:characters/wheat_musume/sad_eyes_closed.png"
+  },
+  "sampling": "nearest"
+}

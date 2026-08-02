@@ -62,18 +62,16 @@ bottom_left   bottom_center   bottom_right
 
 ## VisualObject
 
+推荐通过 `asset` 引用可复用的 [VisualAsset](./visual-asset-json.md)：
+
 ```json
 {
-  "variants": {
-    "default": "example:dialogue/guide.png",
-    "happy": "example:dialogue/guide_happy.png"
-  },
-  "initial_variant": "default",
+  "asset": "example:characters/guide",
+  "initial_variant": "neutral",
   "x": 0.5,
   "y": 0.5,
   "anchor": "center",
   "scale": 1.0,
-  "sampling": "linear",
   "opacity": 1.0,
   "visible": true,
   "z_index": 0
@@ -82,17 +80,31 @@ bottom_left   bottom_center   bottom_right
 
 | 字段 | 必填 | 默认值/约束 |
 |---|---:|---|
-| `variants` | 是 | 非空图片映射 |
-| `initial_variant` | 是 | 必须存在于 `variants` |
+| `asset` | 二选一 | VisualAsset ID；与 `variants` 不能同时出现 |
+| `variants` | 二选一 | 兼容旧内容的非空 inline 图片映射；与 `asset` 不能同时出现 |
+| `initial_variant` | 是 | 必须存在于 VisualAsset 或 inline `variants` |
 | `x`、`y` | 否 | `0.5`；允许超出 `[0,1]` |
 | `anchor` | 否 | `center` |
 | `scale` | 否 | `1.0`，必须大于 0 |
-| `sampling` | 否 | `linear`；像素图可用 `nearest` |
+| `sampling` | 否 | 引用时继承 VisualAsset；显式设置会覆盖它。inline 时默认 `linear` |
 | `opacity` | 否 | `1.0`，范围 `[0,1]` |
 | `visible` | 否 | `true` |
 | `z_index` | 否 | `0`，数值越大越靠前 |
 
-对象必须在 `visual_objects` 中预先声明。`background` 和 `dialogue` 是保留名称。
+VisualAsset 只提供差分和 sampling；位置、缩放、透明度、可见性、层级与初始差分仍由每个 VisualObject 实例决定。
+
+对象必须在 `visual_objects` 中预先声明。`background` 和 `dialogue` 是保留名称。旧的 inline `variants` 写法保持兼容，例如：
+
+```json
+{
+  "variants": {
+    "default": "example:dialogue/guide.png",
+    "happy": "example:dialogue/guide_happy.png"
+  },
+  "initial_variant": "default",
+  "sampling": "linear"
+}
+```
 
 ## Color Adjust Filter
 
