@@ -18,7 +18,6 @@ final class DialogueRootLayout extends FrameLayout {
     private final DialogueSceneView sceneLayer;
     private final View dialogueBox;
     private final View historyEntry;
-    private final View historyOverlay;
     private DialogueBoxLayout dialogueBoxLayout = DialogueBoxLayout.DEFAULT;
     private ValueAnimator heightAnimator;
     private int dialogueTargetHeight = -1;
@@ -31,8 +30,7 @@ final class DialogueRootLayout extends FrameLayout {
             Context context,
             DialogueSceneView sceneLayer,
             View dialogueBox,
-            View historyEntry,
-            View historyOverlay
+            View historyEntry
     ) {
         super(context);
         this.sceneLayer = Objects.requireNonNull(sceneLayer, "sceneLayer");
@@ -40,10 +38,6 @@ final class DialogueRootLayout extends FrameLayout {
         this.historyEntry = Objects.requireNonNull(
                 historyEntry,
                 "historyEntry"
-        );
-        this.historyOverlay = Objects.requireNonNull(
-                historyOverlay,
-                "historyOverlay"
         );
         addView(
                 sceneLayer,
@@ -64,13 +58,6 @@ final class DialogueRootLayout extends FrameLayout {
                 new LayoutParams(
                         LayoutParams.WRAP_CONTENT,
                         LayoutParams.WRAP_CONTENT
-                )
-        );
-        addView(
-                historyOverlay,
-                new LayoutParams(
-                        LayoutParams.MATCH_PARENT,
-                        LayoutParams.MATCH_PARENT
                 )
         );
     }
@@ -132,12 +119,6 @@ final class DialogueRootLayout extends FrameLayout {
                 MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST),
                 MeasureSpec.makeMeasureSpec(height, MeasureSpec.AT_MOST)
         );
-        if (historyOverlay.getVisibility() != GONE) {
-            historyOverlay.measure(
-                    MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
-                    MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
-            );
-        }
 
         setMeasuredDimension(
                 View.resolveSize(width, widthMeasureSpec),
@@ -184,9 +165,6 @@ final class DialogueRootLayout extends FrameLayout {
                 historyMargin + historyWidth,
                 historyMargin + historyHeight
         );
-        if (historyOverlay.getVisibility() != GONE) {
-            historyOverlay.layout(0, 0, width, height);
-        }
     }
 
     @Override
@@ -255,8 +233,8 @@ final class DialogueRootLayout extends FrameLayout {
         return clamped < 0.5F
                 ? 2.0F * clamped * clamped
                 : 1.0F
-                - (float) Math.pow(-2.0F * clamped + 2.0F, 2.0F)
-                / 2.0F;
+                  - (float) Math.pow(-2.0F * clamped + 2.0F, 2.0F)
+                    / 2.0F;
     }
 
     private static float horizontalAnchor(VisualAnchor anchor) {

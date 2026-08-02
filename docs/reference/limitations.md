@@ -19,6 +19,7 @@ description: MaiMai Dialogue 0.1.0-alpha 当前支持范围与尚未提供的功
 ## 文字与操作
 
 - 只有 Dialogue 正文解析 Markdown。
+- Markdown 分割线不渲染；标题仍支持，但一级、二级标题不绘制下划线。
 - Speaker、Option 和控制按钮使用普通字符串。
 - 没有文本本地化模型和自定义字体。
 - 没有自动播放、世界暂停或隐藏世界功能。

@@ -46,7 +46,7 @@ final class DialogueCommandTree {
                             if (error != null) {
                                 source.sendFailure(Component.translatable(
                                         "commands.maimai_dialogue.dialogue.open.failed",
-                                        dialogueId
+                                        dialogueId.toString()
                                 ));
                                 MaiMaiDialogue.LOGGER.error(
                                         "Failed to open dialogue {} for player {}",
@@ -60,7 +60,7 @@ final class DialogueCommandTree {
                                 case SENT -> source.sendSuccess(
                                         () -> Component.translatable(
                                                 "commands.maimai_dialogue.dialogue.open.sent",
-                                                dialogueId,
+                                                dialogueId.toString(),
                                                 player.getName()
                                         ),
                                         true
@@ -68,7 +68,7 @@ final class DialogueCommandTree {
                                 case DIALOGUE_NOT_FOUND -> source.sendFailure(
                                         Component.translatable(
                                                 "commands.maimai_dialogue.dialogue.open.not_found",
-                                                dialogueId
+                                                dialogueId.toString()
                                         )
                                 );
                                 case REQUIREMENTS_NOT_MET -> source.sendFailure(

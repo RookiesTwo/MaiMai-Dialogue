@@ -24,7 +24,7 @@ final class DialogueTextPlayer {
 
     DialogueTextPlayer(TextView textView) {
         this.textView = Objects.requireNonNull(textView, "textView");
-        markflow = Markflow.create(textView.getContext());
+        markflow = DialogueMarkdown.create(textView.getContext());
     }
 
     void render(

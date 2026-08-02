@@ -18,6 +18,7 @@ import icyllis.modernui.widget.ImageView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
 import top.rookiestwo.maimai_dialogue.MaiMaiDialogue;
+import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueBoxLayout;
 import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
@@ -27,6 +28,7 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 public final class DialogueFragment extends Fragment implements ScreenCallback {
+    private static final String HISTORY_BACK_STACK = "dialogue_history";
     private static final String HISTORY_ICON = "history_icon.png";
     private static final int HISTORY_BUTTON_SIZE_DP = 40;
     private static final int HISTORY_ICON_PADDING_DP = 4;
@@ -35,7 +37,6 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     private static final int HISTORY_ICON_PRESSED_COLOR = 0xFF808080;
 
     private final ClientDialogueController controller;
-    private ThemeDefinition currentTheme = ThemeDefinition.DEFAULT;
     private long renderedGeneration = Long.MIN_VALUE;
     @Nullable
     private DialogueRootLayout rootLayout;
@@ -45,8 +46,6 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     private DialogueBoxView boxView;
     @Nullable
     private ImageButton historyButton;
-    @Nullable
-    private DialogueHistoryView historyView;
 
     public DialogueFragment(ClientDialogueController controller) {
         this.controller = controller;
@@ -67,18 +66,13 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                 )
         );
         ImageButton historyEntry = createHistoryButton(context);
-        historyEntry.setOnClickListener(view -> setHistoryOpen(true));
-        DialogueHistoryView historyOverlay = new DialogueHistoryView(
-                context,
-                () -> setHistoryOpen(false)
-        );
+        historyEntry.setOnClickListener(view -> openHistory());
         DialogueSceneView scene = new DialogueSceneView(context);
         DialogueRootLayout root = new DialogueRootLayout(
                 context,
                 scene,
                 dialogueBox,
-                historyEntry,
-                historyOverlay
+                historyEntry
         );
         root.setOnClickListener(view -> advanceFromUi());
         root.setAdvanceAction(this::advanceFromUi);
@@ -91,22 +85,19 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         sceneView = scene;
         boxView = dialogueBox;
         historyButton = historyEntry;
-        historyView = historyOverlay;
         render(controller.viewState());
         return root;
     }
 
-    // 根据不可变 screen state 分发对话框、历史和场景状态。
+    // 根据不可变 screen state 分发对话框和场景状态。
     public void render(DialogueScreenState state) {
         DialogueRootLayout root = rootLayout;
         DialogueSceneView scene = sceneView;
         DialogueBoxView box = boxView;
-        DialogueHistoryView history = historyView;
         ImageButton historyEntry = historyButton;
         if (root == null
                 || scene == null
                 || box == null
-                || history == null
                 || historyEntry == null) {
             return;
         }
@@ -114,9 +105,10 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         box.post(() -> {
             if (state.generation() != renderedGeneration) {
                 renderedGeneration = state.generation();
-                currentTheme = state.theme().orElse(ThemeDefinition.DEFAULT);
-                box.reset(currentTheme);
-                history.applyTheme(currentTheme);
+                ThemeDefinition theme = state.theme().orElse(
+                        ThemeDefinition.DEFAULT
+                );
+                box.reset(theme);
                 applyPresentation(state, root, scene);
             }
 
@@ -133,7 +125,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                     )
             );
             long textToken = state.scenePlayback()
-                    .map(playback -> playback.token())
+                    .map(ScenePlayback::token)
                     .orElse(Long.MIN_VALUE);
             box.render(
                     state,
@@ -144,7 +136,6 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                             )
                     )
             );
-            history.render(state.history());
         });
     }
 
@@ -164,39 +155,43 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     }
 
     private void advanceFromUi() {
-        DialogueHistoryView history = historyView;
-        if (history != null && history.isOpen()) {
-            return;
-        }
         Minecraft.getInstance().execute(controller::advance);
     }
 
-    private void setHistoryOpen(boolean open) {
-        DialogueHistoryView history = historyView;
-        if (history == null) {
+    private void openHistory() {
+        ImageButton entry = historyButton;
+        if (entry == null || !entry.isEnabled()) {
             return;
         }
+        entry.setEnabled(false);
+        getParentFragmentManager()
+                .beginTransaction()
+                .add(
+                        getId(),
+                        new DialogueHistoryFragment(),
+                        HISTORY_BACK_STACK
+                )
+                .addToBackStack(HISTORY_BACK_STACK)
+                .commit();
+    }
+
+    void onHistoryClosed() {
         ImageButton entry = historyButton;
         if (entry != null) {
-            entry.setVisibility(open ? View.GONE : View.VISIBLE);
+            entry.setEnabled(true);
         }
-        if (open) {
-            history.open();
-        } else {
-            if (history.isOpen()) {
-                history.close();
-            }
-            DialogueRootLayout root = rootLayout;
-            if (root != null) {
-                root.requestFocus();
-            }
+        DialogueRootLayout root = rootLayout;
+        if (root != null) {
+            root.requestFocus();
         }
     }
 
     @SuppressWarnings("deprecation")
     private static ImageButton createHistoryButton(Context context) {
         ImageButton button = new ImageButton(context);
-        button.setContentDescription(I18n.get("gui.maimai_dialogue.history"));
+        String historyLabel = I18n.get("gui.maimai_dialogue.history");
+        button.setContentDescription(historyLabel);
+        button.setTooltipText(historyLabel);
         button.setBackground(null);
         button.setAdjustViewBounds(true);
         int size = button.dp(HISTORY_BUTTON_SIZE_DP);
@@ -221,14 +216,15 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                 }
         ));
         if (button.getDrawable() instanceof ImageDrawable drawable) {
+            // The source icon is high resolution and should scale smoothly.
             drawable.setFilter(true);
         }
         return button;
     }
 
     @Override
-    // 释放播放资源并通知 controller 销毁当前会话。
-    public void onDestroy() {
+    // 页面切换时释放 View 资源，但保留 Dialogue session。
+    public void onDestroyView() {
         DialogueSceneView scene = sceneView;
         if (scene != null) {
             scene.clearScene();
@@ -241,8 +237,13 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         sceneView = null;
         boxView = null;
         historyButton = null;
-        historyView = null;
         renderedGeneration = Long.MIN_VALUE;
+        super.onDestroyView();
+    }
+
+    @Override
+    // Screen 真正销毁时才通知 controller 结束当前会话。
+    public void onDestroy() {
         Minecraft.getInstance().execute(
                 () -> controller.onFragmentDestroyed(this)
         );
