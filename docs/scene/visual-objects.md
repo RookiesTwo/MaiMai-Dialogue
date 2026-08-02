@@ -27,6 +27,12 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 <资源包>/assets/example/scenes/guide/welcome.json
 ```
 
+最后新增一个只属于资源包的 Presentation：
+
+```text
+<资源包>/assets/example/presentations/guide/welcome.json
+```
+
 并同步替换资源包与数据包中的 Dialogue：
 
 ```text
@@ -79,11 +85,18 @@ VisualAsset ID 是 `example:guide/marker`。接着创建 `scenes/guide/welcome.j
 }
 ```
 
-```json:line-numbers {4} [完整 dialogues/guide/welcome.json]
+```json:line-numbers [presentations/guide/welcome.json]
+{
+  "theme": "maimai_dialogue:default",
+  "scene": "example:guide/welcome"
+}
+```
+
+```json:line-numbers {3-4} [完整 dialogues/guide/welcome.json]
 {
   "presentation": {
-    "theme": "maimai_dialogue:default",
-    "scene": "example:guide/welcome"
+    "type": "reference",
+    "id": "example:guide/welcome"
   },
   "steps": [
     {
@@ -135,7 +148,7 @@ VisualAsset ID 是 `example:guide/marker`。接着创建 `scenes/guide/welcome.j
 
 :::
 
-把 VisualAsset 与 Scene 只保存到 Resource Pack，并把引用 Scene 的完整 Dialogue 同步保存到两个 Pack。`x`、`y` 使用画面比例位置，`anchor` 决定哪个点对齐到该坐标，`z_index` 越大越靠前。VisualObject 省略 `sampling` 后会继承 VisualAsset 的 `nearest`，避免像素图放大后变模糊。
+把 VisualAsset、Scene 与 Presentation 只保存到 Resource Pack，并把引用 Presentation 的完整 Dialogue 同步保存到两个 Pack。`x`、`y` 使用画面比例位置，`anchor` 决定哪个点对齐到该坐标，`z_index` 越大越靠前。VisualObject 省略 `sampling` 后会继承 VisualAsset 的 `nearest`，避免像素图放大后变模糊。
 
 ## 进入游戏验证
 
@@ -143,14 +156,16 @@ VisualAsset ID 是 `example:guide/marker`。接着创建 `scenes/guide/welcome.j
 
 ## 如果没有生效
 
-- 对象完全不显示：先检查 Dialogue 的 `scene` ID，再检查 `asset` ID、`visible`、`initial_variant` 和图片 ID。
+- 对象完全不显示：依次检查 Dialogue 的 Presentation ID、Presentation 的 `scene` ID，再检查 `asset` ID、`visible`、`initial_variant` 和图片 ID。
 - 图片模糊：在 VisualAsset 中将 `sampling` 设为 `nearest`，或在单个 VisualObject 中覆盖它。
 - 对象位置异常：先使用 `anchor: center`，再调整 `x`、`y`。
 - 对象 ID 使用了 `background` 或 `dialogue`：这两个名称是保留 target，不能作为 VisualObject ID。
 
 同一个 VisualAsset 可以被任意多个 Dialogue 引用；每次引用都可以选择不同 `initial_variant`、位置、缩放和层级。只使用一次的简单对象也可以继续在 VisualObject 内直接写 `variants`。
 
-同一个 Scene 也可以被多个 Dialogue 引用。Dialogue 需要额外角色时，可以继续在自己的 `presentation.visual_objects` 中添加；与 Scene 同名的对象会被 Dialogue 局部定义覆盖。
+同一个 Scene 也可以被多个 PresentationDefinition 引用。某套 Presentation 需要额外角色时，可以在该 definition 的 `visual_objects` 中添加；与 Scene 同名的对象会被 Presentation 局部定义覆盖。
+
+同一个 PresentationDefinition 可以被多个 Dialogue 直接引用，统一它们的 Theme、Scene 和 DialogueBox。reference 是完整替换式调用，不能再在 Dialogue 中添加局部 Presentation 字段；需要不同配置时创建另一个 PresentationDefinition。
 
 ## 下一步
 

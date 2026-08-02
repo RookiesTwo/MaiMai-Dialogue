@@ -17,6 +17,7 @@ import top.rookiestwo.maimai_dialogue.dialogue.DialogueEnd;
 import top.rookiestwo.maimai_dialogue.dialogue.HideSpeaker;
 import top.rookiestwo.maimai_dialogue.dialogue.OptionTarget;
 import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
+import top.rookiestwo.maimai_dialogue.dialogue.PresentationResolver;
 import top.rookiestwo.maimai_dialogue.dialogue.ChoiceExit;
 import top.rookiestwo.maimai_dialogue.dialogue.ReturnExit;
 import top.rookiestwo.maimai_dialogue.dialogue.ReturnTarget;
@@ -598,13 +599,24 @@ public final class DialogueSession {
             List<DialogueSessionEffect> effects
     ) {
         generation++;
-        ResourceLocation themeId = definition.presentation().theme();
+        PresentationResolver.Result resolvedPresentation =
+                PresentationResolver.resolve(
+                        definition.presentation(),
+                        content::presentation
+                );
+        resolvedPresentation.errors().forEach(error -> effects.add(
+                new DialogueSessionEffect.ReportError(
+                        dialogueId + ": " + error
+                )
+        ));
+        ResourceLocation themeId = resolvedPresentation.presentation()
+                .theme();
         ThemeDefinition theme = content.theme(themeId).orElseGet(() -> {
             effects.add(reportMissingClient("dialogue theme", themeId));
             return ThemeDefinition.DEFAULT;
         });
         SceneResolver.Result resolvedScene = SceneResolver.resolve(
-                definition.presentation(),
+                resolvedPresentation.presentation(),
                 content::scene
         );
         resolvedScene.errors().forEach(error -> effects.add(

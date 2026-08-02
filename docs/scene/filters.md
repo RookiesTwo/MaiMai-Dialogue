@@ -7,182 +7,75 @@ description: 使用 color_adjust 或 crt 改变背景与 VisualObject 的画面�
 
 ## 本章要实现什么
 
-降低背景与 VisualObject 的饱和度，并加入轻微冷色调。对话框和选项仍保持原来的清晰颜色。
+降低背景与 VisualObject 的饱和度，并加入轻微冷色调。DialogueBox 和 Options 保持清晰。
 
 ## 开始前
 
-你已经完成[调整对话框布局](./dialogue-box.md)，`welcome` 的 `presentation` 中已有背景和 `guide_marker`。
+你已经完成[调整对话框布局](./dialogue-box.md)，Dialogue 正在引用 `example:guide/welcome` Presentation。
 
 ## 需要修改的文件
 
-同步修改资源包与数据包中的：
+继续修改 Resource Pack 中的 PresentationDefinition：
 
 ```text
-<资源包>/assets/example/dialogues/guide/welcome.json
-<数据包>/data/example/dialogues/guide/welcome.json
+<资源包>/assets/example/presentations/guide/welcome.json
 ```
 
 ## 跟着做
 
-在 `presentation` 中加入 `filter`。本章使用 `color_adjust`：
+加入 `color_adjust` Filter：
 
-::: code-group
-
-```json{3-9} [本章改动]
+```json:line-numbers {11-17} [presentations/guide/welcome.json]
 {
-  "presentation": {
-    "filter": {
-      "type": "color_adjust",
-      "brightness": -0.03,
-      "contrast": 1.08,
-      "saturation": 0.6,
-      "tint": "#30A0C8FF"
-    }
-  }
-}
-```
-
-```json:line-numbers {41-47} [完整 welcome.json]
-{
-  "presentation": {
-    "theme": "maimai_dialogue:default",
-    "scene": "example:guide/welcome",
-    "dialogue_box": {
-      "x": 0.5,
-      "y": 0.95,
-      "width": 0.82,
-      "max_height": 0.42,
-      "anchor": "bottom_center"
-    },
-    "filter": {
-      "type": "color_adjust",
-      "brightness": -0.03,
-      "contrast": 1.08,
-      "saturation": 0.6,
-      "tint": "#30A0C8FF"
-    }
+  "theme": "maimai_dialogue:default",
+  "scene": "example:guide/welcome",
+  "dialogue_box": {
+    "x": 0.5,
+    "y": 0.95,
+    "width": 0.82,
+    "max_height": 0.42,
+    "anchor": "bottom_center"
   },
-  "steps": [
-    {
-      "speaker": {
-        "type": "set",
-        "id": "example:guide"
-      },
-      "text": "# 欢迎来到村庄\n\n我是这里的 **向导**。",
-      "actions": [
-        {
-          "target": "guide_marker",
-          "action": {
-            "type": "reference",
-            "id": "example:guide/enter"
-          }
-        }
-      ]
-    },
-    {
-      "text": "沿着 *石路* 向前，就能找到 `market`。"
-    }
-  ],
-  "end": {
-    "speaker": {
-      "type": "hide"
-    },
-    "text": "请选择一个话题。",
-    "actions": [
-      {
-        "target": "guide_marker",
-        "action": {
-          "type": "inline",
-          "action": {
-            "duration_ms": 500,
-            "easing": "ease_in_out",
-            "x": [
-              { "at": 1.0, "value": 0.18 }
-            ],
-            "variant": {
-              "at": 0.55,
-              "value": "alternate"
-            }
-          }
-        }
-      },
-      {
-        "target": "background",
-        "action": {
-          "type": "inline",
-          "action": {
-            "duration_ms": 500,
-            "easing": "ease_in_out",
-            "variant": {
-              "at": 0.55,
-              "value": "alternate"
-            }
-          }
-        }
-      }
-    ],
-    "exit": {
-      "type": "options",
-      "options": [
-        {
-          "text": "了解村庄",
-          "icon": "question",
-          "target": {
-            "type": "dialogue",
-            "dialogue": "example:guide/about"
-          }
-        },
-        {
-          "text": "询问秘密地点",
-          "icon": "exclamation",
-          "target": {
-            "type": "dialogue",
-            "dialogue": "example:guide/secret"
-          }
-        },
-        {
-          "text": "离开",
-          "target": {
-            "type": "return"
-          }
-        }
-      ]
-    }
+  "filter": {
+    "type": "color_adjust",
+    "brightness": -0.03,
+    "contrast": 1.08,
+    "saturation": 0.6,
+    "tint": "#30A0C8FF"
   }
 }
 ```
 
-:::
+`color_adjust` 字段：
 
-把完整文件同步保存到两个 Pack。Filter 只处理当前 Dialogue 的背景和 VisualObject，不会改变 DialogueBox、Options、历史记录或后方的 Minecraft 世界。
+| 字段 | 范围 | 默认值 |
+|---|---:|---:|
+| `brightness` | `[-1,1]` | `0` |
+| `contrast` | `[0,2]` | `1` |
+| `saturation` | `[0,2]` | `1` |
+| `tint` | `#RRGGBB` 或 `#AARRGGBB` | 无 |
 
-如果你想尝试 CRT 效果，可将 `filter` 完整替换为：
+如果要使用 CRT 效果，可以把 Filter 替换为：
 
-```json{2-10} [CRT filter]
+```json
 {
-  "type": "crt",
-  "curvature": 0.14,
-  "scanline_strength": 0.32,
-  "mask_strength": 0.2,
-  "chromatic_aberration": 1.3,
-  "vignette": 0.3,
-  "noise": 0.05,
-  "flicker": 0.025,
-  "bloom": 0.24
+  "type": "crt"
 }
 ```
+
+CRT 还支持 curvature、scanline、RGB mask、chromatic aberration、vignette、noise、flicker 和 bloom 参数；完整字段见 [Presentation JSON](../reference/presentation-json.md#crt-filter)。
 
 ## 进入游戏验证
 
-重载后打开 `example:guide/welcome`。背景和 emerald/diamond 应明显降低饱和度并带有冷色调，对话框文字颜色不应变化。
+按 `F3 + T` 后重新打开 Dialogue。背景和 VisualObject 应出现冷色、低饱和效果，DialogueBox、文字、Options 与后方 Minecraft 世界不受 Filter 影响。
 
 ## 如果没有生效
 
-- 对话框也被调色：确认你修改的是 `presentation.filter`，而不是 Theme。
-- JSON 加载失败：检查 `type` 是 `color_adjust` 或 `crt`。
-- CRT 过强：先降低 `curvature`、`scanline_strength`、`mask_strength` 和 `bloom`。
-- 切换到子 Dialogue 后滤镜消失：每个 Dialogue 都有自己的 Presentation，这是正常行为。
+- 完全没有变化：确认 Filter 写在 PresentationDefinition 中，而不是 Theme 中。
+- DialogueBox 也被染色：这不是预期行为，请检查是否使用了额外 shader MOD。
+- 画面过暗：把 `brightness` 调回接近 `0`，并降低 `contrast`。
+- CRT 开销或效果过强：改用 `color_adjust`，或降低动态参数。
 
 ## 下一步
 
-继续[制作 Theme](./themes.md)，单独调整对话框与选项样式。
+继续[制作 Theme](./themes.md)，修改 Dialogue UI 的样式。

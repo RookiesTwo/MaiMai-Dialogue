@@ -5,6 +5,19 @@ description: Theme、Scene、背景、对话框布局、VisualObject 和 Filter 
 
 # Presentation JSON
 
+Presentation 可以直接写在 Dialogue 中，也可以保存为可复用的 [PresentationDefinition](./presentation-definition-json.md)。
+
+引用形式为：
+
+```json
+{
+  "type": "reference",
+  "id": "example:guide/default"
+}
+```
+
+旧的 inline object 保持兼容。reference 是纯引用，不能夹带下方的 inline 字段。
+
 ## 顶层字段
 
 | 字段 | 必填 | 默认值 |

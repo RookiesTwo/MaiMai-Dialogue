@@ -328,6 +328,30 @@ class DialogueDefinitionCodecTest {
     }
 
     @Test
+    void decodesDialogueWithPresentationReference() {
+        DialogueDefinition definition = DialogueDefinition.CODEC.parse(
+                JsonOps.INSTANCE,
+                JsonParser.parseString("""
+                        {
+                          "presentation": {
+                            "type": "reference",
+                            "id": "example:guide/default"
+                          },
+                          "end": {
+                            "exit": {"type": "return"}
+                          }
+                        }
+                        """)
+        ).getOrThrow(AssertionError::new);
+
+        assertEquals(
+                "example:guide/default",
+                definition.presentation().reference()
+                        .orElseThrow().toString()
+        );
+    }
+
+    @Test
     void rejectsBlankOptionsAndUnknownTypes() {
         assertTrue(DialogueDefinition.CODEC.parse(
                 JsonOps.INSTANCE,

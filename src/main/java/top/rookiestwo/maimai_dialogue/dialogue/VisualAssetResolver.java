@@ -52,6 +52,7 @@ public final class VisualAssetResolver {
         });
 
         Presentation resolvedPresentation = new Presentation(
+                presentation.reference(),
                 presentation.theme(),
                 presentation.scene(),
                 presentation.background(),

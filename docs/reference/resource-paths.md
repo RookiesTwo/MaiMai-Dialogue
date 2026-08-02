@@ -1,6 +1,6 @@
 ---
 title: 资源路径与 ID
-description: 查询 Dialogue、Speaker、Theme、Scene、VisualAsset、SceneAction 和图片的目录映射规则。
+description: 查询 Dialogue、Speaker、Theme、Presentation、Scene、VisualAsset、SceneAction 和图片的目录映射规则。
 ---
 
 # 资源路径与 ID
@@ -24,6 +24,7 @@ description: 查询 Dialogue、Speaker、Theme、Scene、VisualAsset、SceneActi
 | 客户端 Dialogue | `<资源包>/assets/<namespace>/dialogues/<path>.json` | `example:guide/welcome` |
 | Speaker | `<资源包>/assets/<namespace>/speakers/<path>.json` | `example:guide` |
 | Theme | `<资源包>/assets/<namespace>/dialogue_themes/<path>.json` | `example:parchment` |
+| Presentation | `<资源包>/assets/<namespace>/presentations/<path>.json` | `example:guide/default` |
 | Scene | `<资源包>/assets/<namespace>/scenes/<path>.json` | `example:village/square` |
 | VisualAsset | `<资源包>/assets/<namespace>/visual_assets/<path>.json` | `example:characters/guide` |
 | SceneAction | `<资源包>/assets/<namespace>/presentation_actions/<path>.json` | `example:guide/enter` |
@@ -46,7 +47,7 @@ description: 查询 Dialogue、Speaker、Theme、Scene、VisualAsset、SceneActi
 
 - 服务端从启用的 Data Pack 读取 `data` Dialogue，检查 ID、`requires` 和访问权限。
 - 客户端从启用的 Resource Pack 读取 `assets` Dialogue，显示正文、场景和 UI。
-- Speaker、Theme、Scene、VisualAsset、SceneAction 与图片只由客户端加载。
+- Speaker、Theme、Presentation、Scene、VisualAsset、SceneAction 与图片只由客户端加载。
 - 同一 Dialogue 的两份 JSON 应保持一致。
 
 ## 命名规则
@@ -59,6 +60,6 @@ description: 查询 Dialogue、Speaker、Theme、Scene、VisualAsset、SceneActi
 ## Reload
 
 - `/reload`：重新加载服务端 `data` 中的 Dialogue。
-- `F3 + T`：重新加载客户端 Dialogue、Speaker、Theme、Scene、VisualAsset、SceneAction 和图片。
+- `F3 + T`：重新加载客户端 Dialogue、Speaker、Theme、Presentation、Scene、VisualAsset、SceneAction 和图片。
 
-修改 Dialogue 时通常需要同时执行两种 reload。客户端 reload 后会集中报告缺失 Theme、Speaker、Scene、VisualAsset、目标 Dialogue、Action、target、variant 和图片。
+修改 Dialogue 时通常需要同时执行两种 reload。客户端 reload 后会集中报告缺失 Theme、Speaker、Presentation、Scene、VisualAsset、目标 Dialogue、Action、target、variant 和图片。

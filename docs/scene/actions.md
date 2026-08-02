@@ -105,8 +105,8 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 ```json:line-numbers {39-48,58-90} [完整 welcome.json]
 {
   "presentation": {
-    "theme": "maimai_dialogue:default",
-    "scene": "example:guide/welcome"
+    "type": "reference",
+    "id": "example:guide/welcome"
   },
   "steps": [
     {

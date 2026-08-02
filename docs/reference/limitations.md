@@ -14,7 +14,7 @@ description: MaiMai Dialogue 0.1.0-alpha 当前支持范围与尚未提供的功
 - 子 Dialogue 的 Return 返回本次入口 Dialogue 的开头；入口 Dialogue 的 Return 关闭界面。
 - 没有导航栈、恢复点、Option ID、脚本动作或自动修改进度。
 - 服务端 Dialogue 必须来自已启用的 Data Pack；客户端 Dialogue 与画面资源必须来自已启用的 Resource Pack。
-- MaiMai Dialogue 的 network payload 不会传输正文、Theme、Scene、VisualAsset、SceneAction 或图片；服务器资源包仍可使用 Minecraft 自带的资源包下载流程交付客户端内容。
+- MaiMai Dialogue 的 network payload 不会传输正文、Theme、Presentation、Scene、VisualAsset、SceneAction 或图片；服务器资源包仍可使用 Minecraft 自带的资源包下载流程交付客户端内容。
 
 ## 文字与操作
 
@@ -29,6 +29,7 @@ description: MaiMai Dialogue 0.1.0-alpha 当前支持范围与尚未提供的功
 
 - VisualObject 必须预先声明，不能由 Action 动态创建或删除。
 - Scene 不能继承其他 Scene；Presentation 只能引用一个 Scene。
+- PresentationDefinition 不能引用另一个 PresentationDefinition；Dialogue 的 Presentation reference 不支持局部 override。
 - 不支持循环或跨步骤持续的 Action。
 - Background Action 只支持切换已声明 variant。
 - `dialogue` target 支持 x、y、scale、opacity；width、max_height、anchor 和 Filter 不能作为 Action target。

@@ -198,6 +198,86 @@ class DialogueSessionTest {
     }
 
     @Test
+    void resolvesPresentationBeforeSceneAndVisualAsset() {
+        ResourceLocation presentationId = id("presentations/guide");
+        ResourceLocation sceneId = id("scenes/room");
+        ResourceLocation assetId = id("characters/guide");
+        ResourceLocation imageId = id("characters/guide/neutral.png");
+        Presentation reusablePresentation = new Presentation(
+                THEME,
+                Optional.of(sceneId),
+                Optional.empty(),
+                DialogueBoxLayout.DEFAULT,
+                Map.of(),
+                Optional.empty()
+        );
+        SceneDefinition scene = new SceneDefinition(
+                Optional.empty(),
+                Map.of("guide", new VisualObject(
+                        Optional.of(assetId),
+                        Map.of(),
+                        "neutral",
+                        0.75F,
+                        1.0F,
+                        VisualAnchor.BOTTOM_CENTER,
+                        1.0F,
+                        Optional.empty(),
+                        1.0F,
+                        true,
+                        10
+                )),
+                Optional.empty()
+        );
+        DialogueDefinition root = new DialogueDefinition(
+                Optional.empty(),
+                Presentation.reference(presentationId),
+                List.of(),
+                new DialogueEnd(
+                        Optional.of(DialogueText.fixed("Ready")),
+                        Optional.empty(),
+                        ReturnExit.INSTANCE
+                )
+        );
+        DialogueSession session = new DialogueSession(
+                lookup(
+                        Map.of(ROOT, root),
+                        true,
+                        Map.of(
+                                presentationId,
+                                new PresentationDefinition(
+                                        reusablePresentation
+                                )
+                        ),
+                        Map.of(sceneId, scene),
+                        Map.of(
+                                assetId,
+                                new VisualAssetDefinition(
+                                        Map.of("neutral", imageId),
+                                        VisualSampling.LINEAR
+                                )
+                        )
+                ),
+                ROOT,
+                root,
+                1L
+        );
+
+        DialogueSessionUpdate started = session.start();
+        Presentation resolvedPresentation = started.state()
+                .presentation()
+                .orElseThrow();
+
+        assertTrue(started.effects().isEmpty(), started.effects()::toString);
+        assertTrue(resolvedPresentation.reference().isEmpty());
+        assertTrue(resolvedPresentation.scene().isEmpty());
+        assertEquals(
+                imageId,
+                resolvedPresentation.visualObjects().get("guide")
+                        .initialImage()
+        );
+    }
+
+    @Test
     void filtersOptionsAndNavigatesBackToRoot() {
         DialogueOption option = new DialogueOption(
                 "Open child",
@@ -829,6 +909,22 @@ class DialogueSessionTest {
             Map<ResourceLocation, SceneDefinition> scenes,
             Map<ResourceLocation, VisualAssetDefinition> visualAssets
     ) {
+        return lookup(
+                dialogues,
+                hasTheme,
+                Map.of(),
+                scenes,
+                visualAssets
+        );
+    }
+
+    private static DialogueContentLookup lookup(
+            Map<ResourceLocation, DialogueDefinition> dialogues,
+            boolean hasTheme,
+            Map<ResourceLocation, PresentationDefinition> presentations,
+            Map<ResourceLocation, SceneDefinition> scenes,
+            Map<ResourceLocation, VisualAssetDefinition> visualAssets
+    ) {
         return new DialogueContentLookup() {
             @Override
             public Optional<DialogueDefinition> dialogue(ResourceLocation id) {
@@ -862,6 +958,13 @@ class DialogueSessionTest {
             @Override
             public Optional<SceneDefinition> scene(ResourceLocation id) {
                 return Optional.ofNullable(scenes.get(id));
+            }
+
+            @Override
+            public Optional<PresentationDefinition> presentation(
+                    ResourceLocation id
+            ) {
+                return Optional.ofNullable(presentations.get(id));
             }
         };
     }
