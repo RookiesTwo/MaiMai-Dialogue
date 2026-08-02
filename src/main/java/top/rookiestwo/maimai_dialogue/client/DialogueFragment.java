@@ -4,6 +4,7 @@ import icyllis.modernui.R;
 import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.fragment.Fragment;
+import icyllis.modernui.graphics.BitmapFactory;
 import icyllis.modernui.graphics.Image;
 import icyllis.modernui.graphics.drawable.ImageDrawable;
 import icyllis.modernui.mc.ScreenCallback;
@@ -17,6 +18,7 @@ import icyllis.modernui.widget.ImageButton;
 import icyllis.modernui.widget.ImageView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.MaiMaiDialogue;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
@@ -25,6 +27,7 @@ import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.Objects;
 
 public final class DialogueFragment extends Fragment implements ScreenCallback {
@@ -35,6 +38,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     private static final int HISTORY_ICON_COLOR = 0xFFFFFFFF;
     private static final int HISTORY_ICON_HOVERED_COLOR = 0xFFBFBFBF;
     private static final int HISTORY_ICON_PRESSED_COLOR = 0xFF808080;
+    private static final String SKIP_ICON = "skip_icon.png";
     private static final float FAST_FORWARD_RATE = 4.0F;
     private static final float NORMAL_PLAYBACK_RATE = 1.0F;
 
@@ -50,6 +54,10 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     private ImageButton historyButton;
     @Nullable
     private HoldToSkipButton skipButton;
+    @Nullable
+    private Image historyIconImage;
+    @Nullable
+    private Image skipIconImage;
     @Nullable
     private DialogueScreenState latestState;
     private long confirmationGeneration = Long.MIN_VALUE;
@@ -345,22 +353,44 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         }
     }
 
-    @SuppressWarnings("deprecation")
-    private static ImageButton createHistoryButton(Context context) {
+    private ImageButton createHistoryButton(Context context) {
         ImageButton button = new ImageButton(context);
         String historyLabel = I18n.get("gui.maimai_dialogue.history");
         button.setContentDescription(historyLabel);
         button.setTooltipText(historyLabel);
-        button.setBackground(null);
-        button.setAdjustViewBounds(true);
         int size = button.dp(HISTORY_BUTTON_SIZE_DP);
         button.setMaxWidth(size);
         button.setMaxHeight(size);
-        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        int padding = button.dp(HISTORY_ICON_PADDING_DP);
-        button.setPadding(padding, padding, padding, padding);
+        Image icon = loadIcon(HISTORY_ICON);
+        historyIconImage = icon;
+        configureIconButton(button, icon, HISTORY_ICON_PADDING_DP);
+        return button;
+    }
 
-        Image icon = Image.create(MaiMaiDialogue.MOD_ID, HISTORY_ICON);
+    private HoldToSkipButton createSkipButton(Context context) {
+        HoldToSkipButton button = new HoldToSkipButton(
+                context,
+                this::onSkipHoldCompleted
+        );
+        String label = I18n.get("gui.maimai_dialogue.skip_to_end");
+        button.setContentDescription(label);
+        button.setTooltipText(label);
+        Image icon = loadIcon(SKIP_ICON);
+        skipIconImage = icon;
+        configureIconButton(button, icon, HoldToSkipButton.ICON_PADDING_DP);
+        return button;
+    }
+
+    private static void configureIconButton(
+            ImageButton button,
+            Image icon,
+            int paddingDp
+    ) {
+        button.setBackground(null);
+        button.setAdjustViewBounds(true);
+        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        int padding = button.dp(paddingDp);
+        button.setPadding(padding, padding, padding, padding);
         button.setImage(icon);
         button.setImageTintList(new ColorStateList(
                 new int[][]{
@@ -378,18 +408,40 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
             // The source icon is high resolution and should scale smoothly.
             drawable.setFilter(true);
         }
-        return button;
     }
 
-    private HoldToSkipButton createSkipButton(Context context) {
-        HoldToSkipButton button = new HoldToSkipButton(
-                context,
-                this::onSkipHoldCompleted
+    private static Image loadIcon(String entry) {
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath(
+                MaiMaiDialogue.MOD_ID,
+                "textures/" + entry
         );
-        String label = I18n.get("gui.maimai_dialogue.skip_to_end");
-        button.setContentDescription(label);
-        button.setTooltipText(label);
-        return button;
+        try (var stream = Minecraft.getInstance()
+                .getResourceManager()
+                .open(location);
+             var bitmap = BitmapFactory.decodeStream(stream)) {
+            Image image = Image.createTextureFromBitmap(bitmap);
+            if (image == null) {
+                throw new IOException("Failed to upload image: " + location);
+            }
+            return image;
+        } catch (IOException exception) {
+            throw new IllegalStateException(
+                    "Failed to load Dialogue icon " + location,
+                    exception
+            );
+        }
+    }
+
+    private static void releaseIcon(
+            @Nullable ImageButton button,
+            @Nullable Image image
+    ) {
+        if (button != null) {
+            button.setImage(null);
+        }
+        if (image != null) {
+            image.close();
+        }
     }
 
     @Override
@@ -408,11 +460,15 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         if (box != null) {
             box.clear();
         }
+        releaseIcon(historyButton, historyIconImage);
+        releaseIcon(skipButton, skipIconImage);
         rootLayout = null;
         sceneView = null;
         boxView = null;
         historyButton = null;
         skipButton = null;
+        historyIconImage = null;
+        skipIconImage = null;
         latestState = null;
         confirmationGeneration = Long.MIN_VALUE;
         autoAdvancePlaybackToken = Long.MIN_VALUE;

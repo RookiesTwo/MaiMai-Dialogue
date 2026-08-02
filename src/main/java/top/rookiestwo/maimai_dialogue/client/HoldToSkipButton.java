@@ -7,16 +7,17 @@ import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.Canvas;
 import icyllis.modernui.graphics.Paint;
 import icyllis.modernui.view.MotionEvent;
-import icyllis.modernui.widget.Button;
+import icyllis.modernui.widget.ImageButton;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
 import java.util.Objects;
 
 /**
- * Empty square control that requires a one-second pointer hold to activate.
+ * Icon control that requires a one-second pointer hold to activate.
  */
-final class HoldToSkipButton extends Button {
-    static final int HOLD_DURATION_MS = 1_000;
+final class HoldToSkipButton extends ImageButton {
+    static final int HOLD_DURATION_MS = 600;
+    static final int ICON_PADDING_DP = 10;
 
     private final Paint progressPaint = new Paint();
     private final Runnable completedAction;
@@ -30,16 +31,24 @@ final class HoldToSkipButton extends Button {
                 completedAction,
                 "completedAction"
         );
-        setText("");
         setClickable(true);
         setFocusable(true);
         setWillNotDraw(false);
+        setBackground(null);
+        setPadding(
+                dp(ICON_PADDING_DP),
+                dp(ICON_PADDING_DP),
+                dp(ICON_PADDING_DP),
+                dp(ICON_PADDING_DP)
+        );
         progressPaint.setStroke(true);
         progressPaint.setStrokeWidth(dp(2));
     }
 
     void applyTheme(ThemeDefinition theme) {
-        DialogueBoxView.applyControlButtonTheme(this, theme);
+        setBackground(null);
+        int iconPadding = dp(ICON_PADDING_DP);
+        setPadding(iconPadding, iconPadding, iconPadding, iconPadding);
         progressPaint.setColor(theme.option().hoverBorder().argb());
         invalidate();
     }
