@@ -4,6 +4,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueAccessResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueRequestResultS2C;
+import top.rookiestwo.maimai_dialogue.network.payload.ExecuteOptionCommandC2S;
+import top.rookiestwo.maimai_dialogue.network.payload.OptionCommandResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.QueryDialogueAccessC2S;
 import top.rookiestwo.maimai_dialogue.network.payload.RequestDialogueC2S;
 import top.rookiestwo.maimai_dialogue.internal.bootstrap.CommonServices;
@@ -41,6 +43,28 @@ public final class ServerDialoguePayloadHandlers {
                         new DialogueAccessResultS2C(
                                 payload.requestId(),
                                 entries
+                        )
+                ));
+    }
+
+    // 只执行服务端 Dialogue definition 中对应 Option 的 command。
+    public static void handleExecuteOptionCommand(
+            ExecuteOptionCommandC2S payload,
+            IPayloadContext context
+    ) {
+        ServerPlayer player = (ServerPlayer) context.player();
+        CommonServices.get().optionCommands()
+                .execute(
+                        player,
+                        payload.dialogueId(),
+                        payload.optionIndex()
+                )
+                .thenAccept(status -> context.reply(
+                        new OptionCommandResultS2C(
+                                payload.requestId(),
+                                payload.dialogueId(),
+                                payload.optionIndex(),
+                                status
                         )
                 ));
     }

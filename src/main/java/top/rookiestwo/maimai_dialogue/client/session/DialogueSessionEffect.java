@@ -20,6 +20,21 @@ public sealed interface DialogueSessionEffect {
         }
     }
 
+    record ExecuteOptionCommand(
+            long requestId,
+            ResourceLocation sourceDialogue,
+            int optionIndex
+    ) implements DialogueSessionEffect {
+        public ExecuteOptionCommand {
+            Objects.requireNonNull(sourceDialogue, "sourceDialogue");
+            if (optionIndex < 0) {
+                throw new IllegalArgumentException(
+                        "optionIndex must not be negative."
+                );
+            }
+        }
+    }
+
     record Close() implements DialogueSessionEffect {
     }
 

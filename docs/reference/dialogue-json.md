@@ -143,9 +143,31 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 |---|---:|---|
 | `text` | 是 | 非空普通文本，不解析 Markdown |
 | `icon` | 否 | `none`；还可用 `question`、`exclamation`、`dialogue` |
+| `command` | 否 | target 前由 logical server 执行的一条 Minecraft 指令 |
 | `target` | 是 | `dialogue` 或 `return` |
 
 `options` 至少一项。Dialogue target 在显示前由服务端查询，点击时再次校验。条件不满足的目标会隐藏；过滤后没有可见选项时，下一次推进按 Return 处理。
+
+### Option command
+
+`command` 是 Option 的可选前置副作用，不替代 `target`：
+
+```json
+{
+  "text": "接受任务",
+  "command": "function example:accept_quest",
+  "target": {
+    "type": "dialogue",
+    "dialogue": "example:quest/accepted"
+  }
+}
+```
+
+- 指令必须是非空单行字符串；开头的 `/` 可以省略。多条指令应写入 Data Pack function。
+- 服务端先检查当前 Dialogue 和 Dialogue target 的访问条件，再以点击玩家作为 `@s` 和执行位置、permission level 2 执行指令。
+- 指令成功后才执行原 target；失败时玩家留在当前选项页。指令不能用于解锁本次 target。
+- 服务端只执行 Data Pack 中对应 Option 的 command，不信任客户端 Resource Pack 的指令内容。
+- command 可以重复触发且副作用不会回滚。奖励类指令应配合 `requires`、score、tag 或幂等 function 防止重复领取。
 
 ## 播放规则
 
@@ -154,4 +176,4 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 - 再次推进才进入下一步或执行 `end.exit`。
 - 默认按住 Ctrl 会以 4 倍速度播放正文和有限 SceneAction；Continue Step 就绪后会自动进入下一步，直到进入 `end`。`end` 仍会加速播放，但不会自动执行 Exit。玩家可在客户端设置中调整倍率和键位。
 - 右上角跳过按钮默认需长按 600ms；玩家可以配置统一的鼠标/键盘长按时长。触发后会结算剩余 Speaker 与 SceneAction，并直接完成 `end`；尚未进入的正文不会写入历史。
-- `exit` 和 Option 只导航，不会自动修改 ProgressNode。
+- `exit` 和普通 Option 只导航；只有显式配置的 Option `command` 会产生服务端副作用。

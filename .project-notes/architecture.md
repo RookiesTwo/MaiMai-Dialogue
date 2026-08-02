@@ -6,11 +6,11 @@ MaiMai Dialogue 将内容定义、运行时规则和平台适配分开。JSON �
 
 ```text
 JSON resources -> Content snapshot -> Dialogue access/session -> Screen state
-Player progress -------------------> Server access check
+Player progress -------------------> Server access/option command check
 Dialogue session -> Scene runtime -> Client views
 ```
 
-logical server 负责 Dialogue 访问权限和玩家进度，client 只负责内容展示、输入和播放。客户端的本地资源不能替代服务端权限判断。
+logical server 负责 Dialogue 访问权限、Option command 和玩家进度，client 只负责内容展示、输入和播放。客户端的本地资源不能替代服务端权限判断，也不能提供待执行的 command 原文。
 
 ## 模块边界
 
@@ -30,6 +30,7 @@ logical server 负责 Dialogue 访问权限和玩家进度，client 只负责内
 3. content 在完整加载和交叉验证后一次性发布，读取方不会看到半更新状态。
 4. service 通过构造参数接收 repository/store；静态入口只保留在事件和 API adapter。
 5. JSON 字段、资源目录和 network payload 属于兼容性边界，内部重构不得修改。
+6. command Option 仍采用无 session 协议：服务端按 source Dialogue 与 Option index 解析 Data Pack，先校验 source/target 再执行，不信任客户端 command。
 
 ## 注释规则
 

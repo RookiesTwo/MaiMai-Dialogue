@@ -7,6 +7,8 @@ import top.rookiestwo.maimai_dialogue.MaiMaiDialogue;
 import top.rookiestwo.maimai_dialogue.client.ClientDialoguePayloadHandlers;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueAccessResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueRequestResultS2C;
+import top.rookiestwo.maimai_dialogue.network.payload.ExecuteOptionCommandC2S;
+import top.rookiestwo.maimai_dialogue.network.payload.OptionCommandResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.OpenDialogueS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.QueryDialogueAccessC2S;
 import top.rookiestwo.maimai_dialogue.network.payload.RequestDialogueC2S;
@@ -17,7 +19,7 @@ import top.rookiestwo.maimai_dialogue.network.payload.RequestDialogueC2S;
 )
 @SuppressWarnings("removal")
 public final class DialogueNetwork {
-    public static final String PROTOCOL_VERSION = "1";
+    public static final String PROTOCOL_VERSION = "2";
 
     private DialogueNetwork() {
     }
@@ -37,6 +39,11 @@ public final class DialogueNetwork {
                 QueryDialogueAccessC2S.STREAM_CODEC,
                 ServerDialoguePayloadHandlers::handleQueryDialogueAccess
         );
+        registrar.playToServer(
+                ExecuteOptionCommandC2S.TYPE,
+                ExecuteOptionCommandC2S.STREAM_CODEC,
+                ServerDialoguePayloadHandlers::handleExecuteOptionCommand
+        );
         registrar.playToClient(
                 DialogueRequestResultS2C.TYPE,
                 DialogueRequestResultS2C.STREAM_CODEC,
@@ -51,6 +58,11 @@ public final class DialogueNetwork {
                 OpenDialogueS2C.TYPE,
                 OpenDialogueS2C.STREAM_CODEC,
                 ClientDialoguePayloadHandlers::handleOpenDialogue
+        );
+        registrar.playToClient(
+                OptionCommandResultS2C.TYPE,
+                OptionCommandResultS2C.STREAM_CODEC,
+                ClientDialoguePayloadHandlers::handleOptionCommandResult
         );
     }
 }

@@ -133,6 +133,155 @@ class DialogueSessionTest {
     }
 
     @Test
+    void commandOptionWaitsForSuccessBeforeNavigating() {
+        DialogueOption option = new DialogueOption(
+                "Run and open child",
+                OptionIcon.DIALOGUE,
+                Optional.of("say hello"),
+                new DialogueTarget(CHILD)
+        );
+        DialogueDefinition root = dialogue(
+                "Root",
+                new ChoiceExit(List.of(option))
+        );
+        DialogueDefinition child = dialogue("Child", ReturnExit.INSTANCE);
+        DialogueSession session = new DialogueSession(
+                content(Map.of(ROOT, root, CHILD, child)),
+                ROOT,
+                root,
+                1L
+        );
+
+        DialogueSessionEffect.QueryAccess query = assertInstanceOf(
+                DialogueSessionEffect.QueryAccess.class,
+                session.start().effects().getFirst()
+        );
+        session.handleAccessResult(
+                query.requestId(),
+                Map.of(CHILD, DialogueAccessDecision.ALLOWED)
+        );
+        finishPlayback(session);
+
+        DialogueSessionUpdate selected = session.selectOption(option);
+        DialogueSessionEffect.ExecuteOptionCommand command = assertInstanceOf(
+                DialogueSessionEffect.ExecuteOptionCommand.class,
+                selected.effects().getFirst()
+        );
+        assertEquals(ROOT, command.sourceDialogue());
+        assertEquals(0, command.optionIndex());
+        assertTrue(selected.state().requestingTarget());
+        assertFalse(session.selectOption(option).changed());
+        assertFalse(session.handleOptionCommandResult(
+                command.requestId() + 1,
+                ROOT,
+                0,
+                OptionCommandDecision.EXECUTED
+        ).changed());
+
+        DialogueSessionUpdate opened = session.handleOptionCommandResult(
+                command.requestId(),
+                ROOT,
+                0,
+                OptionCommandDecision.EXECUTED
+        );
+        assertEquals("Child", opened.state().text().orElseThrow());
+        assertFalse(opened.state().requestingTarget());
+        assertEquals(3, opened.state().history().size());
+    }
+
+    @Test
+    void failedCommandKeepsOptionsAndCanBeRetried() {
+        DialogueOption option = new DialogueOption(
+                "Run and close",
+                OptionIcon.NONE,
+                Optional.of("say hello"),
+                ReturnTarget.INSTANCE
+        );
+        DialogueDefinition root = dialogue(
+                "Root",
+                new ChoiceExit(List.of(option))
+        );
+        DialogueSession session = new DialogueSession(
+                content(Map.of(ROOT, root)),
+                ROOT,
+                root,
+                1L
+        );
+        session.start();
+        finishPlayback(session);
+
+        DialogueSessionEffect.ExecuteOptionCommand first = assertInstanceOf(
+                DialogueSessionEffect.ExecuteOptionCommand.class,
+                session.selectOption(option).effects().getFirst()
+        );
+        DialogueSessionUpdate failed = session.handleOptionCommandResult(
+                first.requestId(),
+                ROOT,
+                0,
+                OptionCommandDecision.COMMAND_FAILED
+        );
+        assertFalse(failed.state().requestingTarget());
+        assertEquals(List.of(option), failed.state().options());
+        assertTrue(failed.state().error().isPresent());
+        assertTrue(failed.effects().isEmpty());
+
+        DialogueSessionEffect.ExecuteOptionCommand retry = assertInstanceOf(
+                DialogueSessionEffect.ExecuteOptionCommand.class,
+                session.selectOption(option).effects().getFirst()
+        );
+        DialogueSessionUpdate succeeded = session.handleOptionCommandResult(
+                retry.requestId(),
+                ROOT,
+                0,
+                OptionCommandDecision.EXECUTED
+        );
+        assertInstanceOf(
+                DialogueSessionEffect.Close.class,
+                succeeded.effects().getFirst()
+        );
+    }
+
+    @Test
+    void missingLocalCommandTargetPreventsServerRequest() {
+        DialogueOption option = new DialogueOption(
+                "Missing child",
+                OptionIcon.NONE,
+                Optional.of("say hello"),
+                new DialogueTarget(CHILD)
+        );
+        DialogueDefinition root = dialogue(
+                "Root",
+                new ChoiceExit(List.of(option))
+        );
+        DialogueSession session = new DialogueSession(
+                content(Map.of(ROOT, root)),
+                ROOT,
+                root,
+                1L
+        );
+        DialogueSessionEffect.QueryAccess query = assertInstanceOf(
+                DialogueSessionEffect.QueryAccess.class,
+                session.start().effects().getFirst()
+        );
+        session.handleAccessResult(
+                query.requestId(),
+                Map.of(CHILD, DialogueAccessDecision.ALLOWED)
+        );
+        finishPlayback(session);
+
+        DialogueSessionUpdate selected = session.selectOption(option);
+
+        assertInstanceOf(
+                DialogueSessionEffect.ReportError.class,
+                selected.effects().getFirst()
+        );
+        assertFalse(selected.state().requestingTarget());
+        assertTrue(selected.effects().stream().noneMatch(
+                DialogueSessionEffect.ExecuteOptionCommand.class::isInstance
+        ));
+    }
+
+    @Test
     void missingThemeUsesDefaultAndReportsError() {
         DialogueDefinition root = dialogue("Fallback", ReturnExit.INSTANCE);
         DialogueSession session = new DialogueSession(

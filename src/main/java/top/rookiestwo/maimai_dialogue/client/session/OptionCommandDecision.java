@@ -1,0 +1,13 @@
+package top.rookiestwo.maimai_dialogue.client.session;
+
+public enum OptionCommandDecision {
+    EXECUTED,
+    SOURCE_DIALOGUE_NOT_FOUND,
+    SOURCE_REQUIREMENTS_NOT_MET,
+    TARGET_DIALOGUE_NOT_FOUND,
+    TARGET_REQUIREMENTS_NOT_MET,
+    PROGRESS_UNAVAILABLE,
+    INVALID_OPTION,
+    COMMAND_FAILED,
+    INTERNAL_ERROR
+}

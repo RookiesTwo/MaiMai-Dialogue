@@ -6,6 +6,7 @@ import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
 import top.rookiestwo.maimai_dialogue.progress.DefaultPlayerProgressService;
 import top.rookiestwo.maimai_dialogue.server.DefaultDialogueService;
 import top.rookiestwo.maimai_dialogue.server.DialogueAccessService;
+import top.rookiestwo.maimai_dialogue.server.OptionCommandService;
 
 public final class CommonServices {
     private static final CommonServices INSTANCE = new CommonServices();
@@ -18,6 +19,8 @@ public final class CommonServices {
             new DefaultPlayerProgressService();
     private final DialogueAccessService dialogueAccess =
             new DialogueAccessService(serverDialogues::current, progress);
+    private final OptionCommandService optionCommands =
+            new OptionCommandService(serverDialogues::current, dialogueAccess);
     private final DefaultDialogueService dialogues =
             new DefaultDialogueService(dialogueAccess);
 
@@ -39,6 +42,10 @@ public final class CommonServices {
 
     public DialogueAccessService dialogueAccess() {
         return dialogueAccess;
+    }
+
+    public OptionCommandService optionCommands() {
+        return optionCommands;
     }
 
     public DefaultDialogueService dialogues() {

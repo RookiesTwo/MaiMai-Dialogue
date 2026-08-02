@@ -123,17 +123,25 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         DialogueSceneView scene = sceneView;
         DialogueBoxView box = boxView;
         ImageButton historyEntry = historyButton;
+        HoldToSkipButton skipEntry = skipButton;
         if (root == null
                 || scene == null
                 || box == null
                 || historyEntry == null
-                || skipButton == null) {
+                || skipEntry == null) {
             return;
         }
 
         latestState = state;
 
         box.post(() -> {
+            if (rootLayout != root
+                    || sceneView != scene
+                    || boxView != box
+                    || historyButton != historyEntry
+                    || skipButton != skipEntry) {
+                return;
+            }
             if (root.hasSkipConfirmation()
                     && confirmationGeneration != state.generation()) {
                 dismissSkipConfirmation();
@@ -144,7 +152,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                         ThemeDefinition.DEFAULT
                 );
                 box.reset(theme);
-                skipButton.applyTheme(theme);
+                skipEntry.applyTheme(theme);
                 applyPresentation(state, root, scene);
             }
             root.setSkipAvailable(

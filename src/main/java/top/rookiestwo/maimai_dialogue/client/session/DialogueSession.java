@@ -51,6 +51,8 @@ public final class DialogueSession {
     private PendingAccessQuery pendingAccessQuery;
     @Nullable
     private PendingTargetRequest pendingTargetRequest;
+    @Nullable
+    private PendingOptionCommand pendingOptionCommand;
 
     public DialogueSession(
             DialogueContentLookup content,
@@ -213,9 +215,65 @@ public final class DialogueSession {
         return update(effects, true);
     }
 
+    // command 成功后才提交 Option，并继续执行其原有 target。
+    public DialogueSessionUpdate handleOptionCommandResult(
+            long requestId,
+            ResourceLocation dialogueId,
+            int optionIndex,
+            OptionCommandDecision decision
+    ) {
+        PendingOptionCommand pending = pendingOptionCommand;
+        if (pending == null
+                || pending.requestId != requestId
+                || pending.generation != active.generation
+                || !pending.sourceDialogue.equals(dialogueId)
+                || pending.optionIndex != optionIndex) {
+            return update(List.of(), false);
+        }
+        pendingOptionCommand = null;
+        List<DialogueSessionEffect> effects = new ArrayList<>();
+        if (decision != OptionCommandDecision.EXECUTED) {
+            active.errorMessage = commandFailureMessage(decision);
+            reportCommandDevelopmentError(
+                    pending,
+                    decision,
+                    effects
+            );
+            return update(effects, true);
+        }
+
+        DialogueOption option = pending.option;
+        if (option.target() instanceof ReturnTarget) {
+            recordOption(option);
+            return performReturn();
+        }
+        if (option.target() instanceof DialogueTarget target) {
+            DialogueDefinition definition = content.dialogue(
+                    target.dialogue()
+            ).orElse(null);
+            if (definition == null) {
+                active.visibleOptions = active.visibleOptions.stream()
+                        .filter(visible -> !visible.equals(option))
+                        .toList();
+                active.errorMessage = I18n.get(
+                        "gui.maimai_dialogue.error.dialogue_not_found"
+                );
+                effects.add(reportMissingClient(
+                        "dialogue",
+                        target.dialogue()
+                ));
+                return update(effects, true);
+            }
+            recordOption(option);
+            activate(target.dialogue(), definition, effects);
+            return update(effects, true);
+        }
+        return update(List.of(), false);
+    }
+
     // 推进正文、跳过播放，或在结束节点执行 Return 行为。
     public DialogueSessionUpdate advance() {
-        if (pendingTargetRequest != null) {
+        if (hasPendingOptionAction()) {
             return update(List.of(), false);
         }
         if (active.playbackPhase == PlaybackPhase.PLAYING) {
@@ -244,7 +302,7 @@ public final class DialogueSession {
 
     // 结算当前 Dialogue 的剩余场景状态并直接完成 EndStep。
     public DialogueSessionUpdate skipToEnd() {
-        if (pendingTargetRequest != null) {
+        if (hasPendingOptionAction()) {
             return update(List.of(), false);
         }
         int endIndex = active.definition.steps().size();
@@ -325,10 +383,13 @@ public final class DialogueSession {
 
     // 校验并执行玩家选择的当前可见选项。
     public DialogueSessionUpdate selectOption(DialogueOption option) {
-        if (pendingTargetRequest != null
+        if (hasPendingOptionAction()
                 || active.stepIndex < active.definition.steps().size()
                 || !active.visibleOptions.contains(option)) {
             return update(List.of(), false);
+        }
+        if (option.command().isPresent()) {
+            return requestOptionCommand(option);
         }
         if (option.target() instanceof ReturnTarget) {
             recordOption(option);
@@ -365,7 +426,7 @@ public final class DialogueSession {
                 active.playbackPhase,
                 active.playbackSkipped,
                 active.definition.skipSummary(),
-                !atEnd && pendingTargetRequest == null,
+                !atEnd && !hasPendingOptionAction(),
                 active.currentTypewriterIntervalMs(
                         defaultTypewriterIntervalMs.getAsInt()
                 ),
@@ -375,7 +436,7 @@ public final class DialogueSession {
                 history,
                 atEnd && ready ? active.visibleOptions : List.of(),
                 atEnd && ready && pendingAccessQuery != null,
-                pendingTargetRequest != null
+                hasPendingOptionAction()
         );
     }
 
@@ -386,6 +447,7 @@ public final class DialogueSession {
     ) {
         pendingAccessQuery = null;
         pendingTargetRequest = null;
+        pendingOptionCommand = null;
         active = createActive(dialogueId, definition, effects);
         enterCurrentStep(active, effects);
         prefetchOptions(active, effects);
@@ -559,6 +621,51 @@ public final class DialogueSession {
         history.add(DialogueHistoryEntry.option(option.text()));
     }
 
+    private DialogueSessionUpdate requestOptionCommand(DialogueOption option) {
+        if (!(active.definition.end().exit() instanceof ChoiceExit exit)) {
+            return update(List.of(), false);
+        }
+        int optionIndex = exit.options().indexOf(option);
+        if (optionIndex < 0) {
+            return update(List.of(), false);
+        }
+        if (option.target() instanceof DialogueTarget target
+                && content.dialogue(target.dialogue()).isEmpty()) {
+            active.errorMessage = I18n.get(
+                    "gui.maimai_dialogue.error.dialogue_not_found"
+            );
+            return update(
+                    List.of(reportMissingClient(
+                            "dialogue",
+                            target.dialogue()
+                    )),
+                    true
+            );
+        }
+
+        long requestId = nextRequestId();
+        pendingOptionCommand = new PendingOptionCommand(
+                requestId,
+                active.generation,
+                active.currentDialogueId,
+                optionIndex,
+                option
+        );
+        active.errorMessage = null;
+        return update(
+                List.of(new DialogueSessionEffect.ExecuteOptionCommand(
+                        requestId,
+                        active.currentDialogueId,
+                        optionIndex
+                )),
+                true
+        );
+    }
+
+    private boolean hasPendingOptionAction() {
+        return pendingTargetRequest != null || pendingOptionCommand != null;
+    }
+
     private long nextRequestId() {
         long requestId = nextRequestId++;
         if (nextRequestId == 0L) {
@@ -598,6 +705,46 @@ public final class DialogueSession {
             case DIALOGUE_NOT_FOUND -> I18n.get("gui.maimai_dialogue.error.dialogue_not_found");
             default -> I18n.get("gui.maimai_dialogue.error.request_rejected");
         };
+    }
+
+    private static String commandFailureMessage(
+            OptionCommandDecision decision
+    ) {
+        return switch (decision) {
+            case SOURCE_REQUIREMENTS_NOT_MET, TARGET_REQUIREMENTS_NOT_MET ->
+                    I18n.get("gui.maimai_dialogue.error.requirements_not_met");
+            case PROGRESS_UNAVAILABLE ->
+                    I18n.get("gui.maimai_dialogue.error.progress_unavailable");
+            case SOURCE_DIALOGUE_NOT_FOUND, TARGET_DIALOGUE_NOT_FOUND ->
+                    I18n.get("gui.maimai_dialogue.error.dialogue_not_found");
+            case INVALID_OPTION ->
+                    I18n.get("gui.maimai_dialogue.error.invalid_option_command");
+            case COMMAND_FAILED ->
+                    I18n.get("gui.maimai_dialogue.error.command_failed");
+            case INTERNAL_ERROR ->
+                    I18n.get("gui.maimai_dialogue.error.command_execution_failed");
+            case EXECUTED -> "";
+        };
+    }
+
+    private static void reportCommandDevelopmentError(
+            PendingOptionCommand pending,
+            OptionCommandDecision decision,
+            List<DialogueSessionEffect> effects
+    ) {
+        if (decision == OptionCommandDecision.SOURCE_DIALOGUE_NOT_FOUND) {
+            effects.add(reportMissingServer(pending.sourceDialogue));
+        } else if (decision == OptionCommandDecision.TARGET_DIALOGUE_NOT_FOUND
+                && pending.option.target() instanceof DialogueTarget target) {
+            effects.add(reportMissingServer(target.dialogue()));
+        } else if (decision == OptionCommandDecision.INVALID_OPTION) {
+            effects.add(new DialogueSessionEffect.ReportError(
+                    "Server rejected option command "
+                            + pending.sourceDialogue
+                            + "#"
+                            + pending.optionIndex
+            ));
+        }
     }
 
     private static final class ActiveDialogue {
@@ -704,6 +851,15 @@ public final class DialogueSession {
             long requestId,
             long generation,
             ResourceLocation target,
+            DialogueOption option
+    ) {
+    }
+
+    private record PendingOptionCommand(
+            long requestId,
+            long generation,
+            ResourceLocation sourceDialogue,
+            int optionIndex,
             DialogueOption option
     ) {
     }

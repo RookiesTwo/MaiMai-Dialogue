@@ -15,13 +15,17 @@ import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueSession;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueSessionEffect;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueSessionUpdate;
+import top.rookiestwo.maimai_dialogue.client.session.OptionCommandDecision;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
 import top.rookiestwo.maimai_dialogue.network.DialogueAccessStatus;
+import top.rookiestwo.maimai_dialogue.network.OptionCommandStatus;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueAccessResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueRequestResultS2C;
+import top.rookiestwo.maimai_dialogue.network.payload.ExecuteOptionCommandC2S;
 import top.rookiestwo.maimai_dialogue.network.payload.OpenDialogueS2C;
+import top.rookiestwo.maimai_dialogue.network.payload.OptionCommandResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.QueryDialogueAccessC2S;
 import top.rookiestwo.maimai_dialogue.network.payload.RequestDialogueC2S;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
@@ -128,6 +132,28 @@ public final class ClientDialogueController {
         if (!update.changed()) {
             MaiMaiDialogue.LOGGER.debug(
                     "Ignoring stale dialogue request result {}.",
+                    payload.requestId()
+            );
+            return;
+        }
+        applyUpdate(update);
+    }
+
+    public void handleOptionCommandResult(OptionCommandResultS2C payload) {
+        requireClientThread();
+        DialogueSession current = session;
+        if (current == null) {
+            return;
+        }
+        DialogueSessionUpdate update = current.handleOptionCommandResult(
+                payload.requestId(),
+                payload.dialogueId(),
+                payload.optionIndex(),
+                optionCommandDecision(payload.status())
+        );
+        if (!update.changed()) {
+            MaiMaiDialogue.LOGGER.debug(
+                    "Ignoring stale option command result {}.",
                     payload.requestId()
             );
             return;
@@ -276,6 +302,13 @@ public final class ClientDialogueController {
                         request.requestId(),
                         request.target()
                 ));
+            } else if (effect
+                    instanceof DialogueSessionEffect.ExecuteOptionCommand command) {
+                PacketDistributor.sendToServer(new ExecuteOptionCommandC2S(
+                        command.requestId(),
+                        command.sourceDialogue(),
+                        command.optionIndex()
+                ));
             } else if (effect instanceof DialogueSessionEffect.Close) {
                 Minecraft.getInstance().setScreen(null);
             } else if (effect
@@ -358,6 +391,27 @@ public final class ClientDialogueController {
             case PROGRESS_UNAVAILABLE ->
                     DialogueAccessDecision.PROGRESS_UNAVAILABLE;
             case INTERNAL_ERROR -> DialogueAccessDecision.INTERNAL_ERROR;
+        };
+    }
+
+    private static OptionCommandDecision optionCommandDecision(
+            OptionCommandStatus status
+    ) {
+        return switch (status) {
+            case EXECUTED -> OptionCommandDecision.EXECUTED;
+            case SOURCE_DIALOGUE_NOT_FOUND ->
+                    OptionCommandDecision.SOURCE_DIALOGUE_NOT_FOUND;
+            case SOURCE_REQUIREMENTS_NOT_MET ->
+                    OptionCommandDecision.SOURCE_REQUIREMENTS_NOT_MET;
+            case TARGET_DIALOGUE_NOT_FOUND ->
+                    OptionCommandDecision.TARGET_DIALOGUE_NOT_FOUND;
+            case TARGET_REQUIREMENTS_NOT_MET ->
+                    OptionCommandDecision.TARGET_REQUIREMENTS_NOT_MET;
+            case PROGRESS_UNAVAILABLE ->
+                    OptionCommandDecision.PROGRESS_UNAVAILABLE;
+            case INVALID_OPTION -> OptionCommandDecision.INVALID_OPTION;
+            case COMMAND_FAILED -> OptionCommandDecision.COMMAND_FAILED;
+            case INTERNAL_ERROR -> OptionCommandDecision.INTERNAL_ERROR;
         };
     }
 

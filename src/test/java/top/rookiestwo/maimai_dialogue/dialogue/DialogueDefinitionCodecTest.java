@@ -359,6 +359,72 @@ class DialogueDefinitionCodecTest {
         ).error().isPresent());
     }
 
+    @Test
+    void decodesAndNormalizesOptionalOptionCommands() {
+        DialogueDefinition definition = decode("""
+                {
+                  "presentation": {"theme": "maimai_dialogue:default"},
+                  "end": {
+                    "exit": {
+                      "type": "options",
+                      "options": [
+                        {
+                          "text": "Run",
+                          "command": "  /say hello  ",
+                          "target": {"type": "return"}
+                        },
+                        {
+                          "text": "Legacy",
+                          "target": {"type": "return"}
+                        }
+                      ]
+                    }
+                  }
+                }
+                """);
+
+        ChoiceExit exit = assertInstanceOf(
+                ChoiceExit.class,
+                definition.end().exit()
+        );
+        assertEquals(
+                "/say hello",
+                exit.options().getFirst().command().orElseThrow()
+        );
+        assertTrue(exit.options().get(1).command().isEmpty());
+        assertTrue(new DialogueOption(
+                "Legacy constructor",
+                OptionIcon.NONE,
+                ReturnTarget.INSTANCE
+        ).command().isEmpty());
+    }
+
+    @Test
+    void rejectsBlankAndMultilineOptionCommands() {
+        for (String command : List.of("   ", "say first\nsay second")) {
+            assertTrue(DialogueDefinition.CODEC.parse(
+                    JsonOps.INSTANCE,
+                    JsonParser.parseString("""
+                            {
+                              "presentation": {"theme": "maimai_dialogue:default"},
+                              "end": {
+                                "exit": {
+                                  "type": "options",
+                                  "options": [{
+                                    "text": "Invalid",
+                                    "command": %s,
+                                    "target": {"type": "return"}
+                                  }]
+                                }
+                              }
+                            }
+                            """.formatted(
+                                    new com.google.gson.JsonPrimitive(command)
+                            ))
+            ).error().isPresent());
+        }
+    }
+
     private static DialogueDefinition decode(String json) {
         return DialogueDefinition.CODEC.parse(
                 JsonOps.INSTANCE,

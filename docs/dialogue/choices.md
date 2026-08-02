@@ -106,6 +106,22 @@ description: 在入口 Dialogue 中显示选项，并进入可返回的子 Dialo
 
 把完整 `welcome.json` 同步保存到两个 Pack。
 
+### 可选：点击时执行指令
+
+Option 可以在执行原 `target` 前先运行一条服务端指令。例如接受任务后关闭入口 Dialogue：
+
+```json
+{
+  "text": "接受任务",
+  "command": "function example:accept_quest",
+  "target": {
+    "type": "return"
+  }
+}
+```
+
+`command` 可以省略，`target` 始终必填。服务端会先检查 Dialogue 和 target 是否允许访问，再以点击玩家作为 `@s`、permission level 2 执行；只有成功后才继续 target。多条指令请放入 Data Pack function，并让奖励逻辑可安全地重复调用。
+
 2. 创建 `about.json`。它是一段新的 Dialogue，因此下面高亮的是整个内容结构：
 
 ```json:line-numbers {2-14} [about.json]
