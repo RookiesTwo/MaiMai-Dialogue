@@ -21,6 +21,7 @@ import top.rookiestwo.maimai_dialogue.dialogue.ChoiceExit;
 import top.rookiestwo.maimai_dialogue.dialogue.ReturnExit;
 import top.rookiestwo.maimai_dialogue.dialogue.ReturnTarget;
 import top.rookiestwo.maimai_dialogue.dialogue.SetSpeaker;
+import top.rookiestwo.maimai_dialogue.dialogue.SceneResolver;
 import top.rookiestwo.maimai_dialogue.dialogue.SpeakerOperation;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetResolver;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
@@ -602,8 +603,17 @@ public final class DialogueSession {
             effects.add(reportMissingClient("dialogue theme", themeId));
             return ThemeDefinition.DEFAULT;
         });
-        VisualAssetResolver.Result resolved = VisualAssetResolver.resolve(
+        SceneResolver.Result resolvedScene = SceneResolver.resolve(
                 definition.presentation(),
+                content::scene
+        );
+        resolvedScene.errors().forEach(error -> effects.add(
+                new DialogueSessionEffect.ReportError(
+                        dialogueId + ": " + error
+                )
+        ));
+        VisualAssetResolver.Result resolved = VisualAssetResolver.resolve(
+                resolvedScene.presentation(),
                 content::visualAsset
         );
         resolved.errors().forEach(error -> effects.add(

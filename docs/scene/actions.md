@@ -106,28 +106,7 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 {
   "presentation": {
     "theme": "maimai_dialogue:default",
-    "background": {
-      "variants": {
-        "default": "minecraft:gui/title/background/panorama_0.png",
-        "alternate": "minecraft:gui/title/background/panorama_1.png"
-      },
-      "initial_variant": "default",
-      "fit": "cover",
-      "opacity": 0.82
-    },
-    "visual_objects": {
-      "guide_marker": {
-        "asset": "example:guide/marker",
-        "initial_variant": "default",
-        "x": 0.5,
-        "y": 0.3,
-        "anchor": "center",
-        "scale": 8.0,
-        "opacity": 1.0,
-        "visible": true,
-        "z_index": 10
-      }
-    }
+    "scene": "example:guide/welcome"
   },
   "steps": [
     {

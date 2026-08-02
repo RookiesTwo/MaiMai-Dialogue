@@ -1,6 +1,6 @@
 ---
 title: Presentation JSON
-description: Theme、背景、对话框布局、VisualObject 和 Filter 的字段参考。
+description: Theme、Scene、背景、对话框布局、VisualObject 和 Filter 的字段参考。
 ---
 
 # Presentation JSON
@@ -10,12 +10,15 @@ description: Theme、背景、对话框布局、VisualObject 和 Filter 的字�
 | 字段 | 必填 | 默认值 |
 |---|---:|---|
 | `theme` | 是 | — |
+| `scene` | 否 | 无；引用客户端 Scene |
 | `background` | 否 | 无背景 |
 | `dialogue_box` | 否 | 默认底部布局 |
 | `visual_objects` | 否 | `{}` |
 | `filter` | 否 | 无滤镜 |
 
-每次进入一个 Dialogue 都会按它的 Presentation 创建新场景，不继承前一个 Dialogue 的画面状态。
+每次进入一个 Dialogue 都会按它的 Presentation 创建新场景，不继承前一个 Dialogue 的画面状态。经常复用的 `background`、`visual_objects` 与 `filter` 可以放入 [Scene](./scene-json.md)，再通过 `scene` 引用。
+
+Presentation 中的局部 Background 和 Filter 会整体覆盖 Scene 对应字段；VisualObject 按 ID 合并，同名对象由 Presentation 覆盖。Theme 与 DialogueBox 不属于 Scene。
 
 ## Background
 

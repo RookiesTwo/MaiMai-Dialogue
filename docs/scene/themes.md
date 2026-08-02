@@ -96,34 +96,13 @@ Theme 的每个区块和字段都可以省略；省略部分会使用内置默�
 {
   "presentation": {
     "theme": "example:parchment",
-    "background": {
-      "variants": {
-        "default": "minecraft:gui/title/background/panorama_0.png",
-        "alternate": "minecraft:gui/title/background/panorama_1.png"
-      },
-      "initial_variant": "default",
-      "fit": "cover",
-      "opacity": 0.82
-    },
+    "scene": "example:guide/welcome",
     "dialogue_box": {
       "x": 0.5,
       "y": 0.95,
       "width": 0.82,
       "max_height": 0.42,
       "anchor": "bottom_center"
-    },
-    "visual_objects": {
-      "guide_marker": {
-        "asset": "example:guide/marker",
-        "initial_variant": "default",
-        "x": 0.5,
-        "y": 0.3,
-        "anchor": "center",
-        "scale": 8.0,
-        "opacity": 1.0,
-        "visible": true,
-        "z_index": 10
-      }
     },
     "filter": {
       "type": "color_adjust",

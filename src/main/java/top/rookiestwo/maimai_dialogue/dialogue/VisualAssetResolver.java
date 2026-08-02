@@ -53,6 +53,7 @@ public final class VisualAssetResolver {
 
         Presentation resolvedPresentation = new Presentation(
                 presentation.theme(),
+                presentation.scene(),
                 presentation.background(),
                 presentation.dialogueBox(),
                 resolvedObjects,

@@ -21,6 +21,12 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 <资源包>/assets/example/visual_assets/guide/marker.json
 ```
 
+再新增一个只属于资源包的 Scene：
+
+```text
+<资源包>/assets/example/scenes/guide/welcome.json
+```
+
 并同步替换资源包与数据包中的 Dialogue：
 
 ```text
@@ -42,56 +48,42 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 }
 ```
 
-文件 ID 是 `example:guide/marker`。接着在 `presentation` 中加入 `visual_objects`。`guide_marker` 是场景内的对象 ID，`asset` 指向刚才创建的 VisualAsset：
+VisualAsset ID 是 `example:guide/marker`。接着创建 `scenes/guide/welcome.json`，把上一章的 Background 和新的 VisualObject 集中放进可复用 Scene。`guide_marker` 是场景内的对象 ID，`asset` 指向刚才创建的 VisualAsset：
 
 ::: code-group
 
-```json{3-22} [本章改动]
+```json:line-numbers [scenes/guide/welcome.json]
 {
-  "presentation": {
-    "visual_objects": {
-      "guide_marker": {
-        "asset": "example:guide/marker",
-        "initial_variant": "default",
-        "x": 0.5,
-        "y": 0.3,
-        "anchor": "center",
-        "scale": 8.0,
-        "opacity": 1.0,
-        "visible": true,
-        "z_index": 10
-      }
+  "background": {
+    "variants": {
+      "default": "minecraft:gui/title/background/panorama_0.png",
+      "alternate": "minecraft:gui/title/background/panorama_1.png"
+    },
+    "initial_variant": "default",
+    "fit": "cover",
+    "opacity": 0.82
+  },
+  "visual_objects": {
+    "guide_marker": {
+      "asset": "example:guide/marker",
+      "initial_variant": "default",
+      "x": 0.5,
+      "y": 0.3,
+      "anchor": "center",
+      "scale": 8.0,
+      "opacity": 1.0,
+      "visible": true,
+      "z_index": 10
     }
   }
 }
 ```
 
-```json:line-numbers {15-34} [完整 welcome.json]
+```json:line-numbers {4} [完整 dialogues/guide/welcome.json]
 {
   "presentation": {
     "theme": "maimai_dialogue:default",
-    "background": {
-      "variants": {
-        "default": "minecraft:gui/title/background/panorama_0.png",
-        "alternate": "minecraft:gui/title/background/panorama_1.png"
-      },
-      "initial_variant": "default",
-      "fit": "cover",
-      "opacity": 0.82
-    },
-    "visual_objects": {
-      "guide_marker": {
-        "asset": "example:guide/marker",
-        "initial_variant": "default",
-        "x": 0.5,
-        "y": 0.3,
-        "anchor": "center",
-        "scale": 8.0,
-        "opacity": 1.0,
-        "visible": true,
-        "z_index": 10
-      }
-    }
+    "scene": "example:guide/welcome"
   },
   "steps": [
     {
@@ -143,7 +135,7 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 
 :::
 
-把 VisualAsset 只保存到 Resource Pack，并把完整 Dialogue 同步保存到两个 Pack。`x`、`y` 使用画面比例位置，`anchor` 决定哪个点对齐到该坐标，`z_index` 越大越靠前。VisualObject 省略 `sampling` 后会继承 VisualAsset 的 `nearest`，避免像素图放大后变模糊。
+把 VisualAsset 与 Scene 只保存到 Resource Pack，并把引用 Scene 的完整 Dialogue 同步保存到两个 Pack。`x`、`y` 使用画面比例位置，`anchor` 决定哪个点对齐到该坐标，`z_index` 越大越靠前。VisualObject 省略 `sampling` 后会继承 VisualAsset 的 `nearest`，避免像素图放大后变模糊。
 
 ## 进入游戏验证
 
@@ -151,12 +143,14 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 
 ## 如果没有生效
 
-- 对象完全不显示：检查 `asset` ID、`visible`、`initial_variant` 和图片 ID。
+- 对象完全不显示：先检查 Dialogue 的 `scene` ID，再检查 `asset` ID、`visible`、`initial_variant` 和图片 ID。
 - 图片模糊：在 VisualAsset 中将 `sampling` 设为 `nearest`，或在单个 VisualObject 中覆盖它。
 - 对象位置异常：先使用 `anchor: center`，再调整 `x`、`y`。
 - 对象 ID 使用了 `background` 或 `dialogue`：这两个名称是保留 target，不能作为 VisualObject ID。
 
 同一个 VisualAsset 可以被任意多个 Dialogue 引用；每次引用都可以选择不同 `initial_variant`、位置、缩放和层级。只使用一次的简单对象也可以继续在 VisualObject 内直接写 `variants`。
+
+同一个 Scene 也可以被多个 Dialogue 引用。Dialogue 需要额外角色时，可以继续在自己的 `presentation.visual_objects` 中添加；与 Scene 同名的对象会被 Dialogue 局部定义覆盖。
 
 ## 下一步
 

@@ -1,0 +1,15 @@
+{
+  "visual_objects": {
+    "wheat": {
+      "asset": "maimai_dialogue:showcase/wheat_musume",
+      "initial_variant": "neutral",
+      "x": 0.5,
+      "y": 1.0,
+      "anchor": "bottom_center",
+      "scale": 1.0,
+      "opacity": 1.0,
+      "visible": true,
+      "z_index": 10
+    }
+  }
+}

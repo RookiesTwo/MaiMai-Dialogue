@@ -12,6 +12,8 @@ import top.rookiestwo.maimai_dialogue.dialogue.DialogueTarget;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueEnd;
 import top.rookiestwo.maimai_dialogue.dialogue.ChoiceExit;
 import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
+import top.rookiestwo.maimai_dialogue.dialogue.SceneDefinition;
+import top.rookiestwo.maimai_dialogue.dialogue.SceneResolver;
 import top.rookiestwo.maimai_dialogue.dialogue.SetSpeaker;
 import top.rookiestwo.maimai_dialogue.dialogue.SpeakerOperation;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualObject;
@@ -41,6 +43,7 @@ public final class ClientResourceValidator {
                 snapshot.dialogues(),
                 snapshot.speakers(),
                 snapshot.themes(),
+                snapshot.scenes(),
                 snapshot.visualAssets(),
                 snapshot.actions(),
                 imageId -> resourceManager.getResource(
@@ -64,6 +67,7 @@ public final class ClientResourceValidator {
                 speakers,
                 themes,
                 DefinitionRegistry.empty(),
+                DefinitionRegistry.empty(),
                 actions,
                 imageExists
         );
@@ -73,6 +77,26 @@ public final class ClientResourceValidator {
             DefinitionRegistry<DialogueDefinition> dialogues,
             DefinitionRegistry<SpeakerDefinition> speakers,
             DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<VisualAssetDefinition> visualAssets,
+            DefinitionRegistry<SceneAction> actions,
+            Predicate<ResourceLocation> imageExists
+    ) {
+        return validate(
+                dialogues,
+                speakers,
+                themes,
+                DefinitionRegistry.empty(),
+                visualAssets,
+                actions,
+                imageExists
+        );
+    }
+
+    static List<String> validate(
+            DefinitionRegistry<DialogueDefinition> dialogues,
+            DefinitionRegistry<SpeakerDefinition> speakers,
+            DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<SceneDefinition> scenes,
             DefinitionRegistry<VisualAssetDefinition> visualAssets,
             DefinitionRegistry<SceneAction> actions,
             Predicate<ResourceLocation> imageExists
@@ -90,6 +114,17 @@ public final class ClientResourceValidator {
                                 imageExists,
                                 errors
                         )));
+        scenes.entries().entrySet().stream()
+                .sorted(Map.Entry.comparingByKey(
+                        Comparator.comparing(ResourceLocation::toString)
+                ))
+                .forEach(entry -> validateScene(
+                        entry.getKey(),
+                        entry.getValue(),
+                        visualAssets,
+                        imageExists,
+                        errors
+                ));
         dialogues.entries().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey(
                         Comparator.comparing(ResourceLocation::toString)
@@ -100,6 +135,7 @@ public final class ClientResourceValidator {
                         dialogues,
                         speakers,
                         themes,
+                        scenes,
                         visualAssets,
                         actions,
                         imageExists,
@@ -114,6 +150,7 @@ public final class ClientResourceValidator {
             DefinitionRegistry<DialogueDefinition> dialogues,
             DefinitionRegistry<SpeakerDefinition> speakers,
             DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<SceneDefinition> scenes,
             DefinitionRegistry<VisualAssetDefinition> visualAssets,
             DefinitionRegistry<SceneAction> actions,
             Predicate<ResourceLocation> imageExists,
@@ -146,8 +183,15 @@ public final class ClientResourceValidator {
                 );
             }
         });
-        VisualAssetResolver.Result resolution = VisualAssetResolver.resolve(
+        SceneResolver.Result sceneResolution = SceneResolver.resolve(
                 sourcePresentation,
+                scenes::find
+        );
+        sceneResolution.errors().forEach(error ->
+                errors.add(dialogueId + ": " + error)
+        );
+        VisualAssetResolver.Result resolution = VisualAssetResolver.resolve(
+                sceneResolution.presentation(),
                 visualAssets::find
         );
         resolution.errors().forEach(error ->
@@ -212,6 +256,50 @@ public final class ClientResourceValidator {
                 }
             });
         }
+    }
+
+    private static void validateScene(
+            ResourceLocation sceneId,
+            SceneDefinition scene,
+            DefinitionRegistry<VisualAssetDefinition> visualAssets,
+            Predicate<ResourceLocation> imageExists,
+            List<String> errors
+    ) {
+        scene.background().ifPresent(background ->
+                background.variants().forEach((variant, image) ->
+                        validateImage(
+                                sceneId,
+                                "Scene Background variant " + variant,
+                                image,
+                                imageExists,
+                                errors
+                        )
+                )
+        );
+        scene.visualObjects().forEach((objectId, object) -> {
+            if (!object.referencesAsset()) {
+                validateVisualObjectImages(
+                        sceneId,
+                        objectId,
+                        object,
+                        imageExists,
+                        errors
+                );
+                return;
+            }
+            ResourceLocation assetId = object.asset().orElseThrow();
+            VisualAssetDefinition asset = visualAssets.find(assetId)
+                    .orElse(null);
+            if (asset == null) {
+                errors.add(sceneId + ": VisualObject " + objectId
+                        + " references missing VisualAsset " + assetId + ".");
+                return;
+            }
+            object.resolve(asset).error().ifPresent(error ->
+                    errors.add(sceneId + ": VisualObject " + objectId
+                            + ": " + error.message())
+            );
+        });
     }
 
     private static void validateVisualObjectImages(

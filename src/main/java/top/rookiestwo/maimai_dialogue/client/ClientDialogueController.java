@@ -354,6 +354,12 @@ public final class ClientDialogueController {
             }
 
             @Override
+            public java.util.Optional<top.rookiestwo.maimai_dialogue.dialogue.SceneDefinition>
+                    scene(ResourceLocation id) {
+                return snapshot().scenes().find(id);
+            }
+
+            @Override
             public java.util.Optional<SceneAction>
                     action(ResourceLocation id) {
                 return snapshot().actions().find(id);

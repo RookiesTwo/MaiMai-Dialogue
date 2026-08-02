@@ -2,6 +2,7 @@ package top.rookiestwo.maimai_dialogue.client.resource;
 
 import top.rookiestwo.maimai_dialogue.content.DefinitionRegistry;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
+import top.rookiestwo.maimai_dialogue.dialogue.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
@@ -13,6 +14,7 @@ public record ClientContentSnapshot(
         DefinitionRegistry<DialogueDefinition> dialogues,
         DefinitionRegistry<SpeakerDefinition> speakers,
         DefinitionRegistry<ThemeDefinition> themes,
+        DefinitionRegistry<SceneDefinition> scenes,
         DefinitionRegistry<VisualAssetDefinition> visualAssets,
         DefinitionRegistry<SceneAction> actions
 ) {
@@ -21,8 +23,26 @@ public record ClientContentSnapshot(
             DefinitionRegistry.empty(),
             DefinitionRegistry.empty(),
             DefinitionRegistry.empty(),
+            DefinitionRegistry.empty(),
             DefinitionRegistry.empty()
     );
+
+    public ClientContentSnapshot(
+            DefinitionRegistry<DialogueDefinition> dialogues,
+            DefinitionRegistry<SpeakerDefinition> speakers,
+            DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<VisualAssetDefinition> visualAssets,
+            DefinitionRegistry<SceneAction> actions
+    ) {
+        this(
+                dialogues,
+                speakers,
+                themes,
+                DefinitionRegistry.empty(),
+                visualAssets,
+                actions
+        );
+    }
 
     public ClientContentSnapshot(
             DefinitionRegistry<DialogueDefinition> dialogues,
@@ -35,6 +55,7 @@ public record ClientContentSnapshot(
                 speakers,
                 themes,
                 DefinitionRegistry.empty(),
+                DefinitionRegistry.empty(),
                 actions
         );
     }
@@ -43,6 +64,7 @@ public record ClientContentSnapshot(
         Objects.requireNonNull(dialogues, "dialogues");
         Objects.requireNonNull(speakers, "speakers");
         Objects.requireNonNull(themes, "themes");
+        Objects.requireNonNull(scenes, "scenes");
         Objects.requireNonNull(visualAssets, "visualAssets");
         Objects.requireNonNull(actions, "actions");
     }

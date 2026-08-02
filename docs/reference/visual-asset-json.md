@@ -74,7 +74,7 @@ assets/example/textures/characters/guide/happy.png
 
 `initial_variant` 必须存在于被引用 VisualAsset 的 `variants` 中。VisualObject 可以额外声明 `sampling` 来覆盖 VisualAsset 的设置；省略时继承 VisualAsset。
 
-VisualAsset 只复用图片集合与 sampling，不保存位置等场景状态。因此同一角色可以在不同 Dialogue 中使用不同位置、大小、初始表情和层级。
+VisualAsset 只复用图片集合与 sampling，不保存位置等场景状态。因此同一角色可以在不同 Dialogue 或 [Scene](./scene-json.md) 中使用不同位置、大小、初始表情和层级。
 
 ## Inline 兼容写法
 
@@ -90,4 +90,3 @@ VisualAsset 只复用图片集合与 sampling，不保存位置等场景状态�
 ```
 
 经常复用的角色、道具建议建立 VisualAsset；只在单个 Dialogue 使用的简单对象可以保留 inline 写法。
-

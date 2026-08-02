@@ -11,6 +11,7 @@ import java.util.Optional;
 
 public record Presentation(
         ResourceLocation theme,
+        Optional<ResourceLocation> scene,
         Optional<SceneBackground> background,
         DialogueBoxLayout dialogueBox,
         Map<String, VisualObject> visualObjects,
@@ -21,6 +22,8 @@ public record Presentation(
                     instance.group(
                             ResourceLocation.CODEC.fieldOf("theme")
                                     .forGetter(Presentation::theme),
+                            ResourceLocation.CODEC.optionalFieldOf("scene")
+                                    .forGetter(Presentation::scene),
                             SceneBackground.CODEC.optionalFieldOf("background")
                                     .forGetter(Presentation::background),
                             DialogueBoxLayout.CODEC.optionalFieldOf(
@@ -49,6 +52,7 @@ public record Presentation(
 
     public Presentation {
         Objects.requireNonNull(theme, "theme");
+        Objects.requireNonNull(scene, "scene");
         Objects.requireNonNull(background, "background");
         Objects.requireNonNull(dialogueBox, "dialogueBox");
         Objects.requireNonNull(visualObjects, "visualObjects");
@@ -56,9 +60,30 @@ public record Presentation(
         visualObjects = Map.copyOf(visualObjects);
     }
 
+    /**
+     * Backward-compatible constructor for an inline Presentation.
+     */
+    public Presentation(
+            ResourceLocation theme,
+            Optional<SceneBackground> background,
+            DialogueBoxLayout dialogueBox,
+            Map<String, VisualObject> visualObjects,
+            Optional<SceneFilter> filter
+    ) {
+        this(
+                theme,
+                Optional.empty(),
+                background,
+                dialogueBox,
+                visualObjects,
+                filter
+        );
+    }
+
     public Presentation(ResourceLocation theme) {
         this(
                 theme,
+                Optional.empty(),
                 Optional.empty(),
                 DialogueBoxLayout.DEFAULT,
                 Map.of(),

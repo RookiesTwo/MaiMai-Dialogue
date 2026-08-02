@@ -78,6 +78,7 @@ export default defineConfig({
           { text: "资源路径与 ID", link: "/reference/resource-paths" },
           { text: "Dialogue JSON", link: "/reference/dialogue-json" },
           { text: "Presentation JSON", link: "/reference/presentation-json" },
+          { text: "Scene JSON", link: "/reference/scene-json" },
           { text: "VisualAsset JSON", link: "/reference/visual-asset-json" },
           { text: "SceneAction JSON", link: "/reference/scene-action-json" },
           { text: "Theme JSON", link: "/reference/theme-json" },
