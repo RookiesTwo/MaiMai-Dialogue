@@ -20,6 +20,7 @@ final class DialogueRootLayout extends FrameLayout {
     private static final int HEIGHT_ANIMATION_DURATION_MS = 220;
     private static final int CORNER_CONTROL_SIZE_DP = 40;
     private static final float DISABLED_CONTROL_ALPHA = 0.35F;
+    private static final float EXPANDED_MAX_HEIGHT = 1.0F;
 
     private final DialogueSceneView sceneLayer;
     private final View dialogueBox;
@@ -49,6 +50,7 @@ final class DialogueRootLayout extends FrameLayout {
     private boolean advanceKeyDown;
     private boolean skipKeyDown;
     private boolean historyKeyDown;
+    private boolean optionsExpanded;
 
     DialogueRootLayout(
             Context context,
@@ -99,6 +101,14 @@ final class DialogueRootLayout extends FrameLayout {
 
     void setDialogueBoxLayout(DialogueBoxLayout layout) {
         dialogueBoxLayout = Objects.requireNonNull(layout, "layout");
+        requestLayout();
+    }
+
+    void setOptionsExpanded(boolean expanded) {
+        if (optionsExpanded == expanded) {
+            return;
+        }
+        optionsExpanded = expanded;
         requestLayout();
     }
 
@@ -260,7 +270,9 @@ final class DialogueRootLayout extends FrameLayout {
         );
         int boxMaxHeight = Math.max(
                 1,
-                Math.round(height * dialogueBoxLayout.maxHeight())
+                Math.round(height * (optionsExpanded
+                        ? EXPANDED_MAX_HEIGHT
+                        : dialogueBoxLayout.maxHeight()))
         );
         dialogueBox.measure(
                 MeasureSpec.makeMeasureSpec(boxWidth, MeasureSpec.EXACTLY),

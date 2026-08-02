@@ -50,6 +50,7 @@ description: 创建可复用 Theme，定制对话框、文字、选项和滚动�
     "pressed_background": "#A0FFFFFF",
     "border": "#705B4028",
     "hover_border": "#FF5B4028",
+    "border_width": 1,
     "corner_radius": 2,
     "horizontal_padding": 12,
     "vertical_padding": 8,

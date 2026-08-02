@@ -3,8 +3,8 @@
     "background": "#CC08080C",
     "border": "#E6FFFFFF",
     "divider": "#80FFFFFF",
-    "corner_radius": 1,
-    "border_width": 1
+    "corner_radius": 4,
+    "border_width": 0
   },
   "text": {
     "primary": "#FFFFFFFF",
@@ -20,6 +20,7 @@
     "pressed_background": "#A0000000",
     "border": "#70FFFFFF",
     "hover_border": "#FFFFFFFF",
+    "border_width": 0,
     "corner_radius": 1,
     "horizontal_padding": 12,
     "vertical_padding": 8,

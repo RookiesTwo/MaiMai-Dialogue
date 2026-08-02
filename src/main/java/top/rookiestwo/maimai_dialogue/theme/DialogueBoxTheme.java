@@ -17,8 +17,8 @@ public record DialogueBoxTheme(
             new SceneColor(0xCC08080C),
             new SceneColor(0xE6FFFFFF),
             new SceneColor(0x80FFFFFF),
-            1,
-            1
+            4,
+            0
     );
 
     public static final Codec<DialogueBoxTheme> CODEC =

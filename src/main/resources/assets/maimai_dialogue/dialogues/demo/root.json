@@ -14,8 +14,8 @@
     "dialogue_box": {
       "x": 0.5,
       "y": 0.98,
-      "width": 0.96,
-      "max_height": 0.5,
+      "width": 0.5,
+      "max_height": 0.4,
       "anchor": "bottom_center"
     },
     "visual_objects": {

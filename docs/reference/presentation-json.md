@@ -44,13 +44,15 @@ description: Theme、背景、对话框布局、VisualObject 和 Filter 的字�
 {
   "x": 0.5,
   "y": 0.98,
-  "width": 0.96,
-  "max_height": 0.5,
+  "width": 0.5,
+  "max_height": 0.4,
   "anchor": "bottom_center"
 }
 ```
 
 `x`、`y` 范围为 `[0,1]`；`width`、`max_height` 范围为 `(0,1]`。anchor 可选：
+
+`max_height` 是选项收缩时的高度上限。选项可展开时，点击展开按钮会临时把高度上限放宽到 `1.0`，再次收缩或进入其他 Dialogue 后恢复这里配置的上限。
 
 ```text
 top_left      top_center      top_right

@@ -114,6 +114,10 @@ final class DialogueOptionsView extends LinearLayout {
         applyTheme(theme);
     }
 
+    boolean isExpanded() {
+        return scroll.isExpanded();
+    }
+
     // 应用选项间距、文字和滚动条 Theme。
     void applyTheme(ThemeDefinition theme) {
         this.theme = theme;
@@ -223,17 +227,20 @@ final class DialogueOptionsView extends LinearLayout {
         background.addState(
                 new int[]{R.attr.state_pressed},
                 createShape(view, theme.pressedBackground().argb(),
-                        theme.hoverBorder().argb(), theme.cornerRadiusDp(), 1)
+                        theme.hoverBorder().argb(), theme.cornerRadiusDp(),
+                        theme.borderWidthDp())
         );
         background.addState(
                 new int[]{R.attr.state_hovered},
                 createShape(view, theme.hoverBackground().argb(),
-                        theme.hoverBorder().argb(), theme.cornerRadiusDp(), 1)
+                        theme.hoverBorder().argb(), theme.cornerRadiusDp(),
+                        theme.borderWidthDp())
         );
         background.addState(
                 StateSet.WILD_CARD,
                 createShape(view, theme.background().argb(),
-                        theme.border().argb(), theme.cornerRadiusDp(), 1)
+                        theme.border().argb(), theme.cornerRadiusDp(),
+                        theme.borderWidthDp())
         );
         return background;
     }

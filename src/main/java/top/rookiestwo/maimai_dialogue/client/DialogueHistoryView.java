@@ -300,17 +300,20 @@ final class DialogueHistoryView extends FrameLayout {
         background.addState(
                 new int[]{R.attr.state_pressed},
                 createShape(view, theme.pressedBackground().argb(),
-                        theme.hoverBorder().argb(), theme.cornerRadiusDp())
+                        theme.hoverBorder().argb(), theme.cornerRadiusDp(),
+                        theme.borderWidthDp())
         );
         background.addState(
                 new int[]{R.attr.state_hovered},
                 createShape(view, theme.hoverBackground().argb(),
-                        theme.hoverBorder().argb(), theme.cornerRadiusDp())
+                        theme.hoverBorder().argb(), theme.cornerRadiusDp(),
+                        theme.borderWidthDp())
         );
         background.addState(
                 StateSet.WILD_CARD,
                 createShape(view, theme.background().argb(),
-                        theme.border().argb(), theme.cornerRadiusDp())
+                        theme.border().argb(), theme.cornerRadiusDp(),
+                        theme.borderWidthDp())
         );
         return background;
     }
@@ -319,12 +322,13 @@ final class DialogueHistoryView extends FrameLayout {
             View view,
             int color,
             int strokeColor,
-            int cornerRadiusDp
+            int cornerRadiusDp,
+            int strokeWidthDp
     ) {
         ShapeDrawable shape = new ShapeDrawable();
         shape.setColor(color);
         shape.setCornerRadius(view.dp(cornerRadiusDp));
-        shape.setStroke(view.dp(1), strokeColor);
+        shape.setStroke(view.dp(strokeWidthDp), strokeColor);
         return shape;
     }
 

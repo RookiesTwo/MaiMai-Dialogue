@@ -20,6 +20,7 @@
     "pressed_background": "#A05A351D",
     "border": "#80593A22",
     "hover_border": "#FF2B1A10",
+    "border_width": 1,
     "corner_radius": 2,
     "horizontal_padding": 14,
     "vertical_padding": 9,

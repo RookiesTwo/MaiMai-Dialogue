@@ -99,6 +99,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                 skipEntry,
                 preferences
         );
+        dialogueBox.setOptionsExpandedChanged(root::setOptionsExpanded);
         root.setOnClickListener(view -> advanceFromUi());
         root.setAdvanceAction(this::advanceFromUi);
         root.setFastForwardAction(this::setFastForwarding);

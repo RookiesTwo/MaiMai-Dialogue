@@ -12,6 +12,7 @@ public record ThemeOption(
         SceneColor pressedBackground,
         SceneColor border,
         SceneColor hoverBorder,
+        int borderWidthDp,
         int cornerRadiusDp,
         int horizontalPaddingDp,
         int verticalPaddingDp,
@@ -23,6 +24,7 @@ public record ThemeOption(
             new SceneColor(0xA0000000),
             new SceneColor(0x70FFFFFF),
             new SceneColor(0xFFFFFFFF),
+            0,
             1,
             12,
             8,
@@ -57,6 +59,11 @@ public record ThemeOption(
                             )
                             .forGetter(ThemeOption::hoverBorder),
                     ThemeCodecs.DP.optionalFieldOf(
+                                    "border_width",
+                                    DEFAULT.borderWidthDp()
+                            )
+                            .forGetter(ThemeOption::borderWidthDp),
+                    ThemeCodecs.DP.optionalFieldOf(
                                     "corner_radius",
                                     DEFAULT.cornerRadiusDp()
                             )
@@ -77,6 +84,31 @@ public record ThemeOption(
                             )
                             .forGetter(ThemeOption::spacingDp)
             ).apply(instance, ThemeOption::new));
+
+    public ThemeOption(
+            SceneColor background,
+            SceneColor hoverBackground,
+            SceneColor pressedBackground,
+            SceneColor border,
+            SceneColor hoverBorder,
+            int cornerRadiusDp,
+            int horizontalPaddingDp,
+            int verticalPaddingDp,
+            int spacingDp
+    ) {
+        this(
+                background,
+                hoverBackground,
+                pressedBackground,
+                border,
+                hoverBorder,
+                1,
+                cornerRadiusDp,
+                horizontalPaddingDp,
+                verticalPaddingDp,
+                spacingDp
+        );
+    }
 
     public ThemeOption {
         Objects.requireNonNull(background, "background");

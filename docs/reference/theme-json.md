@@ -21,8 +21,8 @@ assets/<namespace>/dialogue_themes/<path>.json
     "background": "#CC08080C",
     "border": "#E6FFFFFF",
     "divider": "#80FFFFFF",
-    "corner_radius": 1,
-    "border_width": 1
+    "corner_radius": 4,
+    "border_width": 0
   },
   "text": {
     "primary": "#FFFFFFFF",
@@ -38,6 +38,7 @@ assets/<namespace>/dialogue_themes/<path>.json
     "pressed_background": "#A0000000",
     "border": "#70FFFFFF",
     "hover_border": "#FFFFFFFF",
+    "border_width": 0,
     "corner_radius": 1,
     "horizontal_padding": 12,
     "vertical_padding": 8,
@@ -74,7 +75,7 @@ assets/<namespace>/dialogue_themes/<path>.json
 
 - `box`：对话框背景、边框、分割线和圆角。
 - `text`：Speaker、正文、Option、错误和辅助文字。
-- `option`：选项与控制按钮的普通、hover、pressed 状态和 padding。
+- `option`：选项与控制按钮的普通、hover、pressed 状态、描边和 padding；`border_width: 0` 表示不绘制描边。
 - `spacing`：Header、正文、选项区域和折叠/展开数量。
 - `controls`：Option icon、History/Options 滚动条。
 

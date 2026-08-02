@@ -19,6 +19,7 @@ import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeOption;
 import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
 
+import java.util.Objects;
 import java.util.function.Consumer;
 
 final class DialogueBoxView extends LinearLayout {
@@ -32,6 +33,8 @@ final class DialogueBoxView extends LinearLayout {
     private final TextView errorText;
     private final DialogueOptionsView options;
     private ThemeDefinition theme = ThemeDefinition.DEFAULT;
+    private Consumer<Boolean> optionsExpandedChanged = ignored -> {
+    };
     private DialogueTypography typography = DialogueTypography.resolve(
             ClientConfig.get()
     );
@@ -93,7 +96,10 @@ final class DialogueBoxView extends LinearLayout {
 
         textPlayer = new DialogueTextPlayer(dialogueText);
         options = new DialogueOptionsView(context, optionSelected);
-        options.bindExpandButton(expandButton, this::updateHeaderVisibility);
+        options.bindExpandButton(
+                expandButton,
+                this::onExpandVisibilityChanged
+        );
         addView(options, new LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
@@ -149,6 +155,11 @@ final class DialogueBoxView extends LinearLayout {
 
     void setPlaybackRate(float playbackRate) {
         textPlayer.setPlaybackRate(playbackRate);
+    }
+
+    void setOptionsExpandedChanged(Consumer<Boolean> listener) {
+        optionsExpandedChanged = Objects.requireNonNull(listener, "listener");
+        optionsExpandedChanged.accept(options.isExpanded());
     }
 
     // 把 Theme 应用到对话框及其直接子视图。
@@ -212,6 +223,11 @@ final class DialogueBoxView extends LinearLayout {
         headerDivider.setVisibility(show ? VISIBLE : GONE);
     }
 
+    private void onExpandVisibilityChanged() {
+        updateHeaderVisibility();
+        optionsExpandedChanged.accept(options.isExpanded());
+    }
+
     private static StateListDrawable createOptionBackground(
             View view,
             ThemeOption theme
@@ -224,7 +240,7 @@ final class DialogueBoxView extends LinearLayout {
                         theme.pressedBackground().argb(),
                         theme.hoverBorder().argb(),
                         theme.cornerRadiusDp(),
-                        1
+                        theme.borderWidthDp()
                 )
         );
         background.addState(
@@ -234,7 +250,7 @@ final class DialogueBoxView extends LinearLayout {
                         theme.hoverBackground().argb(),
                         theme.hoverBorder().argb(),
                         theme.cornerRadiusDp(),
-                        1
+                        theme.borderWidthDp()
                 )
         );
         background.addState(
@@ -244,7 +260,7 @@ final class DialogueBoxView extends LinearLayout {
                         theme.background().argb(),
                         theme.border().argb(),
                         theme.cornerRadiusDp(),
-                        1
+                        theme.borderWidthDp()
                 )
         );
         return background;
