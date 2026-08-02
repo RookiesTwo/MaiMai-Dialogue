@@ -1,6 +1,7 @@
 {
   "presentation": {
-    "theme": "maimai_dialogue:default"
+    "type": "reference",
+    "id": "maimai_dialogue:demo/default"
   },
   "end": {
     "speaker": {

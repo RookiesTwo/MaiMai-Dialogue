@@ -1,0 +1,10 @@
+{
+  "theme": "maimai_dialogue:demo/parchment",
+  "dialogue_box": {
+    "x": 0.5,
+    "y": 0.92,
+    "width": 0.8,
+    "max_height": 0.62,
+    "anchor": "bottom_center"
+  }
+}

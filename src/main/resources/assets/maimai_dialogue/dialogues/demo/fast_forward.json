@@ -1,35 +1,7 @@
 {
   "presentation": {
-    "theme": "maimai_dialogue:default",
-    "background": {
-      "variants": {
-        "default": "minecraft:gui/title/background/panorama_2.png"
-      },
-      "fit": "cover",
-      "opacity": 0.82
-    },
-    "dialogue_box": {
-      "x": 0.5,
-      "y": 0.98,
-      "width": 0.96,
-      "max_height": 0.5,
-      "anchor": "bottom_center"
-    },
-    "visual_objects": {
-      "speed_marker": {
-        "variants": {
-          "default": "minecraft:item/emerald.png"
-        },
-        "initial_variant": "default",
-        "x": 0.5,
-        "y": 0.28,
-        "anchor": "center",
-        "scale": 7.0,
-        "opacity": 0.9,
-        "visible": true,
-        "z_index": 10
-      }
-    }
+    "type": "reference",
+    "id": "maimai_dialogue:demo/fast_forward"
   },
   "steps": [
     {

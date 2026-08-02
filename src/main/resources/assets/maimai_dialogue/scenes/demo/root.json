@@ -1,0 +1,31 @@
+{
+  "background": {
+    "variants": {
+      "default": "minecraft:gui/title/background/panorama_0.png",
+      "alternate": "minecraft:gui/title/background/panorama_1.png"
+    },
+    "initial_variant": "default",
+    "fit": "cover",
+    "opacity": 0.82
+  },
+  "visual_objects": {
+    "demo_marker": {
+      "asset": "maimai_dialogue:demo/root/marker",
+      "initial_variant": "default",
+      "x": 0.5,
+      "y": 0.3,
+      "anchor": "center",
+      "scale": 8.0,
+      "opacity": 0.9,
+      "visible": true,
+      "z_index": 10
+    }
+  },
+  "filter": {
+    "type": "color_adjust",
+    "brightness": -0.03,
+    "contrast": 1.08,
+    "saturation": 0.55,
+    "tint": "#30A0C8FF"
+  }
+}

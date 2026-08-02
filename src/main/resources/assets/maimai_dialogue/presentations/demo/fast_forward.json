@@ -1,0 +1,11 @@
+{
+  "theme": "maimai_dialogue:default",
+  "scene": "maimai_dialogue:demo/fast_forward",
+  "dialogue_box": {
+    "x": 0.5,
+    "y": 0.98,
+    "width": 0.96,
+    "max_height": 0.5,
+    "anchor": "bottom_center"
+  }
+}
