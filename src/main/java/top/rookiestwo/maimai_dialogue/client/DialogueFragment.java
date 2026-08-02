@@ -1,15 +1,23 @@
 package top.rookiestwo.maimai_dialogue.client;
 
+import icyllis.modernui.R;
 import icyllis.modernui.annotation.NonNull;
+import icyllis.modernui.core.Context;
 import icyllis.modernui.fragment.Fragment;
+import icyllis.modernui.graphics.Image;
+import icyllis.modernui.graphics.drawable.ImageDrawable;
 import icyllis.modernui.mc.ScreenCallback;
+import icyllis.modernui.util.ColorStateList;
 import icyllis.modernui.util.DataSet;
+import icyllis.modernui.util.StateSet;
 import icyllis.modernui.view.LayoutInflater;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
-import icyllis.modernui.widget.Button;
+import icyllis.modernui.widget.ImageButton;
+import icyllis.modernui.widget.ImageView;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
+import top.rookiestwo.maimai_dialogue.MaiMaiDialogue;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueBoxLayout;
 import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
@@ -19,6 +27,13 @@ import javax.annotation.Nullable;
 import java.util.Objects;
 
 public final class DialogueFragment extends Fragment implements ScreenCallback {
+    private static final String HISTORY_ICON = "history_icon.png";
+    private static final int HISTORY_BUTTON_SIZE_DP = 40;
+    private static final int HISTORY_ICON_PADDING_DP = 4;
+    private static final int HISTORY_ICON_COLOR = 0xFFFFFFFF;
+    private static final int HISTORY_ICON_HOVERED_COLOR = 0xFFBFBFBF;
+    private static final int HISTORY_ICON_PRESSED_COLOR = 0xFF808080;
+
     private final ClientDialogueController controller;
     private ThemeDefinition currentTheme = ThemeDefinition.DEFAULT;
     private long renderedGeneration = Long.MIN_VALUE;
@@ -29,7 +44,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     @Nullable
     private DialogueBoxView boxView;
     @Nullable
-    private Button historyButton;
+    private ImageButton historyButton;
     @Nullable
     private DialogueHistoryView historyView;
 
@@ -51,8 +66,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                         () -> controller.selectOption(option)
                 )
         );
-        Button historyEntry = new Button(context);
-        historyEntry.setText(I18n.get("gui.maimai_dialogue.history"));
+        ImageButton historyEntry = createHistoryButton(context);
         historyEntry.setOnClickListener(view -> setHistoryOpen(true));
         DialogueHistoryView historyOverlay = new DialogueHistoryView(
                 context,
@@ -88,7 +102,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         DialogueSceneView scene = sceneView;
         DialogueBoxView box = boxView;
         DialogueHistoryView history = historyView;
-        Button historyEntry = historyButton;
+        ImageButton historyEntry = historyButton;
         if (root == null
                 || scene == null
                 || box == null
@@ -103,14 +117,6 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                 currentTheme = state.theme().orElse(ThemeDefinition.DEFAULT);
                 box.reset(currentTheme);
                 history.applyTheme(currentTheme);
-                historyEntry.setTextColor(currentTheme.text().primary().argb());
-                historyEntry.setTextSize(
-                        currentTheme.text().auxiliarySizeSp()
-                );
-                DialogueBoxView.applyControlButtonTheme(
-                        historyEntry,
-                        currentTheme
-                );
                 applyPresentation(state, root, scene);
             }
 
@@ -170,7 +176,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         if (history == null) {
             return;
         }
-        Button entry = historyButton;
+        ImageButton entry = historyButton;
         if (entry != null) {
             entry.setVisibility(open ? View.GONE : View.VISIBLE);
         }
@@ -185,6 +191,39 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                 root.requestFocus();
             }
         }
+    }
+
+    @SuppressWarnings("deprecation")
+    private static ImageButton createHistoryButton(Context context) {
+        ImageButton button = new ImageButton(context);
+        button.setContentDescription(I18n.get("gui.maimai_dialogue.history"));
+        button.setBackground(null);
+        button.setAdjustViewBounds(true);
+        int size = button.dp(HISTORY_BUTTON_SIZE_DP);
+        button.setMaxWidth(size);
+        button.setMaxHeight(size);
+        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        int padding = button.dp(HISTORY_ICON_PADDING_DP);
+        button.setPadding(padding, padding, padding, padding);
+
+        Image icon = Image.create(MaiMaiDialogue.MOD_ID, HISTORY_ICON);
+        button.setImage(icon);
+        button.setImageTintList(new ColorStateList(
+                new int[][]{
+                        new int[]{R.attr.state_pressed},
+                        new int[]{R.attr.state_hovered},
+                        StateSet.WILD_CARD
+                },
+                new int[]{
+                        HISTORY_ICON_PRESSED_COLOR,
+                        HISTORY_ICON_HOVERED_COLOR,
+                        HISTORY_ICON_COLOR
+                }
+        ));
+        if (button.getDrawable() instanceof ImageDrawable drawable) {
+            drawable.setFilter(true);
+        }
+        return button;
     }
 
     @Override
