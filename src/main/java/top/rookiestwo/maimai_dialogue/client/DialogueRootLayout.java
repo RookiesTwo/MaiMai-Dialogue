@@ -9,6 +9,7 @@ import icyllis.modernui.view.View;
 import icyllis.modernui.widget.FrameLayout;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueBoxLayout;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualAnchor;
+import top.rookiestwo.maimai_dialogue.client.scene.DialogueBoxState;
 
 import java.util.Objects;
 
@@ -19,6 +20,10 @@ final class DialogueRootLayout extends FrameLayout {
     private final View dialogueBox;
     private final View historyEntry;
     private DialogueBoxLayout dialogueBoxLayout = DialogueBoxLayout.DEFAULT;
+    private DialogueBoxState dialogueBoxState = DialogueBoxState.initial(
+            DialogueBoxLayout.DEFAULT,
+            1.0F
+    );
     private ValueAnimator heightAnimator;
     private int dialogueTargetHeight = -1;
     private float dialogueDisplayHeight = -1.0F;
@@ -74,10 +79,12 @@ final class DialogueRootLayout extends FrameLayout {
         );
     }
 
-    void setDialogueOpacity(float opacity) {
-        float clamped = Math.clamp(opacity, 0.0F, 1.0F);
+    void setDialogueBoxState(DialogueBoxState state) {
+        dialogueBoxState = Objects.requireNonNull(state, "state");
+        float clamped = Math.clamp(state.opacity(), 0.0F, 1.0F);
         dialogueBox.setAlpha(clamped);
         historyEntry.setAlpha(clamped);
+        requestLayout();
     }
 
     @Override
@@ -145,10 +152,10 @@ final class DialogueRootLayout extends FrameLayout {
         float anchorX = horizontalAnchor(dialogueBoxLayout.anchor());
         float anchorY = verticalAnchor(dialogueBoxLayout.anchor());
         int boxLeft = Math.round(
-                dialogueBoxLayout.x() * width - anchorX * boxWidth
+                dialogueBoxState.x() * width - anchorX * boxWidth
         );
         int boxTop = Math.round(
-                dialogueBoxLayout.y() * height - anchorY * boxHeight
+                dialogueBoxState.y() * height - anchorY * boxHeight
         );
         dialogueBox.layout(
                 boxLeft,
@@ -156,6 +163,10 @@ final class DialogueRootLayout extends FrameLayout {
                 boxLeft + boxWidth,
                 boxTop + boxHeight
         );
+        dialogueBox.setPivotX(anchorX * boxWidth);
+        dialogueBox.setPivotY(anchorY * boxHeight);
+        dialogueBox.setScaleX(dialogueBoxState.scale());
+        dialogueBox.setScaleY(dialogueBoxState.scale());
         int historyWidth = historyEntry.getMeasuredWidth();
         int historyHeight = historyEntry.getMeasuredHeight();
         int historyMargin = dp(12);

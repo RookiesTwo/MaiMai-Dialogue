@@ -121,7 +121,7 @@ public final class SceneRuntime {
             boolean validTarget;
             if (call.target().equals("dialogue")) {
                 validTarget = validateDialogue(
-                        start.dialogueOpacity(),
+                        start.dialogueBox(),
                         action,
                         actionWrites,
                         errors
@@ -272,20 +272,32 @@ public final class SceneRuntime {
     }
 
     private static boolean validateDialogue(
-            float initialOpacity,
+            DialogueBoxState initial,
             SceneAction action,
             EnumSet<ActionProperty> writes,
             List<String> errors
     ) {
         EnumSet<ActionProperty> unsupported = EnumSet.copyOf(writes);
+        unsupported.remove(ActionProperty.X);
+        unsupported.remove(ActionProperty.Y);
+        unsupported.remove(ActionProperty.SCALE);
         unsupported.remove(ActionProperty.OPACITY);
         if (!unsupported.isEmpty()) {
             errors.add(
-                    "Dialogue SceneAction only supports opacity."
+                    "Dialogue SceneAction only supports x, y, scale, and opacity."
             );
             return false;
         }
-        float finalOpacity = initialOpacity + action.opacity()
+        float finalScale = initial.scale() + action.scale()
+                .map(NumericTrack::finalValue)
+                .orElse(0.0F);
+        if (finalScale <= 0.0F) {
+            errors.add(
+                    "SceneAction leaves Dialogue with non-positive scale."
+            );
+            return false;
+        }
+        float finalOpacity = initial.opacity() + action.opacity()
                 .map(NumericTrack::finalValue)
                 .orElse(0.0F);
         if (finalOpacity < 0.0F || finalOpacity > 1.0F) {

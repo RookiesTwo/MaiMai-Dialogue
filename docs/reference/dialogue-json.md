@@ -38,10 +38,22 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 | 字段 | 必填 | 默认值 | 说明 |
 |---|---:|---|---|
 | `text` | 否 | 无正文 | 字符串为固定正文；非空字符串数组为随机正文；仅此字段解析 Markdown |
+| `typewriter_interval_ms` | 否 | `30` | 每个 Unicode code point 的显示间隔，范围 `0..1000`；`0` 表示立即显示 |
 | `speaker` | 否 | 继承当前状态 | 设置、隐藏或继续沿用 Speaker |
 | `actions` | 否 | `[]` | 同时调度的 SceneActionCall |
 
 `end` 额外要求 `exit`。省略 `text` 可制作纯动画步骤。
+
+打字机速度按节点配置，`steps[]` 和 `end` 各自独立。例如：
+
+```json
+{
+  "text": "这句话会更快显示。",
+  "typewriter_interval_ms": 12
+}
+```
+
+间隔越小，文字显示越快。单句打字机动画最长为 10 秒；`0` 会直接显示完整正文，但仍会等待该节点的 blocking Action。
 
 随机正文直接写在 `text` 数组中：
 

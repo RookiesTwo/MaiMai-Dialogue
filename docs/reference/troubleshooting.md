@@ -89,7 +89,7 @@ JSON 中的：
 - 外部 Action 是否位于 `<资源包>/assets/<namespace>/presentation_actions/`；
 - `target` 是否已经声明；
 - `background` 是否只修改 `variant`；
-- `dialogue` 是否只修改 `opacity`；
+- `dialogue` 是否只修改 `x`、`y`、`scale`、`opacity`；
 - 同一步是否有多个 Action 写同一 target 的同一属性；
 - 关键帧 `at` 是否位于 `[0,1]` 且严格递增；
 - 相对值计算后的 scale 和 opacity 是否仍然有效。

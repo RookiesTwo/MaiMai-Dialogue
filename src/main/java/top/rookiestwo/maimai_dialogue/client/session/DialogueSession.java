@@ -271,6 +271,7 @@ public final class DialogueSession {
                 Optional.of(active.playback),
                 active.playbackPhase,
                 active.playbackSkipped,
+                active.currentTypewriterIntervalMs(),
                 Optional.ofNullable(active.speakerName),
                 active.resolvedText,
                 Optional.ofNullable(active.errorMessage),
@@ -562,6 +563,14 @@ public final class DialogueSession {
                 return definition.steps().get(stepIndex).text();
             }
             return definition.end().text();
+        }
+
+        private int currentTypewriterIntervalMs() {
+            if (stepIndex < definition.steps().size()) {
+                return definition.steps().get(stepIndex)
+                        .typewriterIntervalMs();
+            }
+            return definition.end().typewriterIntervalMs();
         }
     }
 

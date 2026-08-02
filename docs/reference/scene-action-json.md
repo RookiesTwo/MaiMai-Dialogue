@@ -92,12 +92,14 @@ description: SceneActionCall、关键帧、差分切换、target 和播放规则
 |---|---|
 | VisualObject | `x`、`y`、`scale`、`opacity`、`variant`、`visible` |
 | `background` | 仅 `variant` |
-| `dialogue` | 仅 `opacity` |
+| `dialogue` | `x`、`y`、`scale`、`opacity` |
 
 同一步中，多个 Action 不能写同一 target 的同一属性。缺失引用、未声明 target、非法 variant 和最终值冲突都会在客户端 reload 时报告。
+
+`dialogue` 的 `x`、`y` 修改 DialogueBox 锚点的归一化屏幕坐标，`scale` 以当前锚点为缩放中心。它们与 VisualObject 一样使用相对关键帧；最终 scale 必须大于 0，opacity 必须保持在 `[0,1]`。`width`、`max_height` 和 `anchor` 仍是静态布局配置，不能由 Action 修改。
 
 ## Blocking 与跳过
 
 blocking Action 会与打字机共同阻止步骤继续。播放中推进会立即提交预先计算的最终状态，不会从中间状态重复叠加相对值。
 
-首个步骤如果没有显式控制 `dialogue`，系统会自动加入 250ms `ease_out` 的阻塞淡入。
+首个步骤如果没有显式控制 `dialogue`，系统会自动加入 250ms `ease_out` 的阻塞淡入。只要首个步骤显式调用了 `dialogue` Action，就由该 Action 完整负责入场效果；需要淡入时应同时提供 opacity 轨道。

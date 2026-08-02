@@ -8,11 +8,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 public record SceneState(
-        float dialogueOpacity,
+        DialogueBoxState dialogueBox,
         Optional<SceneBackgroundState> background,
         Map<String, SceneObjectState> objects
 ) {
     public SceneState {
+        Objects.requireNonNull(dialogueBox, "dialogueBox");
         Objects.requireNonNull(background, "background");
         Objects.requireNonNull(objects, "objects");
         objects = Map.copyOf(objects);
@@ -31,7 +32,10 @@ public record SceneState(
                 objects.put(id, SceneObjectState.initial(definition))
         );
         return new SceneState(
-                dialogueOpacity,
+                DialogueBoxState.initial(
+                        presentation.dialogueBox(),
+                        dialogueOpacity
+                ),
                 presentation.background().map(SceneBackgroundState::initial),
                 objects
         );
@@ -48,18 +52,22 @@ public record SceneState(
         Map<String, SceneObjectState> updated =
                 new LinkedHashMap<>(objects);
         updated.put(objectId, objectState);
-        return new SceneState(dialogueOpacity, background, updated);
+        return new SceneState(dialogueBox, background, updated);
     }
 
     public SceneState withBackground(SceneBackgroundState nextBackground) {
         return new SceneState(
-                dialogueOpacity,
+                dialogueBox,
                 Optional.of(nextBackground),
                 objects
         );
     }
 
-    public SceneState withDialogueOpacity(float nextOpacity) {
-        return new SceneState(nextOpacity, background, objects);
+    public SceneState withDialogueBox(DialogueBoxState nextDialogueBox) {
+        return new SceneState(nextDialogueBox, background, objects);
+    }
+
+    public float dialogueOpacity() {
+        return dialogueBox.opacity();
     }
 }

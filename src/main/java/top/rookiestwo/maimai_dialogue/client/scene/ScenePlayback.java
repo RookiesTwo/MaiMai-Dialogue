@@ -144,7 +144,8 @@ public record ScenePlayback(
         }
 
         for (ResolvedActionCall call : calls) {
-            if (!call.target().equals("dialogue")) {
+            if (!call.target().equals("dialogue")
+                    || call.action().opacity().isEmpty()) {
                 continue;
             }
             int startTime = call.delayMs();
@@ -171,6 +172,8 @@ public record ScenePlayback(
             int elapsedMs
     ) {
         SceneAction action = call.action();
+        DialogueBoxState initial = start.dialogueBox();
+        DialogueBoxState current = state.dialogueBox();
         float fraction;
         if (action.durationMs() == 0) {
             fraction = elapsedMs >= call.delayMs() ? 1.0F : 0.0F;
@@ -182,11 +185,25 @@ public record ScenePlayback(
                     1.0F
             );
         }
+        float eased = action.easing().apply(fraction);
+        float x = action.x()
+                .map(track -> initial.x() + track.valueAt(eased))
+                .orElse(current.x());
+        float y = action.y()
+                .map(track -> initial.y() + track.valueAt(eased))
+                .orElse(current.y());
+        float scale = action.scale()
+                .map(track -> initial.scale() + track.valueAt(eased))
+                .orElse(current.scale());
         float opacity = action.opacity()
-                .map(track -> start.dialogueOpacity()
-                        + track.valueAt(action.easing().apply(fraction)))
-                .orElse(state.dialogueOpacity());
-        return state.withDialogueOpacity(opacity);
+                .map(track -> initial.opacity() + track.valueAt(eased))
+                .orElse(current.opacity());
+        return state.withDialogueBox(current.withAnimated(
+                x,
+                y,
+                scale,
+                opacity
+        ));
     }
 
     private SceneState applyBackground(

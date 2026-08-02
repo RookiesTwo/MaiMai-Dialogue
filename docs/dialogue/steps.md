@@ -90,6 +90,27 @@ description: 使用 steps 把一段对话拆成多个阅读步骤。
 
 玩家第一次进入该步骤时会等概率抽取一项。抽取结果在当前 Dialogue session 中固定，因此返回根 Dialogue 或再次进入同一子 Dialogue 时不会变化；关闭对话界面后重新打开才会重新抽取。数组正文同样支持 Markdown，数组不能为空，也不能包含非字符串值。
 
+## 调整单个步骤的打字机速度
+
+在任意 `steps[]` 项或 `end` 中设置 `typewriter_interval_ms`：
+
+```json
+{
+  "steps": [
+    {
+      "text": "这句话缓慢显示。",
+      "typewriter_interval_ms": 80
+    },
+    {
+      "text": "这句话立即显示。",
+      "typewriter_interval_ms": 0
+    }
+  ]
+}
+```
+
+该值表示每个 Unicode code point 之间的毫秒数，范围为 `0..1000`，默认 `30`。数值越小越快；`0` 表示跳过打字机动画。配置只作用于所在节点，不会改变同一 Dialogue 中的其他步骤。
+
 ## 进入游戏验证
 
 执行 `/reload`、按 `F3 + T`，再打开：

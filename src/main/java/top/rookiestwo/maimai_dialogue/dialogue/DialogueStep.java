@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue.dialogue;
 
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
 
@@ -10,13 +11,28 @@ import java.util.Optional;
 
 public record DialogueStep(
         Optional<DialogueText> text,
+        int typewriterIntervalMs,
         Optional<SpeakerOperation> speaker,
         List<SceneActionCall> actions
 ) {
+    public static final int DEFAULT_TYPEWRITER_INTERVAL_MS = 30;
+    public static final int MAX_TYPEWRITER_INTERVAL_MS = 1_000;
+    static final Codec<Integer> TYPEWRITER_INTERVAL_CODEC =
+            Codec.INT.validate(value -> isValidTypewriterInterval(value)
+                    ? DataResult.success(value)
+                    : DataResult.error(() ->
+                            "typewriter_interval_ms must be between 0 and 1000."
+                    ));
+
     public static final Codec<DialogueStep> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
                     DialogueText.optionalFieldOf("text")
                             .forGetter(DialogueStep::text),
+                    TYPEWRITER_INTERVAL_CODEC.optionalFieldOf(
+                                    "typewriter_interval_ms",
+                                    DEFAULT_TYPEWRITER_INTERVAL_MS
+                            )
+                            .forGetter(DialogueStep::typewriterIntervalMs),
                     SpeakerOperation.CODEC.optionalFieldOf("speaker")
                             .forGetter(DialogueStep::speaker),
                     SceneActionCall.CODEC.listOf()
@@ -29,6 +45,11 @@ public record DialogueStep(
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(speaker, "speaker");
         Objects.requireNonNull(actions, "actions");
+        if (!isValidTypewriterInterval(typewriterIntervalMs)) {
+            throw new IllegalArgumentException(
+                    "typewriterIntervalMs must be between 0 and 1000."
+            );
+        }
         actions = List.copyOf(actions);
     }
 
@@ -36,6 +57,18 @@ public record DialogueStep(
             Optional<DialogueText> text,
             Optional<SpeakerOperation> speaker
     ) {
-        this(text, speaker, List.of());
+        this(text, DEFAULT_TYPEWRITER_INTERVAL_MS, speaker, List.of());
+    }
+
+    public DialogueStep(
+            Optional<DialogueText> text,
+            Optional<SpeakerOperation> speaker,
+            List<SceneActionCall> actions
+    ) {
+        this(text, DEFAULT_TYPEWRITER_INTERVAL_MS, speaker, actions);
+    }
+
+    private static boolean isValidTypewriterInterval(int value) {
+        return value >= 0 && value <= MAX_TYPEWRITER_INTERVAL_MS;
     }
 }

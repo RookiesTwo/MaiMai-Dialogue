@@ -16,6 +16,7 @@ import top.rookiestwo.maimai_dialogue.client.session.DialogueSessionEffect;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueSessionUpdate;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
+import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
 import top.rookiestwo.maimai_dialogue.network.DialogueAccessStatus;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueAccessResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueRequestResultS2C;
@@ -183,6 +184,7 @@ public final class ClientDialogueController {
                 java.util.Optional.empty(),
                 PlaybackPhase.READY,
                 false,
+                DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
                 java.util.Optional.empty(),
                 java.util.Optional.empty(),
                 java.util.Optional.empty(),

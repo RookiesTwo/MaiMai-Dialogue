@@ -30,7 +30,7 @@ description: MaiMai Dialogue 0.1.0-alpha 当前支持范围与尚未提供的功
 - VisualObject 必须预先声明，不能由 Action 动态创建或删除。
 - 不支持循环或跨步骤持续的 Action。
 - Background Action 只支持切换已声明 variant。
-- `dialogue` target 只支持 opacity；Filter 不能作为 Action target。
+- `dialogue` target 支持 x、y、scale、opacity；width、max_height、anchor 和 Filter 不能作为 Action target。
 - easing 只有 `linear`、`ease_in`、`ease_out`、`ease_in_out`。
 - 不支持用户提供任意 shader 或复杂场景转场组合。
 

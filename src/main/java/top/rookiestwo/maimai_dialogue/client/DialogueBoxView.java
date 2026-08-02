@@ -117,6 +117,7 @@ final class DialogueBoxView extends LinearLayout {
         textPlayer.render(
                 textToken,
                 state.text().orElse(""),
+                state.typewriterIntervalMs(),
                 state.playbackSkipped(),
                 textFinished
         );

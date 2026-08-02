@@ -14,8 +14,8 @@ import top.rookiestwo.maimai_dialogue.dialogue.SceneBackground;
 import top.rookiestwo.maimai_dialogue.dialogue.SceneFilter;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualAnchor;
 import top.rookiestwo.maimai_dialogue.dialogue.VisualObject;
-import top.rookiestwo.maimai_dialogue.dialogue.VisualSampling;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneObjectState;
+import top.rookiestwo.maimai_dialogue.client.scene.DialogueBoxState;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneState;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneBackgroundState;
@@ -26,19 +26,19 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-@SuppressWarnings("deprecation")
 final class DialogueSceneView extends FrameLayout {
     private final Map<String, ObjectBinding> objectBindings =
             new LinkedHashMap<>();
     private final SceneImageRenderer imageRenderer = new SceneImageRenderer();
     private SceneContentView currentScene;
     private SceneContentView outgoingScene;
+    private boolean sceneTransitionPending;
     private SceneImageRenderer.ImageLayers backgroundLayers;
     private ValueAnimator sceneAnimator;
     private long playbackToken = Long.MIN_VALUE;
     private float currentBackgroundOpacity;
     private float outgoingCoverageOpacity;
-    private Consumer<Float> dialogueOpacityConsumer = ignored -> {
+    private Consumer<DialogueBoxState> dialogueBoxStateConsumer = ignored -> {
     };
 
     DialogueSceneView(Context context) {
@@ -46,8 +46,8 @@ final class DialogueSceneView extends FrameLayout {
         setClickable(false);
     }
 
-    void setDialogueOpacityConsumer(Consumer<Float> consumer) {
-        dialogueOpacityConsumer = consumer;
+    void setDialogueBoxStateConsumer(Consumer<DialogueBoxState> consumer) {
+        dialogueBoxStateConsumer = consumer;
     }
 
     // 根据新的 Presentation 重建背景、对象和滤镜视图。
@@ -61,6 +61,7 @@ final class DialogueSceneView extends FrameLayout {
         backgroundLayers = null;
         currentBackgroundOpacity = 0.0F;
         currentScene = new SceneContentView(getContext());
+        sceneTransitionPending = true;
 
         presentation.background().ifPresent(this::addBackground);
         presentation.visualObjects().entrySet().stream()
@@ -121,6 +122,7 @@ final class DialogueSceneView extends FrameLayout {
         objectBindings.clear();
         currentScene = null;
         outgoingScene = null;
+        sceneTransitionPending = false;
         backgroundLayers = null;
         currentBackgroundOpacity = 0.0F;
         outgoingCoverageOpacity = 0.0F;
@@ -274,16 +276,18 @@ final class DialogueSceneView extends FrameLayout {
                 state,
                 playback.variantTransitionsAt(elapsedMs)
         );
-        applySceneTransition(
-                playback.dialogueTransitionProgressAt(elapsedMs)
-        );
+        if (sceneTransitionPending) {
+            applySceneTransition(
+                    playback.dialogueTransitionProgressAt(elapsedMs)
+            );
+        }
     }
 
     private void applyState(
             SceneState state,
             Map<String, VariantTransition> transitions
     ) {
-        dialogueOpacityConsumer.accept(state.dialogueOpacity());
+        dialogueBoxStateConsumer.accept(state.dialogueBox());
         state.background().ifPresent(background ->
                 applyBackgroundState(
                         background,
@@ -378,6 +382,7 @@ final class DialogueSceneView extends FrameLayout {
             currentScene.setAlpha(1.0F);
         }
         outgoingCoverageOpacity = 0.0F;
+        sceneTransitionPending = false;
     }
 
     private void addSceneView(View view, LayoutParams params) {

@@ -12,7 +12,6 @@ import java.util.Objects;
  * Renders Dialogue body Markdown and reveals the rendered text progressively.
  */
 final class DialogueTextPlayer {
-    private static final int MILLIS_PER_CODE_POINT = 30;
     private static final int MAX_DURATION_MS = 10_000;
 
     private final TextView textView;
@@ -30,6 +29,7 @@ final class DialogueTextPlayer {
     void render(
             long token,
             String markdown,
+            int intervalMs,
             boolean skip,
             Runnable finished
     ) {
@@ -45,7 +45,12 @@ final class DialogueTextPlayer {
                 showFullText();
                 return;
             }
-            start(finished);
+            if (intervalMs == 0) {
+                showFullText();
+                finished.run();
+                return;
+            }
+            start(intervalMs, finished);
             return;
         }
 
@@ -63,7 +68,7 @@ final class DialogueTextPlayer {
         textView.setText("");
     }
 
-    private void start(Runnable finished) {
+    private void start(int intervalMs, Runnable finished) {
         String text = Objects.requireNonNull(plainText);
         int codePoints = Character.codePointCount(text, 0, text.length());
         if (codePoints == 0) {
@@ -73,10 +78,7 @@ final class DialogueTextPlayer {
         }
 
         ValueAnimator next = ValueAnimator.ofFloat(0.0F, 1.0F);
-        next.setDuration(Math.min(
-                MAX_DURATION_MS,
-                codePoints * MILLIS_PER_CODE_POINT
-        ));
+        next.setDuration(durationMs(codePoints, intervalMs));
         boolean[] reported = {false};
         next.addUpdateListener(valueAnimator -> {
             float fraction = valueAnimator.getAnimatedFraction();
@@ -104,6 +106,18 @@ final class DialogueTextPlayer {
         });
         animator = next;
         next.start();
+    }
+
+    static int durationMs(int codePointCount, int intervalMs) {
+        if (codePointCount < 0 || intervalMs < 0) {
+            throw new IllegalArgumentException(
+                    "codePointCount and intervalMs must not be negative."
+            );
+        }
+        return (int) Math.min(
+                MAX_DURATION_MS,
+                (long) codePointCount * intervalMs
+        );
     }
 
     private void showFullText() {

@@ -10,6 +10,7 @@ import java.util.Optional;
 
 public record DialogueEnd(
         Optional<DialogueText> text,
+        int typewriterIntervalMs,
         Optional<SpeakerOperation> speaker,
         List<SceneActionCall> actions,
         DialogueExit exit
@@ -18,6 +19,11 @@ public record DialogueEnd(
             instance.group(
                     DialogueText.optionalFieldOf("text")
                             .forGetter(DialogueEnd::text),
+                    DialogueStep.TYPEWRITER_INTERVAL_CODEC.optionalFieldOf(
+                                    "typewriter_interval_ms",
+                                    DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS
+                            )
+                            .forGetter(DialogueEnd::typewriterIntervalMs),
                     SpeakerOperation.CODEC.optionalFieldOf("speaker")
                             .forGetter(DialogueEnd::speaker),
                     SceneActionCall.CODEC.listOf()
@@ -32,6 +38,13 @@ public record DialogueEnd(
         Objects.requireNonNull(speaker, "speaker");
         Objects.requireNonNull(actions, "actions");
         Objects.requireNonNull(exit, "exit");
+        if (typewriterIntervalMs < 0
+                || typewriterIntervalMs
+                > DialogueStep.MAX_TYPEWRITER_INTERVAL_MS) {
+            throw new IllegalArgumentException(
+                    "typewriterIntervalMs must be between 0 and 1000."
+            );
+        }
         actions = List.copyOf(actions);
     }
 
@@ -40,6 +53,27 @@ public record DialogueEnd(
             Optional<SpeakerOperation> speaker,
             DialogueExit exit
     ) {
-        this(text, speaker, List.of(), exit);
+        this(
+                text,
+                DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
+                speaker,
+                List.of(),
+                exit
+        );
+    }
+
+    public DialogueEnd(
+            Optional<DialogueText> text,
+            Optional<SpeakerOperation> speaker,
+            List<SceneActionCall> actions,
+            DialogueExit exit
+    ) {
+        this(
+                text,
+                DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
+                speaker,
+                actions,
+                exit
+        );
     }
 }

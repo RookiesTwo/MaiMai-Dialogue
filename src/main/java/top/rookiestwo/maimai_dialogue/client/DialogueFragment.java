@@ -76,7 +76,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         );
         root.setOnClickListener(view -> advanceFromUi());
         root.setAdvanceAction(this::advanceFromUi);
-        scene.setDialogueOpacityConsumer(root::setDialogueOpacity);
+        scene.setDialogueBoxStateConsumer(root::setDialogueBoxState);
         root.setFocusable(true);
         root.setFocusableInTouchMode(true);
         root.requestFocus();

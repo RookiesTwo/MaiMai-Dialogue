@@ -49,6 +49,7 @@
         "id": "maimai_dialogue:demo/guide"
       },
       "text": "MaiMai Dialogue demo",
+      "typewriter_interval_ms": 65,
       "actions": [
         {
           "target": "demo_marker",
@@ -56,12 +57,64 @@
             "type": "reference",
             "id": "maimai_dialogue:demo/marker_enter"
           }
+        },
+        {
+          "target": "dialogue",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 700,
+              "easing": "ease_out",
+              "blocking": true,
+              "x": [
+                {
+                  "at": 0.0,
+                  "value": -0.08
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ],
+              "y": [
+                {
+                  "at": 0.0,
+                  "value": 0.04
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ],
+              "scale": [
+                {
+                  "at": 0.0,
+                  "value": -0.12
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ],
+              "opacity": [
+                {
+                  "at": 0.0,
+                  "value": 0.0
+                },
+                {
+                  "at": 1.0,
+                  "value": 1.0
+                }
+              ]
+            }
+          }
         }
       ]
     }
   ],
   "end": {
     "text": "Choose a dialogue.",
+    "typewriter_interval_ms": 0,
     "actions": [
       {
         "target": "demo_marker",

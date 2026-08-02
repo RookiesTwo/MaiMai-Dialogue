@@ -174,6 +174,37 @@ description: 使用归一化坐标改变对话框的位置、宽度和最大高�
 
 把完整文件同步保存到两个 Pack。`x`、`y` 是锚点在屏幕中的比例位置，`width` 和 `max_height` 是相对于可用画面的比例。
 
+## 使用 Action 移动或缩放对话框
+
+把 Action target 写为 `dialogue`，即可在某个 Step 中动画化 DialogueBox 的 `x`、`y`、`scale` 和 `opacity`：
+
+```json
+{
+  "target": "dialogue",
+  "action": {
+    "type": "inline",
+    "action": {
+      "duration_ms": 350,
+      "easing": "ease_out",
+      "x": [
+        { "at": 0.0, "value": -0.08 },
+        { "at": 1.0, "value": 0.0 }
+      ],
+      "scale": [
+        { "at": 0.0, "value": -0.08 },
+        { "at": 1.0, "value": 0.0 }
+      ],
+      "opacity": [
+        { "at": 0.0, "value": -1.0 },
+        { "at": 1.0, "value": 0.0 }
+      ]
+    }
+  }
+}
+```
+
+数值仍是相对于进入当前 Step 时状态的偏移，最终状态会保留到后续 Step。Action 不修改 `width`、`max_height` 或 `anchor`。
+
 ## 进入游戏验证
 
 重载后打开 `example:guide/welcome`。对话框应仍然以底部中心为锚点，但比默认布局更窄，并与屏幕底边留出更明显的距离。

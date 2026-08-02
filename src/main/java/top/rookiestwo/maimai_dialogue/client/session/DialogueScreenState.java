@@ -17,6 +17,7 @@ public record DialogueScreenState(
         Optional<ScenePlayback> scenePlayback,
         PlaybackPhase playbackPhase,
         boolean playbackSkipped,
+        int typewriterIntervalMs,
         Optional<String> speaker,
         Optional<String> text,
         Optional<String> error,
