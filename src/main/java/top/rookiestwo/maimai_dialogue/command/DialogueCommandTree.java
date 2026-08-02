@@ -44,9 +44,9 @@ final class DialogueCommandTree {
                 .whenComplete((result, error) ->
                         source.getServer().execute(() -> {
                             if (error != null) {
-                                source.sendFailure(Component.literal(
-                                        "Failed to open dialogue "
-                                                + dialogueId + "."
+                                source.sendFailure(Component.translatable(
+                                        "commands.maimai_dialogue.dialogue.open.failed",
+                                        dialogueId
                                 ));
                                 MaiMaiDialogue.LOGGER.error(
                                         "Failed to open dialogue {} for player {}",
@@ -58,36 +58,34 @@ final class DialogueCommandTree {
                             }
                             switch (result) {
                                 case SENT -> source.sendSuccess(
-                                        () -> Component.literal(
-                                                "Sent dialogue " + dialogueId
-                                                        + " to "
-                                                        + player.getName()
-                                                        .getString() + "."
+                                        () -> Component.translatable(
+                                                "commands.maimai_dialogue.dialogue.open.sent",
+                                                dialogueId,
+                                                player.getName()
                                         ),
                                         true
                                 );
                                 case DIALOGUE_NOT_FOUND -> source.sendFailure(
-                                        Component.literal(
-                                                "Dialogue does not exist: "
-                                                        + dialogueId
+                                        Component.translatable(
+                                                "commands.maimai_dialogue.dialogue.open.not_found",
+                                                dialogueId
                                         )
                                 );
                                 case REQUIREMENTS_NOT_MET -> source.sendFailure(
-                                        Component.literal(
-                                                player.getName().getString()
-                                                        + " does not meet the requirements."
+                                        Component.translatable(
+                                                "commands.maimai_dialogue.dialogue.open.requirements_not_met",
+                                                player.getName()
                                         )
                                 );
                                 case PROGRESS_UNAVAILABLE -> source.sendFailure(
-                                        Component.literal(
-                                                "Progress data is unavailable for "
-                                                        + player.getName()
-                                                        .getString() + "."
+                                        Component.translatable(
+                                                "commands.maimai_dialogue.dialogue.open.progress_unavailable",
+                                                player.getName()
                                         )
                                 );
                                 case INTERNAL_ERROR -> source.sendFailure(
-                                        Component.literal(
-                                                "An internal error prevented the dialogue from opening."
+                                        Component.translatable(
+                                                "commands.maimai_dialogue.dialogue.open.internal_error"
                                         )
                                 );
                             }

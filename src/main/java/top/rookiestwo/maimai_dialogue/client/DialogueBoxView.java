@@ -11,6 +11,7 @@ import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
+import net.minecraft.client.resources.language.I18n;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
@@ -51,7 +52,7 @@ final class DialogueBoxView extends LinearLayout {
         ));
 
         expandButton = new Button(context);
-        expandButton.setText("Expand");
+        expandButton.setText(I18n.get("gui.maimai_dialogue.expand"));
         expandButton.setVisibility(GONE);
         header.addView(expandButton, new LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,

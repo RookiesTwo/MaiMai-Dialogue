@@ -9,6 +9,7 @@ import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.Button;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.resources.language.I18n;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueBoxLayout;
 import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
@@ -51,7 +52,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                 )
         );
         Button historyEntry = new Button(context);
-        historyEntry.setText("History");
+        historyEntry.setText(I18n.get("gui.maimai_dialogue.history"));
         historyEntry.setOnClickListener(view -> setHistoryOpen(true));
         DialogueHistoryView historyOverlay = new DialogueHistoryView(
                 context,

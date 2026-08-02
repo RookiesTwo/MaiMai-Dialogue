@@ -17,6 +17,7 @@ import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.ScrollView;
 import icyllis.modernui.widget.TextView;
+import net.minecraft.client.resources.language.I18n;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueHistoryEntry;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeOption;
@@ -52,7 +53,7 @@ final class DialogueHistoryView extends FrameLayout {
         titleRow.setOrientation(LinearLayout.HORIZONTAL);
         titleRow.setGravity(Gravity.CENTER_VERTICAL);
         title = new TextView(context);
-        title.setText("History");
+        title.setText(I18n.get("gui.maimai_dialogue.history"));
         title.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         titleRow.addView(title, new LinearLayout.LayoutParams(
                 0,
@@ -60,7 +61,7 @@ final class DialogueHistoryView extends FrameLayout {
                 1
         ));
         closeButton = new Button(context);
-        closeButton.setText("Close");
+        closeButton.setText(I18n.get("gui.maimai_dialogue.close"));
         closeButton.setOnClickListener(view -> close());
         titleRow.addView(closeButton, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,

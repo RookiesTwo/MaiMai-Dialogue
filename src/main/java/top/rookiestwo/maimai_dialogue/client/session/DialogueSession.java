@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue.client.session;
 
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.resources.language.I18n;
 import org.jetbrains.annotations.Nullable;
 import top.rookiestwo.maimai_dialogue.client.PlaybackPhase;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
@@ -118,9 +119,13 @@ public final class DialogueSession {
                 } else if (status == DialogueAccessDecision.DIALOGUE_NOT_FOUND) {
                     effects.add(reportMissingServer(dialogueTarget.dialogue()));
                 } else if (status == DialogueAccessDecision.PROGRESS_UNAVAILABLE) {
-                    accessError = "Progress data is unavailable. Try again later.";
+                    accessError = I18n.get(
+                            "gui.maimai_dialogue.error.progress_unavailable"
+                    );
                 } else if (status == DialogueAccessDecision.INTERNAL_ERROR) {
-                    accessError = "The server could not check dialogue access.";
+                    accessError = I18n.get(
+                            "gui.maimai_dialogue.error.access_check_failed"
+                    );
                 }
             }
         }
@@ -482,15 +487,11 @@ public final class DialogueSession {
 
     private static String requestFailureMessage(DialogueAccessDecision status) {
         return switch (status) {
-            case REQUIREMENTS_NOT_MET ->
-                    "This dialogue is no longer available.";
-            case PROGRESS_UNAVAILABLE ->
-                    "Progress data is unavailable. Try again later.";
-            case INTERNAL_ERROR ->
-                    "The server could not open this dialogue.";
-            case DIALOGUE_NOT_FOUND ->
-                    "The selected dialogue is missing on the server.";
-            default -> "The dialogue request was rejected.";
+            case REQUIREMENTS_NOT_MET -> I18n.get("gui.maimai_dialogue.error.requirements_not_met");
+            case PROGRESS_UNAVAILABLE -> I18n.get("gui.maimai_dialogue.error.progress_unavailable");
+            case INTERNAL_ERROR -> I18n.get("gui.maimai_dialogue.error.open_failed");
+            case DIALOGUE_NOT_FOUND -> I18n.get("gui.maimai_dialogue.error.dialogue_not_found");
+            default -> I18n.get("gui.maimai_dialogue.error.request_rejected");
         };
     }
 

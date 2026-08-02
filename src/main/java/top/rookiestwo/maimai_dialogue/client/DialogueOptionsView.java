@@ -14,6 +14,7 @@ import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
+import net.minecraft.client.resources.language.I18n;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeOption;
@@ -48,7 +49,7 @@ final class DialogueOptionsView extends LinearLayout {
         section = new LinearLayout(context);
         section.setOrientation(VERTICAL);
         loading = new TextView(context);
-        loading.setText("Loading options…");
+        loading.setText(I18n.get("gui.maimai_dialogue.loading_options"));
         int loadingPadding = loading.dp(6);
         loading.setPadding(
                 loadingPadding,
@@ -135,7 +136,9 @@ final class DialogueOptionsView extends LinearLayout {
         if (!show && scroll.isExpanded()) {
             scroll.setExpanded(false);
         }
-        button.setText(scroll.isExpanded() ? "Collapse" : "Expand");
+        button.setText(I18n.get(scroll.isExpanded()
+                ? "gui.maimai_dialogue.collapse"
+                : "gui.maimai_dialogue.expand"));
         button.setVisibility(show ? View.VISIBLE : View.GONE);
         expandVisibilityChanged.run();
     }

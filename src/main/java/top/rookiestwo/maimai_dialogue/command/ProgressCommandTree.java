@@ -86,20 +86,25 @@ final class ProgressCommandTree {
         ServerPlayer player = EntityArgument.getPlayer(context, PLAYER_ARGUMENT);
         var snapshot = CommonServices.get().progress().snapshotNow(player);
         if (snapshot.isEmpty()) {
-            source.sendFailure(Component.literal(
-                    "Progress data is not available for "
-                            + player.getName().getString() + "."
+            source.sendFailure(Component.translatable(
+                    "commands.maimai_dialogue.progress.unavailable",
+                    player.getName()
             ));
             return 0;
         }
-        String nodes = snapshot.orElseThrow().nodes().stream()
+        Component nodes = snapshot.orElseThrow().nodes().stream()
                 .sorted(Comparator.comparing(ProgressNode::value))
                 .map(ProgressNode::value)
                 .reduce((left, right) -> left + ", " + right)
-                .orElse("(empty)");
+                .<Component>map(Component::literal)
+                .orElseGet(() -> Component.translatable(
+                        "commands.maimai_dialogue.progress.list.empty"
+                ));
         source.sendSuccess(
-                () -> Component.literal(
-                        player.getName().getString() + ": " + nodes
+                () -> Component.translatable(
+                        "commands.maimai_dialogue.progress.list",
+                        player.getName(),
+                        nodes
                 ),
                 false
         );
@@ -113,17 +118,19 @@ final class ProgressCommandTree {
         ProgressNode node = parseNode(context);
         var snapshot = CommonServices.get().progress().snapshotNow(player);
         if (snapshot.isEmpty()) {
-            source.sendFailure(Component.literal(
-                    "Progress data is not available for "
-                            + player.getName().getString() + "."
+            source.sendFailure(Component.translatable(
+                    "commands.maimai_dialogue.progress.unavailable",
+                    player.getName()
             ));
             return 0;
         }
         boolean present = snapshot.orElseThrow().contains(node);
         source.sendSuccess(
-                () -> Component.literal(
+                () -> Component.translatable(
+                        present
+                                ? "commands.maimai_dialogue.progress.check.present"
+                                : "commands.maimai_dialogue.progress.check.absent",
                         node.value()
-                                + (present ? " is present." : " is not present.")
                 ),
                 false
         );
@@ -136,7 +143,10 @@ final class ProgressCommandTree {
         String value = StringArgumentType.getString(context, NODE_ARGUMENT);
         return ProgressNode.parse(value).result().orElseThrow(
                 () -> new SimpleCommandExceptionType(
-                        Component.literal("Invalid progress node: " + value)
+                        Component.translatable(
+                                "commands.maimai_dialogue.progress.invalid_node",
+                                value
+                        )
                 ).create()
         );
     }
@@ -151,9 +161,9 @@ final class ProgressCommandTree {
         operation.whenComplete((result, error) ->
                 source.getServer().execute(() -> {
                     if (error != null) {
-                        source.sendFailure(Component.literal(
-                                "Failed to save progress node "
-                                        + node.value() + "."
+                        source.sendFailure(Component.translatable(
+                                "commands.maimai_dialogue.progress.save_failed",
+                                node.value()
                         ));
                         MaiMaiDialogue.LOGGER.error(
                                 "Failed to update progress node {} for player {}",
@@ -164,31 +174,43 @@ final class ProgressCommandTree {
                         return;
                     }
                     source.sendSuccess(
-                            () -> Component.literal(feedback(
+                            () -> feedback(
                                     result,
                                     node,
                                     player
-                            )),
+                            ),
                             true
                     );
                 })
         );
     }
 
-    private static String feedback(
+    private static Component feedback(
             ProgressChangeResult result,
             ProgressNode node,
             ServerPlayer player
     ) {
-        String playerName = player.getName().getString();
         return switch (result) {
-            case ADDED -> "Added " + node.value() + " to " + playerName + ".";
-            case ALREADY_PRESENT ->
-                    playerName + " already has " + node.value() + ".";
-            case REMOVED ->
-                    "Removed " + node.value() + " from " + playerName + ".";
-            case NOT_PRESENT ->
-                    playerName + " does not have " + node.value() + ".";
+            case ADDED -> Component.translatable(
+                    "commands.maimai_dialogue.progress.added",
+                    node.value(),
+                    player.getName()
+            );
+            case ALREADY_PRESENT -> Component.translatable(
+                    "commands.maimai_dialogue.progress.already_present",
+                    player.getName(),
+                    node.value()
+            );
+            case REMOVED -> Component.translatable(
+                    "commands.maimai_dialogue.progress.removed",
+                    node.value(),
+                    player.getName()
+            );
+            case NOT_PRESENT -> Component.translatable(
+                    "commands.maimai_dialogue.progress.not_present",
+                    player.getName(),
+                    node.value()
+            );
         };
     }
 }
