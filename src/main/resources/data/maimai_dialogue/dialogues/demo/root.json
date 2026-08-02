@@ -1,4 +1,5 @@
 {
+  "skip_summary": "## Skip summary\n\nSkip the remaining demo dialogue and go directly to its final choices.",
   "presentation": {
     "theme": "maimai_dialogue:default",
     "background": {
@@ -184,6 +185,14 @@
           "target": {
             "type": "dialogue",
             "dialogue": "maimai_dialogue:demo/crt"
+          }
+        },
+        {
+          "text": "Open the long fast-forward demo",
+          "icon": "dialogue",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:demo/fast_forward"
           }
         },
         {

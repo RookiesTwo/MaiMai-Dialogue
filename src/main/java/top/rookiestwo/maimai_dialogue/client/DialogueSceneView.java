@@ -1,6 +1,5 @@
 package top.rookiestwo.maimai_dialogue.client;
 
-import icyllis.modernui.animation.ValueAnimator;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.Image;
 import icyllis.modernui.view.MeasureSpec;
@@ -34,7 +33,7 @@ final class DialogueSceneView extends FrameLayout {
     private SceneContentView outgoingScene;
     private boolean sceneTransitionPending;
     private SceneImageRenderer.ImageLayers backgroundLayers;
-    private ValueAnimator sceneAnimator;
+    private final PlaybackTimeline sceneTimeline = new PlaybackTimeline();
     private long playbackToken = Long.MIN_VALUE;
     private float currentBackgroundOpacity;
     private float outgoingCoverageOpacity;
@@ -126,6 +125,10 @@ final class DialogueSceneView extends FrameLayout {
         backgroundLayers = null;
         currentBackgroundOpacity = 0.0F;
         outgoingCoverageOpacity = 0.0F;
+    }
+
+    void setPlaybackRate(float playbackRate) {
+        sceneTimeline.setPlaybackRate(playbackRate);
     }
 
     private void addBackground(SceneBackground background) {
@@ -246,25 +249,22 @@ final class DialogueSceneView extends FrameLayout {
             ScenePlayback playback,
             Runnable blockingFinished
     ) {
-        ValueAnimator animator = ValueAnimator.ofFloat(0.0F, 1.0F);
-        animator.setDuration(playback.totalDurationMs());
         boolean[] blockingReported = {
                 playback.blockingDurationMs() == 0
         };
-        animator.addUpdateListener(valueAnimator -> {
-            int elapsed = Math.round(
-                    valueAnimator.getAnimatedFraction()
-                            * playback.totalDurationMs()
-            );
+        sceneTimeline.start(playback.totalDurationMs(), elapsed -> {
             applyPlaybackState(playback, elapsed);
             if (!blockingReported[0]
                     && elapsed >= playback.blockingDurationMs()) {
                 blockingReported[0] = true;
                 blockingFinished.run();
             }
+        }, () -> {
+            if (!blockingReported[0]) {
+                blockingReported[0] = true;
+                blockingFinished.run();
+            }
         });
-        sceneAnimator = animator;
-        animator.start();
     }
 
     private void applyPlaybackState(
@@ -410,10 +410,7 @@ final class DialogueSceneView extends FrameLayout {
 
     // 取消仍在运行的场景 Animator，避免旧回调修改新场景。
     private void cancelSceneAnimator() {
-        if (sceneAnimator != null) {
-            sceneAnimator.cancel();
-            sceneAnimator = null;
-        }
+        sceneTimeline.cancel();
     }
 
     private void applyFilter(SceneFilter filter) {

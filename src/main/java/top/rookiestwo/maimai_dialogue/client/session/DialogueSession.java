@@ -200,6 +200,57 @@ public final class DialogueSession {
         return update(List.of(), false);
     }
 
+    // 结算当前 Dialogue 的剩余场景状态并直接完成 EndStep。
+    public DialogueSessionUpdate skipToEnd() {
+        if (pendingTargetRequest != null) {
+            return update(List.of(), false);
+        }
+        int endIndex = active.definition.steps().size();
+        if (active.stepIndex >= endIndex) {
+            if (active.playbackPhase == PlaybackPhase.READY) {
+                return update(List.of(), false);
+            }
+            active.sceneComplete = true;
+            active.textComplete = true;
+            active.playbackSkipped = true;
+            updatePlaybackPhase(active);
+            return update(List.of(), true);
+        }
+
+        List<DialogueSessionEffect> effects = new ArrayList<>();
+        for (int index = active.stepIndex + 1;
+             index < endIndex;
+             index++) {
+            active.stepIndex = index;
+            DialogueStep step = active.definition.steps().get(index);
+            applySpeaker(active, step.speaker(), effects);
+            reportPreparationErrors(
+                    active.sceneRuntime.prepare(step.actions()),
+                    effects
+            );
+        }
+
+        active.stepIndex = endIndex;
+        active.resolvedText = resolveCurrentText(active);
+        applySpeaker(active, active.definition.end().speaker(), effects);
+        ScenePreparation endPreparation = active.sceneRuntime.prepare(
+                active.definition.end().actions()
+        );
+        active.playback = endPreparation.playback();
+        active.sceneComplete = true;
+        active.textComplete = true;
+        active.playbackSkipped = true;
+        updatePlaybackPhase(active);
+        reportPreparationErrors(endPreparation, effects);
+        active.resolvedText
+                .filter(text -> !text.isEmpty())
+                .ifPresent(text -> history.add(DialogueHistoryEntry.dialogue(
+                        active.speakerName,
+                        text
+                )));
+        return update(effects, true);
+    }
+
     // 标记场景动画完成，并在正文也完成时解除播放锁定。
     public DialogueSessionUpdate completeScene(
             long completedGeneration,
@@ -271,6 +322,8 @@ public final class DialogueSession {
                 Optional.of(active.playback),
                 active.playbackPhase,
                 active.playbackSkipped,
+                active.definition.skipSummary(),
+                !atEnd && pendingTargetRequest == null,
                 active.currentTypewriterIntervalMs(),
                 Optional.ofNullable(active.speakerName),
                 active.resolvedText,
@@ -363,15 +416,22 @@ public final class DialogueSession {
                 .isEmpty();
         updatePlaybackPhase(current);
         current.playbackSkipped = false;
-        preparation.errors().stream()
-                .map(DialogueSessionEffect.ReportError::new)
-                .forEach(effects::add);
+        reportPreparationErrors(preparation, effects);
         current.resolvedText
                 .filter(text -> !text.isEmpty())
                 .ifPresent(text -> history.add(DialogueHistoryEntry.dialogue(
                         current.speakerName,
                         text
                 )));
+    }
+
+    private static void reportPreparationErrors(
+            ScenePreparation preparation,
+            List<DialogueSessionEffect> effects
+    ) {
+        preparation.errors().stream()
+                .map(DialogueSessionEffect.ReportError::new)
+                .forEach(effects::add);
     }
 
     // 每个 Dialogue 节点在当前 session 中只抽取一次正文。

@@ -139,6 +139,11 @@ public final class ClientDialogueController {
         applySessionUpdate(DialogueSession::advance);
     }
 
+    public void skipToEnd() {
+        requireClientThread();
+        applySessionUpdate(DialogueSession::skipToEnd);
+    }
+
     public void completePlayback(long generation, long playbackToken) {
         requireClientThread();
         applySessionUpdate(current -> current.completeScene(
@@ -183,6 +188,8 @@ public final class ClientDialogueController {
                 java.util.Optional.empty(),
                 java.util.Optional.empty(),
                 PlaybackPhase.READY,
+                false,
+                java.util.Optional.empty(),
                 false,
                 DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
                 java.util.Optional.empty(),

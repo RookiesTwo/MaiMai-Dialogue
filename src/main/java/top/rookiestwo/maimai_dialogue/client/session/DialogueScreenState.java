@@ -17,6 +17,8 @@ public record DialogueScreenState(
         Optional<ScenePlayback> scenePlayback,
         PlaybackPhase playbackPhase,
         boolean playbackSkipped,
+        Optional<String> skipSummary,
+        boolean canSkipToEnd,
         int typewriterIntervalMs,
         Optional<String> speaker,
         Optional<String> text,
@@ -31,6 +33,7 @@ public record DialogueScreenState(
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(scenePlayback, "scenePlayback");
         Objects.requireNonNull(playbackPhase, "playbackPhase");
+        Objects.requireNonNull(skipSummary, "skipSummary");
         Objects.requireNonNull(speaker, "speaker");
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(error, "error");

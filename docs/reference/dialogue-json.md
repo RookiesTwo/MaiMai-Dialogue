@@ -10,6 +10,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 ```json
 {
   "requires": "guide.started && !guide.finished",
+  "skip_summary": "跳过后将直接进入最终选择。",
   "presentation": {
     "theme": "maimai_dialogue:default"
   },
@@ -25,11 +26,14 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 | 字段 | 必填 | 默认值 | 说明 |
 |---|---:|---|---|
 | `requires` | 否 | 无条件公开 | 服务端访问表达式 |
+| `skip_summary` | 否 | 无确认摘要 | 长按跳过成功后显示的 Markdown 摘要 |
 | `presentation` | 是 | — | Theme、场景和对话框布局 |
 | `steps` | 否 | `[]` | 按顺序播放的普通步骤 |
 | `end` | 是 | — | 最后一步，必须提供 `exit` |
 
 不要使用 JSON `null`。可选字段应直接省略。
+
+`skip_summary` 属于整个 Dialogue，而不是单个 Step。字段存在时必须是非空、非纯空白字符串；长按跳过按钮后，玩家需要阅读摘要并确认。字段省略时，长按完成后直接跳至 `end`。摘要支持与正文相同的 Markdown 子集，但不会使用打字机效果，也不会进入历史记录。
 
 ## 普通步骤与结尾
 
@@ -148,4 +152,6 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 - 正文和全部 blocking SceneAction 完成后，当前步骤才可继续。
 - 播放期间第一次推进只提交当前文字和动画的最终状态。
 - 再次推进才进入下一步或执行 `end.exit`。
+- 按住 Ctrl 会以固定 4 倍速度播放正文和有限 SceneAction；Continue Step 就绪后会自动进入下一步，直到进入 `end`。`end` 仍以 4 倍速度播放，但不会自动执行 Exit。
+- 长按右上角跳过按钮 1 秒会结算剩余 Speaker 与 SceneAction，并直接完成 `end`；尚未进入的正文不会写入历史。
 - `exit` 和 Option 只导航，不会自动修改 ProgressNode。

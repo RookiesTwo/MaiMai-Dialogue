@@ -1,6 +1,5 @@
 package top.rookiestwo.maimai_dialogue.client;
 
-import icyllis.modernui.animation.ValueAnimator;
 import icyllis.modernui.markflow.Markflow;
 import icyllis.modernui.text.SpannableString;
 import icyllis.modernui.text.Spanned;
@@ -16,7 +15,7 @@ final class DialogueTextPlayer {
 
     private final TextView textView;
     private final Markflow markflow;
-    private ValueAnimator animator;
+    private final PlaybackTimeline timeline = new PlaybackTimeline();
     private long playbackToken = Long.MIN_VALUE;
     private Spanned renderedText;
     private String plainText;
@@ -61,11 +60,15 @@ final class DialogueTextPlayer {
     }
 
     void clear() {
-        cancelAnimator();
+        timeline.cancel();
         playbackToken = Long.MIN_VALUE;
         renderedText = null;
         plainText = null;
         textView.setText("");
+    }
+
+    void setPlaybackRate(float playbackRate) {
+        timeline.setPlaybackRate(playbackRate);
     }
 
     private void start(int intervalMs, Runnable finished) {
@@ -77,11 +80,10 @@ final class DialogueTextPlayer {
             return;
         }
 
-        ValueAnimator next = ValueAnimator.ofFloat(0.0F, 1.0F);
-        next.setDuration(durationMs(codePoints, intervalMs));
         boolean[] reported = {false};
-        next.addUpdateListener(valueAnimator -> {
-            float fraction = valueAnimator.getAnimatedFraction();
+        int durationMs = durationMs(codePoints, intervalMs);
+        timeline.start(durationMs, elapsedMs -> {
+            float fraction = elapsedMs / (float) durationMs;
             int visibleCodePoints = Math.clamp(
                     (int) Math.ceil(codePoints * fraction),
                     1,
@@ -99,13 +101,9 @@ final class DialogueTextPlayer {
             textView.setText(prefix, TextView.BufferType.SPANNABLE);
             if (!reported[0] && visibleCodePoints == codePoints) {
                 reported[0] = true;
-                animator = null;
                 showFullText();
-                finished.run();
             }
-        });
-        animator = next;
-        next.start();
+        }, finished);
     }
 
     static int durationMs(int codePointCount, int intervalMs) {
@@ -130,9 +128,6 @@ final class DialogueTextPlayer {
     }
 
     private void cancelAnimator() {
-        if (animator != null) {
-            animator.cancel();
-            animator = null;
-        }
+        timeline.cancel();
     }
 }

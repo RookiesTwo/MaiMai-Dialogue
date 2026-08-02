@@ -12,13 +12,17 @@ import top.rookiestwo.maimai_dialogue.dialogue.VisualAnchor;
 import top.rookiestwo.maimai_dialogue.client.scene.DialogueBoxState;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 final class DialogueRootLayout extends FrameLayout {
     private static final int HEIGHT_ANIMATION_DURATION_MS = 220;
+    private static final int CORNER_CONTROL_SIZE_DP = 40;
+    private static final float DISABLED_CONTROL_ALPHA = 0.35F;
 
     private final DialogueSceneView sceneLayer;
     private final View dialogueBox;
     private final View historyEntry;
+    private final HoldToSkipButton skipButton;
     private DialogueBoxLayout dialogueBoxLayout = DialogueBoxLayout.DEFAULT;
     private DialogueBoxState dialogueBoxState = DialogueBoxState.initial(
             DialogueBoxLayout.DEFAULT,
@@ -30,12 +34,21 @@ final class DialogueRootLayout extends FrameLayout {
     private boolean heightAnimationPosted;
     private Runnable advanceAction = () -> {
     };
+    private Consumer<Boolean> fastForwardAction = ignored -> {
+    };
+    private Runnable confirmationCancelledAction = () -> {
+    };
+    private View confirmationView;
+    private float controlsAlpha = 1.0F;
+    private boolean leftControlDown;
+    private boolean rightControlDown;
 
     DialogueRootLayout(
             Context context,
             DialogueSceneView sceneLayer,
             View dialogueBox,
-            View historyEntry
+            View historyEntry,
+            HoldToSkipButton skipButton
     ) {
         super(context);
         this.sceneLayer = Objects.requireNonNull(sceneLayer, "sceneLayer");
@@ -44,6 +57,7 @@ final class DialogueRootLayout extends FrameLayout {
                 historyEntry,
                 "historyEntry"
         );
+        this.skipButton = Objects.requireNonNull(skipButton, "skipButton");
         addView(
                 sceneLayer,
                 new LayoutParams(
@@ -65,6 +79,13 @@ final class DialogueRootLayout extends FrameLayout {
                         LayoutParams.WRAP_CONTENT
                 )
         );
+        addView(
+                skipButton,
+                new LayoutParams(
+                        LayoutParams.WRAP_CONTENT,
+                        LayoutParams.WRAP_CONTENT
+                )
+        );
     }
 
     void setDialogueBoxLayout(DialogueBoxLayout layout) {
@@ -79,16 +100,99 @@ final class DialogueRootLayout extends FrameLayout {
         );
     }
 
+    void setFastForwardAction(Consumer<Boolean> fastForwardAction) {
+        this.fastForwardAction = Objects.requireNonNull(
+                fastForwardAction,
+                "fastForwardAction"
+        );
+    }
+
+    void setSkipAvailable(boolean available) {
+        skipButton.setEnabled(available);
+        skipButton.setAlpha(
+                controlsAlpha * (available ? 1.0F : DISABLED_CONTROL_ALPHA)
+        );
+        if (!available) {
+            skipButton.cancelHold();
+        }
+    }
+
+    void showSkipConfirmation(View view, Runnable cancelledAction) {
+        dismissSkipConfirmation();
+        fastForwardAction.accept(false);
+        skipButton.cancelHold();
+        confirmationView = Objects.requireNonNull(view, "view");
+        confirmationCancelledAction = Objects.requireNonNull(
+                cancelledAction,
+                "cancelledAction"
+        );
+        addView(
+                view,
+                new LayoutParams(
+                        LayoutParams.MATCH_PARENT,
+                        LayoutParams.MATCH_PARENT
+                )
+        );
+        view.requestFocus();
+    }
+
+    void dismissSkipConfirmation() {
+        View current = confirmationView;
+        confirmationView = null;
+        confirmationCancelledAction = () -> {
+        };
+        if (current != null) {
+            removeView(current);
+        }
+    }
+
+    boolean hasSkipConfirmation() {
+        return confirmationView != null;
+    }
+
+    void cancelTransientInput() {
+        leftControlDown = false;
+        rightControlDown = false;
+        fastForwardAction.accept(false);
+        skipButton.cancelHold();
+    }
+
     void setDialogueBoxState(DialogueBoxState state) {
         dialogueBoxState = Objects.requireNonNull(state, "state");
         float clamped = Math.clamp(state.opacity(), 0.0F, 1.0F);
         dialogueBox.setAlpha(clamped);
         historyEntry.setAlpha(clamped);
+        controlsAlpha = clamped;
+        skipButton.setAlpha(
+                clamped * (skipButton.isEnabled()
+                        ? 1.0F
+                        : DISABLED_CONTROL_ALPHA)
+        );
         requestLayout();
     }
 
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
+        if (confirmationView != null) {
+            if (event.getKeyCode() == KeyEvent.KEY_ESCAPE
+                    && event.getAction() == KeyEvent.ACTION_UP
+                    && !event.isCanceled()) {
+                confirmationCancelledAction.run();
+            }
+            return true;
+        }
+        if (event.getKeyCode() == KeyEvent.KEY_LEFT_CONTROL
+                || event.getKeyCode() == KeyEvent.KEY_RIGHT_CONTROL) {
+            boolean pressed = event.getAction() == KeyEvent.ACTION_DOWN
+                    && !event.isCanceled();
+            if (event.getKeyCode() == KeyEvent.KEY_LEFT_CONTROL) {
+                leftControlDown = pressed;
+            } else {
+                rightControlDown = pressed;
+            }
+            fastForwardAction.accept(leftControlDown || rightControlDown);
+            return true;
+        }
         if (event.getKeyCode() == KeyEvent.KEY_SPACE) {
             if (event.getAction() == KeyEvent.ACTION_UP
                     && !event.isCanceled()) {
@@ -126,6 +230,23 @@ final class DialogueRootLayout extends FrameLayout {
                 MeasureSpec.makeMeasureSpec(width, MeasureSpec.AT_MOST),
                 MeasureSpec.makeMeasureSpec(height, MeasureSpec.AT_MOST)
         );
+        int cornerControlSize = dp(CORNER_CONTROL_SIZE_DP);
+        skipButton.measure(
+                MeasureSpec.makeMeasureSpec(
+                        cornerControlSize,
+                        MeasureSpec.EXACTLY
+                ),
+                MeasureSpec.makeMeasureSpec(
+                        cornerControlSize,
+                        MeasureSpec.EXACTLY
+                )
+        );
+        if (confirmationView != null) {
+            confirmationView.measure(
+                    MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
+            );
+        }
 
         setMeasuredDimension(
                 View.resolveSize(width, widthMeasureSpec),
@@ -176,10 +297,31 @@ final class DialogueRootLayout extends FrameLayout {
                 historyMargin + historyWidth,
                 historyMargin + historyHeight
         );
+        int skipWidth = skipButton.getMeasuredWidth();
+        int skipHeight = skipButton.getMeasuredHeight();
+        skipButton.layout(
+                width - historyMargin - skipWidth,
+                historyMargin,
+                width - historyMargin,
+                historyMargin + skipHeight
+        );
+        if (confirmationView != null) {
+            confirmationView.layout(0, 0, width, height);
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasWindowFocus) {
+        super.onWindowFocusChanged(hasWindowFocus);
+        if (!hasWindowFocus) {
+            cancelTransientInput();
+        }
     }
 
     @Override
     protected void onDetachedFromWindow() {
+        cancelTransientInput();
+        dismissSkipConfirmation();
         cancelHeightAnimator();
         super.onDetachedFromWindow();
     }

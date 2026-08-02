@@ -35,6 +35,8 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     private static final int HISTORY_ICON_COLOR = 0xFFFFFFFF;
     private static final int HISTORY_ICON_HOVERED_COLOR = 0xFFBFBFBF;
     private static final int HISTORY_ICON_PRESSED_COLOR = 0xFF808080;
+    private static final float FAST_FORWARD_RATE = 4.0F;
+    private static final float NORMAL_PLAYBACK_RATE = 1.0F;
 
     private final ClientDialogueController controller;
     private long renderedGeneration = Long.MIN_VALUE;
@@ -46,6 +48,13 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     private DialogueBoxView boxView;
     @Nullable
     private ImageButton historyButton;
+    @Nullable
+    private HoldToSkipButton skipButton;
+    @Nullable
+    private DialogueScreenState latestState;
+    private long confirmationGeneration = Long.MIN_VALUE;
+    private long autoAdvancePlaybackToken = Long.MIN_VALUE;
+    private boolean fastForwarding;
 
     public DialogueFragment(ClientDialogueController controller) {
         this.controller = controller;
@@ -67,15 +76,18 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         );
         ImageButton historyEntry = createHistoryButton(context);
         historyEntry.setOnClickListener(view -> openHistory());
+        HoldToSkipButton skipEntry = createSkipButton(context);
         DialogueSceneView scene = new DialogueSceneView(context);
         DialogueRootLayout root = new DialogueRootLayout(
                 context,
                 scene,
                 dialogueBox,
-                historyEntry
+                historyEntry,
+                skipEntry
         );
         root.setOnClickListener(view -> advanceFromUi());
         root.setAdvanceAction(this::advanceFromUi);
+        root.setFastForwardAction(this::setFastForwarding);
         scene.setDialogueBoxStateConsumer(root::setDialogueBoxState);
         root.setFocusable(true);
         root.setFocusableInTouchMode(true);
@@ -85,6 +97,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         sceneView = scene;
         boxView = dialogueBox;
         historyButton = historyEntry;
+        skipButton = skipEntry;
         render(controller.viewState());
         return root;
     }
@@ -98,19 +111,30 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         if (root == null
                 || scene == null
                 || box == null
-                || historyEntry == null) {
+                || historyEntry == null
+                || skipButton == null) {
             return;
         }
 
+        latestState = state;
+
         box.post(() -> {
+            if (root.hasSkipConfirmation()
+                    && confirmationGeneration != state.generation()) {
+                dismissSkipConfirmation();
+            }
             if (state.generation() != renderedGeneration) {
                 renderedGeneration = state.generation();
                 ThemeDefinition theme = state.theme().orElse(
                         ThemeDefinition.DEFAULT
                 );
                 box.reset(theme);
+                skipButton.applyTheme(theme);
                 applyPresentation(state, root, scene);
             }
+            root.setSkipAvailable(
+                    state.canSkipToEnd() && !root.hasSkipConfirmation()
+            );
 
             state.scenePlayback().ifPresent(playback ->
                     scene.renderPlayback(
@@ -136,6 +160,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                             )
                     )
             );
+            scheduleFastForwardAdvance(state);
         });
     }
 
@@ -155,13 +180,147 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     }
 
     private void advanceFromUi() {
+        DialogueRootLayout root = rootLayout;
+        if (root != null && root.hasSkipConfirmation()) {
+            return;
+        }
         Minecraft.getInstance().execute(controller::advance);
+    }
+
+    private void setFastForwarding(boolean fastForwarding) {
+        DialogueRootLayout root = rootLayout;
+        if (root != null && root.hasSkipConfirmation()) {
+            fastForwarding = false;
+        }
+        this.fastForwarding = fastForwarding;
+        if (!fastForwarding) {
+            autoAdvancePlaybackToken = Long.MIN_VALUE;
+        }
+        float playbackRate = fastForwarding
+                ? FAST_FORWARD_RATE
+                : NORMAL_PLAYBACK_RATE;
+        DialogueSceneView scene = sceneView;
+        if (scene != null) {
+            scene.setPlaybackRate(playbackRate);
+        }
+        DialogueBoxView box = boxView;
+        if (box != null) {
+            box.setPlaybackRate(playbackRate);
+        }
+        if (fastForwarding) {
+            scheduleFastForwardAdvance(latestState);
+        }
+    }
+
+    private void scheduleFastForwardAdvance(
+            @Nullable DialogueScreenState state
+    ) {
+        long playbackToken = state == null
+                ? Long.MIN_VALUE
+                : state.scenePlayback()
+                        .map(ScenePlayback::token)
+                        .orElse(Long.MIN_VALUE);
+        if (state == null
+                || !shouldAutoAdvance(
+                        fastForwarding,
+                        state.playbackPhase(),
+                        state.canSkipToEnd()
+                )
+                || playbackToken == Long.MIN_VALUE
+                || autoAdvancePlaybackToken == playbackToken) {
+            return;
+        }
+        autoAdvancePlaybackToken = playbackToken;
+        Minecraft.getInstance().execute(() -> {
+            DialogueScreenState current = latestState;
+            if (current == null
+                    || current.scenePlayback()
+                            .map(ScenePlayback::token)
+                            .orElse(Long.MIN_VALUE) != playbackToken
+                    || !shouldAutoAdvance(
+                            fastForwarding,
+                            current.playbackPhase(),
+                            current.canSkipToEnd()
+                    )) {
+                return;
+            }
+            controller.advance();
+        });
+    }
+
+    static boolean shouldAutoAdvance(
+            boolean fastForwarding,
+            PlaybackPhase phase,
+            boolean canSkipToEnd
+    ) {
+        return fastForwarding
+                && phase == PlaybackPhase.READY
+                && canSkipToEnd;
+    }
+
+    private void onSkipHoldCompleted() {
+        DialogueRootLayout root = rootLayout;
+        DialogueScreenState state = latestState;
+        if (root == null || state == null || !state.canSkipToEnd()) {
+            return;
+        }
+        root.cancelTransientInput();
+        String summary = state.skipSummary().orElse(null);
+        if (summary == null) {
+            root.setSkipAvailable(false);
+            Minecraft.getInstance().execute(controller::skipToEnd);
+            return;
+        }
+
+        confirmationGeneration = state.generation();
+        ThemeDefinition theme = state.theme().orElse(ThemeDefinition.DEFAULT);
+        DialogueSkipConfirmationView confirmation =
+                new DialogueSkipConfirmationView(
+                        requireContext(),
+                        summary,
+                        this::dismissSkipConfirmation,
+                        this::confirmSkipToEnd
+                );
+        confirmation.applyTheme(theme);
+        root.showSkipConfirmation(
+                confirmation,
+                this::dismissSkipConfirmation
+        );
+        root.setSkipAvailable(false);
+    }
+
+    private void confirmSkipToEnd() {
+        DialogueRootLayout root = rootLayout;
+        if (root != null) {
+            root.dismissSkipConfirmation();
+            root.setSkipAvailable(false);
+        }
+        confirmationGeneration = Long.MIN_VALUE;
+        Minecraft.getInstance().execute(controller::skipToEnd);
+    }
+
+    private void dismissSkipConfirmation() {
+        DialogueRootLayout root = rootLayout;
+        if (root == null) {
+            return;
+        }
+        root.dismissSkipConfirmation();
+        confirmationGeneration = Long.MIN_VALUE;
+        DialogueScreenState state = latestState;
+        root.setSkipAvailable(
+                state != null && state.canSkipToEnd()
+        );
+        root.requestFocus();
     }
 
     private void openHistory() {
         ImageButton entry = historyButton;
         if (entry == null || !entry.isEnabled()) {
             return;
+        }
+        DialogueRootLayout root = rootLayout;
+        if (root != null) {
+            root.cancelTransientInput();
         }
         entry.setEnabled(false);
         getParentFragmentManager()
@@ -222,12 +381,28 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         return button;
     }
 
+    private HoldToSkipButton createSkipButton(Context context) {
+        HoldToSkipButton button = new HoldToSkipButton(
+                context,
+                this::onSkipHoldCompleted
+        );
+        String label = I18n.get("gui.maimai_dialogue.skip_to_end");
+        button.setContentDescription(label);
+        button.setTooltipText(label);
+        return button;
+    }
+
     @Override
     // 页面切换时释放 View 资源，但保留 Dialogue session。
     public void onDestroyView() {
         DialogueSceneView scene = sceneView;
         if (scene != null) {
             scene.clearScene();
+        }
+        DialogueRootLayout root = rootLayout;
+        if (root != null) {
+            root.cancelTransientInput();
+            root.dismissSkipConfirmation();
         }
         DialogueBoxView box = boxView;
         if (box != null) {
@@ -237,6 +412,11 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         sceneView = null;
         boxView = null;
         historyButton = null;
+        skipButton = null;
+        latestState = null;
+        confirmationGeneration = Long.MIN_VALUE;
+        autoAdvancePlaybackToken = Long.MIN_VALUE;
+        fastForwarding = false;
         renderedGeneration = Long.MIN_VALUE;
         super.onDestroyView();
     }

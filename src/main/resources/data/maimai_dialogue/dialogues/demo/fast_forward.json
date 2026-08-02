@@ -1,0 +1,318 @@
+{
+  "presentation": {
+    "theme": "maimai_dialogue:default",
+    "background": {
+      "variants": {
+        "default": "minecraft:gui/title/background/panorama_2.png"
+      },
+      "fit": "cover",
+      "opacity": 0.82
+    },
+    "dialogue_box": {
+      "x": 0.5,
+      "y": 0.98,
+      "width": 0.96,
+      "max_height": 0.5,
+      "anchor": "bottom_center"
+    },
+    "visual_objects": {
+      "speed_marker": {
+        "variants": {
+          "default": "minecraft:item/emerald.png"
+        },
+        "initial_variant": "default",
+        "x": 0.5,
+        "y": 0.28,
+        "anchor": "center",
+        "scale": 7.0,
+        "opacity": 0.9,
+        "visible": true,
+        "z_index": 10
+      }
+    }
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:demo/guide"
+      },
+      "text": "# Fast-forward endurance test\n\nThis branch deliberately contains long passages and slow finite animations. Hold either **left Ctrl** or **right Ctrl** while this text is appearing. The typewriter and the emerald should both advance at four times their normal speed. If Ctrl remains held when a Continue Step becomes ready, playback should automatically continue into the next Step without restarting either timeline.",
+      "typewriter_interval_ms": 55,
+      "actions": [
+        {
+          "target": "speed_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 6000,
+              "easing": "ease_in_out",
+              "blocking": true,
+              "x": [
+                {
+                  "at": 0.5,
+                  "value": 0.22
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "The first useful observation is continuity. Press Ctrl for a moment, release it before the sentence finishes, and then press it again. The visible text should never jump backward, the emerald should never snap to its starting position, and completion should occur exactly once. This paragraph is intentionally verbose so that several changes of speed can be made during a single Step instead of relying on unusually quick reflexes.",
+      "typewriter_interval_ms": 60,
+      "actions": [
+        {
+          "target": "speed_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 7000,
+              "easing": "ease_in_out",
+              "blocking": true,
+              "y": [
+                {
+                  "at": 0.5,
+                  "value": 0.16
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "## Independent durations\n\nText and Scene Actions do not need to have matching durations. In this Step the paragraph is long enough to continue after a short visual movement on many systems. Fast-forward applies the same playback rate to both timelines, but each timeline keeps its own logical progress and completion boundary. Holding Ctrl advances only after the text and all blocking work are ready; completing either one alone is not enough.",
+      "typewriter_interval_ms": 58,
+      "actions": [
+        {
+          "target": "speed_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 3600,
+              "easing": "ease_out",
+              "blocking": true,
+              "scale": [
+                {
+                  "at": 0.5,
+                  "value": 0.45
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "A non-blocking animation is also running during this passage. It should accelerate while Ctrl is held even though it does not prevent the Dialogue from becoming ready. When the text and all blocking work are complete, holding Ctrl should automatically enter the next Step even if this non-blocking animation has not consumed its full duration. The usual readiness rules still decide when that transition may happen.",
+      "typewriter_interval_ms": 62,
+      "actions": [
+        {
+          "target": "speed_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 8000,
+              "easing": "linear",
+              "blocking": false,
+              "x": [
+                {
+                  "at": 0.5,
+                  "value": -0.3
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ],
+              "opacity": [
+                {
+                  "at": 0.5,
+                  "value": -0.45
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "Try holding both Ctrl keys now. Releasing only one key should keep the four-times rate active because the other key remains pressed. Only after both keys are released should playback return to normal. Repeated key-down events generated by the operating system must not multiply the rate beyond four times, and changing focus away from the client should clear the temporary acceleration state immediately.",
+      "typewriter_interval_ms": 65,
+      "actions": [
+        {
+          "target": "speed_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 7500,
+              "easing": "ease_in_out",
+              "blocking": true,
+              "y": [
+                {
+                  "at": 0.25,
+                  "value": -0.1
+                },
+                {
+                  "at": 0.5,
+                  "value": 0.2
+                },
+                {
+                  "at": 0.75,
+                  "value": -0.2
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "Opening the history page during playback provides another reset case. When you return, the current Dialogue session, selected random text, accumulated history, and logical node must still be intact, but Ctrl should no longer be considered held. The recreated View can resume from the session state without carrying transient keyboard state across Fragment navigation. This text is long enough to open history before it finishes if desired.",
+      "typewriter_interval_ms": 60,
+      "actions": [
+        {
+          "target": "speed_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 6500,
+              "easing": "ease_in_out",
+              "blocking": true,
+              "scale": [
+                {
+                  "at": 0.33,
+                  "value": 0.25
+                },
+                {
+                  "at": 0.66,
+                  "value": -0.4
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "The long-press skip control remains a separate feature from acceleration. Ctrl automatically plays each Continue Step in order and preserves their normal history entries, while it never fills the skip ring. Conversely, holding the upper-right button for one second jumps over the remaining Continue Steps. This particular branch has no `skip_summary`, so a successful hold should go directly to its EndStep without opening a confirmation modal.",
+      "typewriter_interval_ms": 64,
+      "actions": [
+        {
+          "target": "speed_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 7000,
+              "easing": "ease_in_out",
+              "blocking": true,
+              "x": [
+                {
+                  "at": 0.5,
+                  "value": -0.18
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "This is the final Continue Step in the endurance branch. Let it play at normal speed, accelerate the middle section, and release Ctrl near the end. The transition into the EndStep should preserve the final scene state and show the ending text normally. As soon as the EndStep is entered, the skip button should become disabled and dark even while the EndStep typewriter or its final animation is still playing.",
+      "typewriter_interval_ms": 68,
+      "actions": [
+        {
+          "target": "speed_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 8500,
+              "easing": "ease_in_out",
+              "blocking": true,
+              "opacity": [
+                {
+                  "at": 0.5,
+                  "value": -0.55
+                },
+                {
+                  "at": 1.0,
+                  "value": 0.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "text": "## EndStep reached\n\nThe skip button should already be dark. Ctrl may still accelerate this ending text and its finite animation, but it must not automatically execute the Return Exit. Advancing once playback is ready returns to the root Dialogue.",
+    "typewriter_interval_ms": 70,
+    "actions": [
+      {
+        "target": "speed_marker",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 9000,
+            "easing": "ease_in_out",
+            "blocking": true,
+            "y": [
+              {
+                "at": 0.5,
+                "value": 0.22
+              },
+              {
+                "at": 1.0,
+                "value": 0.0
+              }
+            ],
+            "scale": [
+              {
+                "at": 0.5,
+                "value": 0.35
+              },
+              {
+                "at": 1.0,
+                "value": 0.0
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "exit": {
+      "type": "return"
+    }
+  }
+}

@@ -137,6 +137,10 @@ final class DialogueBoxView extends LinearLayout {
         options.reset();
     }
 
+    void setPlaybackRate(float playbackRate) {
+        textPlayer.setPlaybackRate(playbackRate);
+    }
+
     // 把 Theme 应用到对话框及其直接子视图。
     void applyTheme(ThemeDefinition nextTheme) {
         theme = nextTheme;
