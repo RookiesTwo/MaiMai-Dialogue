@@ -9,14 +9,15 @@ import java.util.Objects;
 import java.util.Optional;
 
 public record DialogueEnd(
-        Optional<String> text,
+        Optional<DialogueText> text,
         Optional<SpeakerOperation> speaker,
         List<SceneActionCall> actions,
         DialogueExit exit
 ) {
     public static final Codec<DialogueEnd> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
-                    Codec.STRING.optionalFieldOf("text").forGetter(DialogueEnd::text),
+                    DialogueText.optionalFieldOf("text")
+                            .forGetter(DialogueEnd::text),
                     SpeakerOperation.CODEC.optionalFieldOf("speaker")
                             .forGetter(DialogueEnd::speaker),
                     SceneActionCall.CODEC.listOf()
@@ -35,7 +36,7 @@ public record DialogueEnd(
     }
 
     public DialogueEnd(
-            Optional<String> text,
+            Optional<DialogueText> text,
             Optional<SpeakerOperation> speaker,
             DialogueExit exit
     ) {

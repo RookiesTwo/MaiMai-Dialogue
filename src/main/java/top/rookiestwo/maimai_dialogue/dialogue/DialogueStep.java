@@ -9,13 +9,14 @@ import java.util.Objects;
 import java.util.Optional;
 
 public record DialogueStep(
-        Optional<String> text,
+        Optional<DialogueText> text,
         Optional<SpeakerOperation> speaker,
         List<SceneActionCall> actions
 ) {
     public static final Codec<DialogueStep> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
-                    Codec.STRING.optionalFieldOf("text").forGetter(DialogueStep::text),
+                    DialogueText.optionalFieldOf("text")
+                            .forGetter(DialogueStep::text),
                     SpeakerOperation.CODEC.optionalFieldOf("speaker")
                             .forGetter(DialogueStep::speaker),
                     SceneActionCall.CODEC.listOf()
@@ -32,7 +33,7 @@ public record DialogueStep(
     }
 
     public DialogueStep(
-            Optional<String> text,
+            Optional<DialogueText> text,
             Optional<SpeakerOperation> speaker
     ) {
         this(text, speaker, List.of());

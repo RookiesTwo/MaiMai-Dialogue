@@ -8,6 +8,7 @@ import top.rookiestwo.maimai_dialogue.client.scene.ScenePreparation;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneRuntime;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneTransitions;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
+import top.rookiestwo.maimai_dialogue.dialogue.DialogueText;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueTarget;
@@ -24,11 +25,13 @@ import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;
 
 public final class DialogueSession {
@@ -36,6 +39,8 @@ public final class DialogueSession {
     private final ResourceLocation rootDialogueId;
     private final List<DialogueHistoryEntry> history = new ArrayList<>();
     private final List<DialogueSessionEffect> initialEffects = new ArrayList<>();
+    private final Map<DialogueTextKey, String> resolvedTexts = new HashMap<>();
+    private final RandomGenerator random;
     private long nextRequestId = 1L;
     private long generation;
     private ActiveDialogue active;
@@ -50,11 +55,28 @@ public final class DialogueSession {
             DialogueDefinition definition,
             long firstGeneration
     ) {
+        this(
+                content,
+                rootDialogueId,
+                definition,
+                firstGeneration,
+                RandomGenerator.getDefault()
+        );
+    }
+
+    DialogueSession(
+            DialogueContentLookup content,
+            ResourceLocation rootDialogueId,
+            DialogueDefinition definition,
+            long firstGeneration,
+            RandomGenerator random
+    ) {
         this.content = Objects.requireNonNull(content, "content");
         this.rootDialogueId = Objects.requireNonNull(
                 rootDialogueId,
                 "rootDialogueId"
         );
+        this.random = Objects.requireNonNull(random, "random");
         generation = firstGeneration - 1;
         active = createActive(rootDialogueId, definition, initialEffects);
     }
@@ -235,7 +257,6 @@ public final class DialogueSession {
     }
 
     public DialogueScreenState screenState() {
-        Optional<String> text = active.currentStepText();
         boolean atEnd = active.stepIndex >= active.definition.steps().size();
         boolean ready = active.playbackPhase == PlaybackPhase.READY;
         return new DialogueScreenState(
@@ -246,7 +267,7 @@ public final class DialogueSession {
                 active.playbackPhase,
                 active.playbackSkipped,
                 Optional.ofNullable(active.speakerName),
-                text,
+                active.resolvedText,
                 Optional.ofNullable(active.errorMessage),
                 history,
                 atEnd && ready ? active.visibleOptions : List.of(),
@@ -324,13 +345,14 @@ public final class DialogueSession {
             ActiveDialogue current,
             List<DialogueSessionEffect> effects
     ) {
+        current.resolvedText = resolveCurrentText(current);
         applySpeaker(current, current.currentStepSpeaker(), effects);
         ScenePreparation preparation = current.sceneRuntime.prepare(
                 current.currentStepActions()
         );
         current.playback = preparation.playback();
         current.sceneComplete = current.playback.blockingDurationMs() == 0;
-        current.textComplete = current.currentStepText()
+        current.textComplete = current.resolvedText
                 .filter(text -> !text.isEmpty())
                 .isEmpty();
         updatePlaybackPhase(current);
@@ -338,12 +360,38 @@ public final class DialogueSession {
         preparation.errors().stream()
                 .map(DialogueSessionEffect.ReportError::new)
                 .forEach(effects::add);
-        current.currentStepText()
+        current.resolvedText
                 .filter(text -> !text.isEmpty())
                 .ifPresent(text -> history.add(DialogueHistoryEntry.dialogue(
                         current.speakerName,
                         text
                 )));
+    }
+
+    // 每个 Dialogue 节点在当前 session 中只抽取一次正文。
+    private Optional<String> resolveCurrentText(ActiveDialogue current) {
+        Optional<DialogueText> text = current.currentStepText();
+        if (text.isEmpty()) {
+            return Optional.empty();
+        }
+        DialogueTextKey key;
+        if (current.stepIndex < current.definition.steps().size()) {
+            key = new DialogueTextKey(
+                    current.currentDialogueId,
+                    DialogueTextNode.STEP,
+                    current.stepIndex
+            );
+        } else {
+            key = new DialogueTextKey(
+                    current.currentDialogueId,
+                    DialogueTextNode.END,
+                    0
+            );
+        }
+        return Optional.of(resolvedTexts.computeIfAbsent(
+                key,
+                ignored -> text.orElseThrow().select(random)
+        ));
     }
 
     private void applySpeaker(
@@ -459,6 +507,7 @@ public final class DialogueSession {
         private boolean playbackSkipped;
         private boolean sceneComplete = true;
         private boolean textComplete = true;
+        private Optional<String> resolvedText = Optional.empty();
         @Nullable
         private String speakerName;
         @Nullable
@@ -507,12 +556,24 @@ public final class DialogueSession {
             return SceneTransitions.withDefaultFadeIn(actions);
         }
 
-        private Optional<String> currentStepText() {
+        private Optional<DialogueText> currentStepText() {
             if (stepIndex < definition.steps().size()) {
                 return definition.steps().get(stepIndex).text();
             }
             return definition.end().text();
         }
+    }
+
+    private enum DialogueTextNode {
+        STEP,
+        END
+    }
+
+    private record DialogueTextKey(
+            ResourceLocation dialogueId,
+            DialogueTextNode node,
+            int index
+    ) {
     }
 
     private record PendingAccessQuery(
