@@ -23,11 +23,11 @@ example_dialogue_resources-1.0.0.zip
 └─ assets/example/
    ├─ dialogues/
    ├─ speakers/
-   ├─ dialogue_themes/
+   ├─ themes/
    ├─ presentations/
    ├─ scenes/
    ├─ visual_assets/
-   ├─ presentation_actions/
+   ├─ actions/
    └─ textures/
 
 example_dialogue_data-1.0.0.zip

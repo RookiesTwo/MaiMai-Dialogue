@@ -8,7 +8,7 @@ description: DialogueBox、文字、选项、间距和控制件的 Theme 字段�
 Theme 文件位于：
 
 ```text
-assets/<namespace>/dialogue_themes/<path>.json
+assets/<namespace>/themes/<path>.json
 ```
 
 空对象 `{}` 会使用全部内置默认值。顶层区块和区块内字段都可以省略。

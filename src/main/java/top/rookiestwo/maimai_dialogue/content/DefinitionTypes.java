@@ -23,13 +23,13 @@ public final class DefinitionTypes {
             );
     public static final DefinitionType<ThemeDefinition> THEME =
             new DefinitionType<>(
-                    "dialogue_themes",
+                    "themes",
                     "dialogue theme",
                     ThemeDefinition.CODEC
             );
     public static final DefinitionType<SceneAction> ACTION =
             new DefinitionType<>(
-                    "presentation_actions",
+                    "actions",
                     "presentation action",
                     SceneAction.CODEC
             );

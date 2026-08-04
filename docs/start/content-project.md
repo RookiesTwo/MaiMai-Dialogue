@@ -31,11 +31,11 @@ description: 为 example namespace 建立 Resource Pack 与 Data Pack。
 │     └─ assets/example/
 │        ├─ dialogues/guide/
 │        ├─ speakers/
-│        ├─ dialogue_themes/
+│        ├─ themes/
 │        ├─ presentations/
 │        ├─ scenes/
 │        ├─ visual_assets/
-│        ├─ presentation_actions/
+│        ├─ actions/
 │        └─ textures/dialogue/
 └─ saves/<测试世界>/
    └─ datapacks/

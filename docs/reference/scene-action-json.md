@@ -26,7 +26,7 @@ description: SceneActionCall、关键帧、差分切换、target 和播放规则
 | `delay_ms` | 否 | `0`，范围 `0..60000` |
 | `action` | 是 | `reference` 或 `inline` |
 
-外部 Action 位于 `assets/<namespace>/presentation_actions/<path>.json`。
+外部 Action 位于 `assets/<namespace>/actions/<path>.json`。
 
 ## Inline Action
 

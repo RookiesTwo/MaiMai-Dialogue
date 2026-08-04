@@ -23,11 +23,11 @@ description: 查询 Dialogue、Speaker、Theme、Presentation、Scene、VisualAs
 | 服务端 Dialogue | `<数据包>/data/<namespace>/dialogues/<path>.json` | `example:guide/welcome` |
 | 客户端 Dialogue | `<资源包>/assets/<namespace>/dialogues/<path>.json` | `example:guide/welcome` |
 | Speaker | `<资源包>/assets/<namespace>/speakers/<path>.json` | `example:guide` |
-| Theme | `<资源包>/assets/<namespace>/dialogue_themes/<path>.json` | `example:parchment` |
+| Theme | `<资源包>/assets/<namespace>/themes/<path>.json` | `example:parchment` |
 | Presentation | `<资源包>/assets/<namespace>/presentations/<path>.json` | `example:guide/default` |
 | Scene | `<资源包>/assets/<namespace>/scenes/<path>.json` | `example:village/square` |
 | VisualAsset | `<资源包>/assets/<namespace>/visual_assets/<path>.json` | `example:characters/guide` |
-| SceneAction | `<资源包>/assets/<namespace>/presentation_actions/<path>.json` | `example:guide/enter` |
+| SceneAction | `<资源包>/assets/<namespace>/actions/<path>.json` | `example:guide/enter` |
 | 图片 | `<资源包>/assets/<namespace>/textures/<path>` | `example:dialogue/guide.png` |
 
 例如下面两个文件都映射为 `example:guide/welcome`：

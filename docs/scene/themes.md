@@ -18,7 +18,7 @@ description: 创建可复用 Theme，定制对话框、文字、选项和滚动�
 新增 Theme：
 
 ```text
-<资源包>/assets/example/dialogue_themes/parchment.json
+<资源包>/assets/example/themes/parchment.json
 ```
 
 并修改 PresentationDefinition：
@@ -31,7 +31,7 @@ Dialogue 的双端 reference 不需要修改。
 
 ## 跟着做
 
-1. 创建 `dialogue_themes/parchment.json`：
+1. 创建 `themes/parchment.json`：
 
 ```json:line-numbers [parchment.json]
 {
@@ -114,7 +114,7 @@ Theme 的每个区块和字段都可以省略；省略部分使用内置默认�
 ## 如果没有生效
 
 - 仍显示默认 Theme：检查 PresentationDefinition 的 `theme` ID。
-- Theme 文件未加载：确认目录是 `dialogue_themes`，不是 `themes`。
+- Theme 文件未加载：确认目录是 `themes`。
 - 颜色透明度异常：颜色格式使用 `#RRGGBB` 或 `#AARRGGBB`。
 - 只想修改一个 Dialogue：为它创建单独的 PresentationDefinition，再切换 reference ID。
 

@@ -63,7 +63,7 @@ description: 按玩家看到的现象排查安装、双端资源、选项、图�
 检查 `presentation.theme` 对应的：
 
 ```text
-<资源包>/assets/<namespace>/dialogue_themes/<path>.json
+<资源包>/assets/<namespace>/themes/<path>.json
 ```
 
 颜色格式与字段范围见 [Theme JSON](./theme-json.md)。修改后按 `F3 + T`。
@@ -86,7 +86,7 @@ JSON 中的：
 
 ## SceneAction 没有播放
 
-- 外部 Action 是否位于 `<资源包>/assets/<namespace>/presentation_actions/`；
+- 外部 Action 是否位于 `<资源包>/assets/<namespace>/actions/`；
 - `target` 是否已经声明；
 - `background` 是否只修改 `variant`；
 - `dialogue` 是否只修改 `x`、`y`、`scale`、`opacity`；

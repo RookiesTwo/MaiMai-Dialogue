@@ -18,7 +18,7 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 新增可复用 SceneAction：
 
 ```text
-<资源包>/assets/example/presentation_actions/guide/enter.json
+<资源包>/assets/example/actions/guide/enter.json
 ```
 
 并同步修改资源包与数据包中的两个 `dialogues/guide/welcome.json`。
@@ -213,7 +213,7 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 
 ## 如果没有生效
 
-- 外部 Action 缺失：检查文件目录是 `presentation_actions`，ID 是 `example:guide/enter`。
+- 外部 Action 缺失：检查文件目录是 `actions`，ID 是 `example:guide/enter`。
 - 日志提示 target 缺失：`target` 必须与 `visual_objects` 中的 `guide_marker` 完全一致。
 - variant 切换失败：确认 `alternate` 已在对应 `variants` 中声明。
 - 同一属性冲突：同一步中不能让多个 Action 写同一 target 的同一属性。
