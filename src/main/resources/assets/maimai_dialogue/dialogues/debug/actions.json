@@ -2,7 +2,7 @@
   "skip_summary": "## Skip summary\n\nSkip the remaining preset action demo and go directly to its final choices.",
   "presentation": {
     "type": "reference",
-    "id": "maimai_dialogue:demo/actions"
+    "id": "maimai_dialogue:debug/actions"
   },
   "steps": [
     {
@@ -395,7 +395,7 @@
           "icon": "dialogue",
           "target": {
             "type": "dialogue",
-            "dialogue": "maimai_dialogue:demo/actions"
+            "dialogue": "maimai_dialogue:debug/actions"
           }
         },
         {

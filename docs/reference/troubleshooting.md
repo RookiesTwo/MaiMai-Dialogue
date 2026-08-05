@@ -10,7 +10,7 @@ description: 按玩家看到的现象排查安装、双端资源、选项、图�
 ## 先验证内置 Demo
 
 ```text
-/maimai_dialogue open @s maimai_dialogue:demo/root
+/maimai_dialogue open @s maimai_dialogue:debug/root
 ```
 
 - Demo 也无法打开：优先检查 MOD、NeoForge、Modern UI、权限和日志。

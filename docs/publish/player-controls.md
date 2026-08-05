@@ -57,7 +57,7 @@ description: 向玩家说明推进、跳过、选择、滚动、历史和关闭�
 打开内置 Demo：
 
 ```text
-/maimai_dialogue open @s maimai_dialogue:demo/root
+/maimai_dialogue open @s maimai_dialogue:debug/root
 ```
 
 依次验证播放中跳过、Ctrl 加速、长按跳至结尾、摘要确认、正常推进、选项滚动、History、子 Dialogue Return 和关闭。

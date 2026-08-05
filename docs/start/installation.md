@@ -45,7 +45,7 @@ description: 安装 MaiMai Dialogue，并确认内置示例可以正常打开。
 执行内置 Demo 命令：
 
 ```text
-/maimai_dialogue open @s maimai_dialogue:demo/root
+/maimai_dialogue open @s maimai_dialogue:debug/root
 ```
 
 命令默认需要 permission level 2。正确安装后会出现一段带背景、动画和选项的示例对话。

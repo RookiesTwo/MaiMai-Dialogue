@@ -2,13 +2,13 @@
   "skip_summary": "## Skip summary\n\nSkip the remaining demo dialogue and go directly to its final choices.",
   "presentation": {
     "type": "reference",
-    "id": "maimai_dialogue:demo/root"
+    "id": "maimai_dialogue:debug/root"
   },
   "steps": [
     {
       "speaker": {
         "type": "set",
-        "id": "maimai_dialogue:demo/guide"
+        "id": "maimai_dialogue:debug/guide"
       },
       "text": "MaiMai Dialogue demo",
       "typewriter_interval_ms": 65,
@@ -17,7 +17,7 @@
           "target": "demo_marker",
           "action": {
             "type": "reference",
-            "id": "maimai_dialogue:demo/marker_enter"
+            "id": "maimai_dialogue:debug/marker_enter"
           }
         },
         {
@@ -77,7 +77,7 @@
           "icon": "dialogue",
           "target": {
             "type": "dialogue",
-            "dialogue": "maimai_dialogue:demo/public"
+            "dialogue": "maimai_dialogue:debug/public"
           }
         },
         {
@@ -85,7 +85,7 @@
           "icon": "question",
           "target": {
             "type": "dialogue",
-            "dialogue": "maimai_dialogue:demo/locked"
+            "dialogue": "maimai_dialogue:debug/locked"
           }
         },
         {
@@ -93,7 +93,7 @@
           "icon": "dialogue",
           "target": {
             "type": "dialogue",
-            "dialogue": "maimai_dialogue:demo/theme"
+            "dialogue": "maimai_dialogue:debug/theme"
           }
         },
         {
@@ -101,7 +101,7 @@
           "icon": "dialogue",
           "target": {
             "type": "dialogue",
-            "dialogue": "maimai_dialogue:demo/crt"
+            "dialogue": "maimai_dialogue:debug/crt"
           }
         },
         {
@@ -109,7 +109,7 @@
           "icon": "dialogue",
           "target": {
             "type": "dialogue",
-            "dialogue": "maimai_dialogue:demo/fast_forward"
+            "dialogue": "maimai_dialogue:debug/fast_forward"
           }
         },
         {
@@ -117,7 +117,7 @@
           "icon": "dialogue",
           "target": {
             "type": "dialogue",
-            "dialogue": "maimai_dialogue:demo/actions"
+            "dialogue": "maimai_dialogue:debug/actions"
           }
         },
         {

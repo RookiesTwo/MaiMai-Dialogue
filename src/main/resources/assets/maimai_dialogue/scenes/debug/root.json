@@ -10,7 +10,7 @@
   },
   "visual_objects": {
     "demo_marker": {
-      "asset": "maimai_dialogue:demo/root/marker",
+      "asset": "maimai_dialogue:debug/root/marker",
       "initial_variant": "default",
       "x": 0.5,
       "y": 0.3,

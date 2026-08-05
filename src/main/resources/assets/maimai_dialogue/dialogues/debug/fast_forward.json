@@ -1,13 +1,13 @@
 {
   "presentation": {
     "type": "reference",
-    "id": "maimai_dialogue:demo/fast_forward"
+    "id": "maimai_dialogue:debug/fast_forward"
   },
   "steps": [
     {
       "speaker": {
         "type": "set",
-        "id": "maimai_dialogue:demo/guide"
+        "id": "maimai_dialogue:debug/guide"
       },
       "text": "# Fast-forward endurance test\n\nThis branch deliberately contains long passages and slow finite animations. Hold either **left Ctrl** or **right Ctrl** while this text is appearing. The typewriter and the emerald should both advance at four times their normal speed. If Ctrl remains held when a Continue Step becomes ready, playback should automatically continue into the next Step without restarting either timeline.",
       "typewriter_interval_ms": 55,

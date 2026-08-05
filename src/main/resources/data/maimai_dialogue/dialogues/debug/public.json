@@ -1,12 +1,12 @@
 {
   "presentation": {
     "type": "reference",
-    "id": "maimai_dialogue:demo/default"
+    "id": "maimai_dialogue:debug/default"
   },
   "end": {
     "speaker": {
       "type": "set",
-      "id": "maimai_dialogue:demo/guide"
+      "id": "maimai_dialogue:debug/guide"
     },
     "text": "This dialogue is public.",
     "exit": {

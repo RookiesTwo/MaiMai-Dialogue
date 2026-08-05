@@ -1,12 +1,12 @@
 {
   "presentation": {
     "type": "reference",
-    "id": "maimai_dialogue:demo/crt"
+    "id": "maimai_dialogue:debug/crt"
   },
   "end": {
     "speaker": {
       "type": "set",
-      "id": "maimai_dialogue:demo/guide"
+      "id": "maimai_dialogue:debug/guide"
     },
     "text": "# CRT Scene Filter\n\nThe background and image object pass through the CRT/Bloom renderer. This dialogue box stays sharp.",
     "exit": {

@@ -1,12 +1,12 @@
 {
   "presentation": {
     "type": "reference",
-    "id": "maimai_dialogue:demo/parchment"
+    "id": "maimai_dialogue:debug/parchment"
   },
   "end": {
     "speaker": {
       "type": "set",
-      "id": "maimai_dialogue:demo/guide"
+      "id": "maimai_dialogue:debug/guide"
     },
     "text": "# Parchment Theme\n\nThis line supports **bold**, *italic*, and `inline code` Markdown.",
     "exit": {

@@ -8,7 +8,7 @@
   },
   "visual_objects": {
     "signal": {
-      "asset": "maimai_dialogue:demo/crt/signal",
+      "asset": "maimai_dialogue:debug/crt/signal",
       "initial_variant": "default",
       "x": 0.5,
       "y": 0.28,

@@ -13,7 +13,7 @@ MaiMai Dialogue 是面向 Minecraft 1.21.1、NeoForge 与 Modern UI 的数据驱
 安装内置开发版本后，可在测试世界执行：
 
 ```text
-/maimai_dialogue open @s maimai_dialogue:demo/root
+/maimai_dialogue open @s maimai_dialogue:debug/root
 ```
 
 该命令默认需要 permission level 2。

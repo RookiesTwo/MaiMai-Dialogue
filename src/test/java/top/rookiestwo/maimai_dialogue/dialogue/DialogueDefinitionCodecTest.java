@@ -514,10 +514,10 @@ class DialogueDefinitionCodecTest {
     @Test
     void bundledClientAndServerCommandSequencesMatch() {
         DialogueDefinition client = decodeResource(
-                "assets/maimai_dialogue/dialogues/demo/root.json"
+                "assets/maimai_dialogue/dialogues/debug/root.json"
         );
         DialogueDefinition server = decodeResource(
-                "data/maimai_dialogue/dialogues/demo/root.json"
+                "data/maimai_dialogue/dialogues/debug/root.json"
         );
 
         assertEquals(server, client);

@@ -8,7 +8,7 @@
   },
   "visual_objects": {
     "speed_marker": {
-      "asset": "maimai_dialogue:demo/fast_forward/speed_marker",
+      "asset": "maimai_dialogue:debug/fast_forward/speed_marker",
       "initial_variant": "default",
       "x": 0.5,
       "y": 0.28,

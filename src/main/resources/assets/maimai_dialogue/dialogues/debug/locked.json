@@ -1,0 +1,17 @@
+{
+  "requires": "debug.unlocked",
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:debug/default"
+  },
+  "end": {
+    "speaker": {
+      "type": "set",
+      "id": "maimai_dialogue:debug/guide"
+    },
+    "text": "The debug.unlocked ProgressNode is present.",
+    "exit": {
+      "type": "return"
+    }
+  }
+}

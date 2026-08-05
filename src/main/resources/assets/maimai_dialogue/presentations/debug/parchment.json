@@ -1,5 +1,5 @@
 {
-  "theme": "maimai_dialogue:demo/parchment",
+  "theme": "maimai_dialogue:debug/parchment",
   "dialogue_box": {
     "x": 0.5,
     "y": 0.92,

@@ -5,7 +5,7 @@ description: MOD 自带的可复用动画清单、ID、参数与使用约定。
 
 # 内置预设 SceneAction
 
-MOD 自带一组可直接引用的预设动画,文件位于 `assets/maimai_dialogue/actions/presets/`,ID 统一为 `maimai_dialogue:presets/<名称>`。演示对话 `maimai_dialogue:demo/actions` 会逐条播放全部预设,并标注当前调用的名称与说明。
+MOD 自带一组可直接引用的预设动画,文件位于 `assets/maimai_dialogue/actions/presets/`,ID 统一为 `maimai_dialogue:presets/<名称>`。演示对话 `maimai_dialogue:debug/actions` 会逐条播放全部预设,并标注当前调用的名称与说明。
 
 ## 使用方式
 
