@@ -6,7 +6,10 @@ import com.mojang.serialization.MapCodec;
 
 import java.util.Arrays;
 
-public sealed interface DialogueExit permits ReturnExit, ChoiceExit {
+public sealed interface DialogueExit permits
+        ReturnExit,
+        ChoiceExit,
+        DialogueTargetExit {
     Codec<DialogueExit> CODEC = Type.CODEC.dispatch(
             "type",
             DialogueExit::type,
@@ -17,7 +20,8 @@ public sealed interface DialogueExit permits ReturnExit, ChoiceExit {
 
     enum Type {
         RETURN("return", ReturnExit.CODEC),
-        OPTIONS("options", ChoiceExit.CODEC);
+        OPTIONS("options", ChoiceExit.CODEC),
+        DIALOGUE("dialogue", DialogueTargetExit.CODEC);
 
         private static final Codec<Type> CODEC = Codec.STRING.comapFlatMap(
                 Type::parse,

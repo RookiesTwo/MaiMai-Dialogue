@@ -47,8 +47,9 @@ description: 向玩家说明推进、跳过、选择、滚动、历史和关闭�
 
 - 子 Dialogue 的 Return 会重新进入入口 Dialogue 的开头。
 - 入口 Dialogue 的 Return 会关闭界面。
+- 作者配置 `dialogue` Exit 时，EndStep 播放完成会自动进入目标 Dialogue。
 - Esc 和界面关闭操作会结束当前对话。
-- Dialogue 不会暂停游戏世界，也没有自动播放。
+- Dialogue 不会暂停游戏世界，也没有全局自动播放。
 
 ## 进入游戏验证
 

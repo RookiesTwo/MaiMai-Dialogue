@@ -13,6 +13,7 @@ import top.rookiestwo.maimai_dialogue.dialogue.DialogueText;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueTarget;
+import top.rookiestwo.maimai_dialogue.dialogue.DialogueTargetExit;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueEnd;
 import top.rookiestwo.maimai_dialogue.dialogue.HideSpeaker;
 import top.rookiestwo.maimai_dialogue.dialogue.OptionTarget;
@@ -200,11 +201,13 @@ public final class DialogueSession {
         if (status != DialogueAccessDecision.ALLOWED) {
             if (status == DialogueAccessDecision.DIALOGUE_NOT_FOUND) {
                 effects.add(reportMissingServer(dialogueId));
-                active.visibleOptions = active.visibleOptions.stream()
-                        .filter(option -> !(option.target()
-                                instanceof DialogueTarget target)
-                                || !target.dialogue().equals(dialogueId))
-                        .toList();
+                if (pending.option != null) {
+                    active.visibleOptions = active.visibleOptions.stream()
+                            .filter(option -> !(option.target()
+                                    instanceof DialogueTarget target)
+                                    || !target.dialogue().equals(dialogueId))
+                            .toList();
+                }
             }
             active.errorMessage = requestFailureMessage(status);
             return update(effects, true);
@@ -214,7 +217,9 @@ public final class DialogueSession {
             effects.add(reportMissingClient("dialogue", dialogueId));
             return update(effects, true);
         }
-        recordOption(pending.option);
+        if (pending.option != null) {
+            recordOption(pending.option);
+        }
         activate(dialogueId, definition, effects);
         return update(effects, true);
     }
@@ -285,7 +290,9 @@ public final class DialogueSession {
             active.sceneComplete = true;
             active.textComplete = true;
             active.playbackSkipped = true;
-            return update(List.of(), true);
+            List<DialogueSessionEffect> effects = new ArrayList<>();
+            requestAutomaticExit(effects);
+            return update(effects, true);
         }
         if (active.stepIndex < active.definition.steps().size()) {
             active.stepIndex++;
@@ -318,7 +325,9 @@ public final class DialogueSession {
             active.textComplete = true;
             active.playbackSkipped = true;
             updatePlaybackPhase(active);
-            return update(List.of(), true);
+            List<DialogueSessionEffect> effects = new ArrayList<>();
+            requestAutomaticExit(effects);
+            return update(effects, true);
         }
 
         List<DialogueSessionEffect> effects = new ArrayList<>();
@@ -352,6 +361,7 @@ public final class DialogueSession {
                         active.speakerName,
                         text
                 )));
+        requestAutomaticExit(effects);
         return update(effects, true);
     }
 
@@ -367,7 +377,9 @@ public final class DialogueSession {
         }
         active.sceneComplete = true;
         updatePlaybackPhase(active);
-        return update(List.of(), true);
+        List<DialogueSessionEffect> effects = new ArrayList<>();
+        requestAutomaticExit(effects);
+        return update(effects, true);
     }
 
     // 标记打字机播放完成，并在场景也完成时解除播放锁定。
@@ -382,7 +394,9 @@ public final class DialogueSession {
         }
         active.textComplete = true;
         updatePlaybackPhase(active);
-        return update(List.of(), true);
+        List<DialogueSessionEffect> effects = new ArrayList<>();
+        requestAutomaticExit(effects);
+        return update(effects, true);
     }
 
     // 校验并执行玩家选择的当前可见选项。
@@ -400,21 +414,9 @@ public final class DialogueSession {
             return performReturn();
         }
         if (option.target() instanceof DialogueTarget target) {
-            long requestId = nextRequestId();
-            pendingTargetRequest = new PendingTargetRequest(
-                    requestId,
-                    active.generation,
-                    target.dialogue(),
-                    option
-            );
-            active.errorMessage = null;
-            return update(
-                    List.of(new DialogueSessionEffect.RequestTarget(
-                            requestId,
-                            target.dialogue()
-                    )),
-                    true
-            );
+            List<DialogueSessionEffect> effects = new ArrayList<>();
+            requestTarget(target.dialogue(), option, effects);
+            return update(effects, true);
         }
         return update(List.of(), false);
     }
@@ -533,6 +535,40 @@ public final class DialogueSession {
                         current.speakerName,
                         text
                 )));
+        requestAutomaticExit(effects);
+    }
+
+    // EndStep 播放完成后，自动请求配置的下一个 Dialogue。
+    private void requestAutomaticExit(
+            List<DialogueSessionEffect> effects
+    ) {
+        if (active.stepIndex < active.definition.steps().size()
+                || active.playbackPhase != PlaybackPhase.READY
+                || hasPendingOptionAction()
+                || !(active.definition.end().exit()
+                instanceof DialogueTargetExit target)) {
+            return;
+        }
+        requestTarget(target.dialogue(), null, effects);
+    }
+
+    private void requestTarget(
+            ResourceLocation target,
+            @Nullable DialogueOption option,
+            List<DialogueSessionEffect> effects
+    ) {
+        long requestId = nextRequestId();
+        pendingTargetRequest = new PendingTargetRequest(
+                requestId,
+                active.generation,
+                target,
+                option
+        );
+        active.errorMessage = null;
+        effects.add(new DialogueSessionEffect.RequestTarget(
+                requestId,
+                target
+        ));
     }
 
     private static void reportPreparationErrors(
@@ -888,8 +924,11 @@ public final class DialogueSession {
             long requestId,
             long generation,
             ResourceLocation target,
-            DialogueOption option
+            @Nullable DialogueOption option
     ) {
+        private PendingTargetRequest {
+            Objects.requireNonNull(target, "target");
+        }
     }
 
     private record PendingOptionCommand(

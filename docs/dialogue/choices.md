@@ -147,6 +147,24 @@ Option 可以在执行原 `target` 前先运行服务端指令。例如接受任
 
 把 `about.json` 同步保存到资源包和数据包。选项的 Dialogue target 负责从 `welcome` 进入 `about`；`about` 的 Return 会回到本次入口 `welcome`。在入口 `welcome` 选择 Return 则会关闭界面。
 
+### 可选：播放结束后自动进入下一个 Dialogue
+
+如果不需要玩家选择，可以把 `end.exit` 直接写成 Dialogue target：
+
+```json
+{
+  "end": {
+    "text": "我们去集市看看吧。",
+    "exit": {
+      "type": "dialogue",
+      "dialogue": "example:guide/market"
+    }
+  }
+}
+```
+
+EndStep 的文字和 blocking Action 全部播放完成后会自动进入 `market`。目标仍需同时存在于 Data Pack 与 Resource Pack，并通过服务端 `requires` 检查；这个跳转不会改变本次会话的入口 Dialogue。
+
 ## 进入游戏验证
 
 重载后打开 `example:guide/welcome`：

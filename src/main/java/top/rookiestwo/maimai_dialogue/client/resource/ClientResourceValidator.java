@@ -9,6 +9,7 @@ import top.rookiestwo.maimai_dialogue.client.scene.SceneTransitions;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueTarget;
+import top.rookiestwo.maimai_dialogue.dialogue.DialogueTargetExit;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueEnd;
 import top.rookiestwo.maimai_dialogue.dialogue.ChoiceExit;
 import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
@@ -262,7 +263,12 @@ public final class ClientResourceValidator {
                 runtime,
                 errors
         );
-        if (end.exit() instanceof ChoiceExit options) {
+        if (end.exit() instanceof DialogueTargetExit target
+                && !dialogues.contains(target.dialogue())) {
+            errors.add(dialogueId
+                    + ": automatic exit targets missing Dialogue "
+                    + target.dialogue());
+        } else if (end.exit() instanceof ChoiceExit options) {
             options.options().forEach(option -> {
                 if (option.target() instanceof DialogueTarget target
                         && !dialogues.contains(target.dialogue())) {
