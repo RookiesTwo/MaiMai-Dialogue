@@ -48,12 +48,12 @@ description: 使用 color_adjust 或 crt 改变背景与 VisualObject 的画面�
 
 `color_adjust` 字段：
 
-| 字段 | 范围 | 默认值 |
-|---|---:|---:|
-| `brightness` | `[-1,1]` | `0` |
-| `contrast` | `[0,2]` | `1` |
-| `saturation` | `[0,2]` | `1` |
-| `tint` | `#RRGGBB` 或 `#AARRGGBB` | 无 |
+| 字段 | 范围 | 默认值 | 白话含义 |
+|---|---|---:|---:|---|
+| `brightness` | `[-1,1]` | `0` | 亮度，负数变暗，正数变亮 |
+| `contrast` | `[0,2]` | `1` | 对比度，大于 1 明暗反差更大 |
+| `saturation` | `[0,2]` | `1` | 饱和度，小于 1 颜色变灰，0 是黑白 |
+| `tint` | `#RRGGBB` 或 `#AARRGGBB` | 无 | 整体罩上一层颜色，最前面的两位是透明度 |
 
 如果要使用 CRT 效果，可以把 Filter 替换为：
 

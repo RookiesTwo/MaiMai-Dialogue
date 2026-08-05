@@ -5,7 +5,7 @@ description: 将完整 Presentation 定义一次，并在多个 Dialogue 中引�
 
 # 可复用 Presentation
 
-PresentationDefinition 保存完整的 Presentation，包括 Theme、Scene、DialogueBox 布局，以及可选的局部 Background、VisualObject 和 Filter。
+演出配置定义（PresentationDefinition）是存成独立文件的演出配置。它保存完整的显示方案，包括 Theme、Scene、DialogueBox 布局，以及可选的局部 Background、VisualObject 和 Filter。多个对话可以用同一个代号引用它，不用把方案抄进每个对话。
 
 ## 文件位置
 

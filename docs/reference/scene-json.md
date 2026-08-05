@@ -5,7 +5,7 @@ description: 定义可复用的背景、VisualObject 与 Scene Filter。
 
 # Scene JSON
 
-Scene 是可复用的视觉舞台。它集中保存背景、场景对象和滤镜；Dialogue 的 Presentation 继续决定 Theme 与 DialogueBox 布局。
+Scene 是可复用的视觉舞台。它集中保存背景、视觉对象和滤镜；Dialogue 的 Presentation 继续决定 Theme 与 DialogueBox 布局。
 
 ## 文件位置
 

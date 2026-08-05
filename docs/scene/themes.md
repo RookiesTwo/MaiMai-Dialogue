@@ -107,6 +107,10 @@ Dialogue 的双端 reference 不需要修改。
 
 Theme 的每个区块和字段都可以省略；省略部分使用内置默认值。因为多个 Dialogue 可以引用同一个 PresentationDefinition，这次修改会同时影响它们。
 
+::: tip 颜色格式
+主题里所有颜色都用 `#RRGGBB`（红绿蓝）或 `#AARRGGBB`（前两位是透明度）写法。透明度 `FF` 是不透明，`00` 是全透明，比如 `#30FFFFFF` 就是透明度 30% 的白色。
+:::
+
 ## 进入游戏验证
 
 按 `F3 + T` 后重新打开 Dialogue。DialogueBox、文字、Options 和 scrollbar 应变成羊皮纸风格，Scene 图片与 Filter 保持不变。

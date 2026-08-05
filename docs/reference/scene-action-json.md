@@ -5,7 +5,9 @@ description: SceneActionCall、关键帧、差分切换、target 和播放规则
 
 # SceneAction JSON
 
-## SceneActionCall
+场景动作（SceneAction）是一段可复用的动画。它可以在一段时间内改变视觉对象的位置、缩放、透明度、差分和可见性，也可以切换背景差分、移动对话框。
+
+## SceneActionCall（动画调用）
 
 每个步骤的 `actions` 是一组同时调度的调用：
 
@@ -26,9 +28,9 @@ description: SceneActionCall、关键帧、差分切换、target 和播放规则
 | `delay_ms` | 否 | `0`，范围 `0..60000` |
 | `action` | 是 | `reference` 或 `inline` |
 
-外部 Action 位于 `assets/<namespace>/actions/<path>.json`。
+独立文件里的动画位于 `assets/<namespace>/actions/<path>.json`。
 
-## Inline Action
+## Inline Action（直接写在对话里的动画）
 
 ```json
 {

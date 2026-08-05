@@ -1,12 +1,19 @@
 import { defineConfig } from "vitepress";
+import { withMermaid } from "vitepress-plugin-mermaid";
 
-export default defineConfig({
+export default defineConfig(withMermaid({
   lang: "zh-CN",
   title: "MaiMai Dialogue",
   description: "MaiMai Dialogue 内容制作教程与参考资料",
   base: "/MaiMai-Dialogue/",
   cleanUrls: true,
   lastUpdated: true,
+  markdown: {
+    mermaid: {
+      theme: "neutral",
+      flowchart: { curve: "linear" },
+    },
+  },
   themeConfig: {
     search: {
       provider: "local",
@@ -19,6 +26,8 @@ export default defineConfig({
       {
         text: "更多",
         items: [
+          { text: "概念总览", link: "/concepts/overview" },
+          { text: "术语表", link: "/concepts/glossary" },
           { text: "Java API", link: "/integration/java-api" },
           { text: "参考资料", link: "/reference/resource-paths" },
           { text: "故障排查", link: "/reference/troubleshooting" },
@@ -33,6 +42,15 @@ export default defineConfig({
             { text: "MOD 如何工作", link: "/start/dialogue-structure" },
             { text: "创建内容包", link: "/start/content-project" },
           { text: "第一段对话", link: "/start/first-dialogue" },
+        ],
+      },
+      {
+        text: "核心概念",
+        items: [
+          { text: "概念总览", link: "/concepts/overview" },
+          { text: "双端分工", link: "/concepts/dual-pack" },
+          { text: "会话与导航", link: "/concepts/session" },
+          { text: "术语表", link: "/concepts/glossary" },
         ],
       },
       {
@@ -105,4 +123,4 @@ export default defineConfig({
       text: "最后更新",
     },
   },
-});
+}));

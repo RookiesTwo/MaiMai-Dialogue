@@ -52,6 +52,16 @@ Dialogue 继续使用原来的 reference，不需要修改双端副本。
 
 `x`、`y` 范围是 `[0,1]`；`width`、`max_height` 范围是 `(0,1]`。展开选项后，高度上限会临时放宽到 `1.0`，实际高度仍由正文和 Option 数量决定。
 
+`anchor` 决定对话框的哪个点对准 `x`/`y` 指定的位置，可选九个值：
+
+```text
+top_left      top_center      top_right
+center_left   center          center_right
+bottom_left   bottom_center   bottom_right
+```
+
+`x`、`y` 是"anchor 点"在画面中的位置。例如 `x: 0.5, y: 0.95, anchor: bottom_center` 表示：对话框底部中心点放在画面水平正中、离底边 5% 的位置。
+
 正文超过剩余高度时会自动变成可滚动区域，Speaker 和 Option 不会跟着正文滚动。Option 数量超过 Theme 的显示上限时，也会使用自己的滚动区域。因此正文和 Option 可以分别滚动，但为了让玩家更容易阅读，建议不要在显示大量 Option 的结尾同时放置长正文。
 
 ## 进入游戏验证

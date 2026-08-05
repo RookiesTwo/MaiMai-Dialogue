@@ -17,7 +17,7 @@ hero:
 
 features:
   - title: 写内容，不写界面代码
-    details: Dialogue、Speaker、背景、画面对象、动画和 Theme 都由资源文件定义。
+    details: Dialogue、Speaker、背景、视觉对象、动画和主题都由资源文件定义。
   - title: 做出有条件的分支
     details: 使用选项、子 Dialogue 和 ProgressNode，根据玩家进度决定哪些内容可以进入。
   - title: 同一套内容用于单人与服务器
@@ -37,7 +37,7 @@ features:
 3. [创建内容包](./start/content-project.md)，建立配套的 Resource Pack 与 Data Pack。
 4. [制作第一段对话](./start/first-dialogue.md)，进入世界亲自打开它。
 
-完成后，沿左侧目录逐章加入 Speaker、Markdown、选项、Progress、背景、立绘、动画和 Theme。所有教程都会继续使用同一个 `example` 示例工程。
+完成后，沿左侧目录逐章加入 Speaker、Markdown、选项、Progress、背景、立绘、动画和主题。所有教程都会继续使用同一个 `example` 示例工程。
 
 ::: warning 当前版本
 MaiMai Dialogue 当前为 `0.1.0-alpha`。正式发布内容包前，请在测试环境走完所有对话路径，并备份重要存档。

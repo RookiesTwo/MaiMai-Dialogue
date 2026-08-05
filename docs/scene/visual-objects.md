@@ -1,6 +1,6 @@
 ---
 title: 添加 VisualObject
-description: 在背景上添加可定位、缩放和切换差分的画面对象。
+description: 在背景上添加可定位、缩放和切换差分的视觉对象。
 ---
 
 # 添加 VisualObject
@@ -42,7 +42,33 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 
 ## 跟着做
 
-先创建 `marker.json`。它只定义可复用的差分和图片采样方式：
+### 先理解：为什么要拆成三个文件
+
+上一章把背景直接写在了对话里。现在要让背景被复用、要放立绘、要挂动画，如果全部塞进对话文件，每段对话都要抄一遍，改起来也很麻烦。所以本章把画面拆成三个独立文件，各管一件事：
+
+| 文件 | 类型 | 管什么 |
+|---|---|---|
+| `visual_assets/guide/marker.json` | 视觉资源（VisualAsset） | 给一张或多张图片（差分）起代号。相当于图片登记表，只登记，不决定位置 |
+| `scenes/guide/welcome.json` | 场景（Scene） | 一套画面组合：背景 + 视觉对象 + 滤镜。相当于"这一场戏用什么布景" |
+| `presentations/guide/welcome.json` | 演出配置定义（PresentationDefinition） | 一段对话的显示方案：用哪个主题、哪个场景、对话框放哪 |
+
+它们和对话的关系是：
+
+```mermaid
+flowchart LR
+    D[对话 Dialogue] -->|引用| P[演出配置定义<br/>presentations/ 文件]
+    P -->|引用| S[场景<br/>scenes/ 文件]
+    P -->|引用| T[主题 Theme]
+    S -->|引用| A[视觉资源<br/>visual_assets/ 文件]
+    S -->|使用| B[背景]
+    A -->|指向| I[图片 PNG]
+```
+
+这三个文件都只放进资源包，不需要数据包副本；只有对话文件本身需要双端同步。
+
+**什么时候可以不用拆？** 只在这一段对话里用一次、不需要复用、不需要动画的对象，继续直接把 `variants` 写在对话里就行，不必建文件。拆分是为复用服务的：同一个视觉资源可以被任意多个对话引用，每次引用可以选不同的初始差分、位置、缩放和层级；同一个场景可以被多个演出配置定义引用，需要额外角色时可以在演出配置里补充视觉对象（与场景里同名的对象会由演出配置里的那份替换）；同一个演出配置定义可以被多个对话引用，统一它们的主题、场景和对话框布局。
+
+### 创建视觉资源 marker.json
 
 ```json:line-numbers [visual_assets/guide/marker.json]
 {
@@ -54,7 +80,9 @@ description: 在背景上添加可定位、缩放和切换差分的画面对象�
 }
 ```
 
-VisualAsset ID 是 `example:guide/marker`。接着创建 `scenes/guide/welcome.json`，把上一章的 Background 和新的 VisualObject 集中放进可复用 Scene。`guide_marker` 是场景内的对象 ID，`asset` 指向刚才创建的 VisualAsset：
+这个视觉资源的代号是 `example:guide/marker`。它做的事很简单：`variants` 给两张图片各起一个代号（`default`、`alternate`），`sampling: "nearest"` 让像素图放大后保持清晰（不模糊）。
+
+接着创建场景文件 `scenes/guide/welcome.json`，把上一章直接写在对话里的背景，和新的视觉对象（VisualObject）集中放进去。`guide_marker` 是场景内的对象 ID，`asset` 指向刚才创建的视觉资源：
 
 ::: code-group
 
@@ -148,7 +176,20 @@ VisualAsset ID 是 `example:guide/marker`。接着创建 `scenes/guide/welcome.j
 
 :::
 
-把 VisualAsset、Scene 与 Presentation 只保存到 Resource Pack，并把引用 Presentation 的完整 Dialogue 同步保存到两个 Pack。`x`、`y` 使用画面比例位置，`anchor` 决定哪个点对齐到该坐标，`z_index` 越大越靠前。VisualObject 省略 `sampling` 后会继承 VisualAsset 的 `nearest`，避免像素图放大后变模糊。
+把视觉资源、场景和演出配置定义只保存到资源包，并把引用演出配置定义的完整对话同步保存到两个 Pack。
+
+视觉对象（VisualObject）的几个常用字段：
+
+| 字段 | 含义 |
+|---|---|
+| `x`、`y` | 对象的位置，用画面比例表示，范围 `[0,1]`（0.5 是正中间，0.3 是离顶部约三成处） |
+| `anchor` | 对象的哪个点对准 `x`/`y` 位置（`center` 是中心点，还有九宫格的其他 8 个值，见[Presentation JSON 参考](../reference/presentation-json.md#visualobject)） |
+| `scale` | 放大倍数，`8.0` 表示放大 8 倍 |
+| `opacity` | 不透明度，`0` 全透明，`1` 不透明 |
+| `visible` | 是否显示，`false` 时隐藏 |
+| `z_index` | 层级，数值越大画得越靠前 |
+
+视觉对象省略 `sampling` 时会沿用视觉资源的设置（本例为 `nearest`），避免像素图放大后变模糊。
 
 ## 进入游戏验证
 
@@ -156,16 +197,10 @@ VisualAsset ID 是 `example:guide/marker`。接着创建 `scenes/guide/welcome.j
 
 ## 如果没有生效
 
-- 对象完全不显示：依次检查 Dialogue 的 Presentation ID、Presentation 的 `scene` ID，再检查 `asset` ID、`visible`、`initial_variant` 和图片 ID。
-- 图片模糊：在 VisualAsset 中将 `sampling` 设为 `nearest`，或在单个 VisualObject 中覆盖它。
+- 对象完全不显示：依次检查对话的演出配置定义 ID、演出配置里的 `scene` ID，再检查 `asset` ID、`visible`、`initial_variant` 和图片 ID。
+- 图片模糊：在视觉资源里将 `sampling` 设为 `nearest`，或在单个视觉对象里覆盖它。
 - 对象位置异常：先使用 `anchor: center`，再调整 `x`、`y`。
-- 对象 ID 使用了 `background` 或 `dialogue`：这两个名称是保留 target，不能作为 VisualObject ID。
-
-同一个 VisualAsset 可以被任意多个 Dialogue 引用；每次引用都可以选择不同 `initial_variant`、位置、缩放和层级。只使用一次的简单对象也可以继续在 VisualObject 内直接写 `variants`。
-
-同一个 Scene 也可以被多个 PresentationDefinition 引用。某套 Presentation 需要额外角色时，可以在该 definition 的 `visual_objects` 中添加；与 Scene 同名的对象会被 Presentation 局部定义覆盖。
-
-同一个 PresentationDefinition 可以被多个 Dialogue 直接引用，统一它们的 Theme、Scene 和 DialogueBox。reference 是完整替换式调用，不能再在 Dialogue 中添加局部 Presentation 字段；需要不同配置时创建另一个 PresentationDefinition。
+- 对象 ID 使用了 `background` 或 `dialogue`：这两个名称是保留 target，不能作为视觉对象 ID。
 
 ## 下一步
 

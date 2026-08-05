@@ -54,6 +54,14 @@ Presentation 中的局部 Background 和 Filter 会整体覆盖 Scene 对应字�
 | `fit` | 否 | `cover`；可用 `contain`、`stretch` |
 | `opacity` | 否 | `1.0`，范围 `[0,1]` |
 
+`fit` 三种取值的差别（图片与画面区域形状不同时看得出来）：
+
+| 值 | 效果 |
+|---|---|
+| `cover` | 图片等比放大，把画面区域**铺满**，放不下的部分裁掉 |
+| `contain` | 图片**完整显示**，多余的区域留空 |
+| `stretch` | 图片直接**拉满**整个区域，可能变形 |
+
 ## DialogueBox 布局
 
 ```json
@@ -78,9 +86,9 @@ center_left   center          center_right
 bottom_left   bottom_center   bottom_right
 ```
 
-## VisualObject
+## VisualObject（视觉对象）
 
-推荐通过 `asset` 引用可复用的 [VisualAsset](./visual-asset-json.md)：
+视觉对象是画面上一个可移动、缩放、换图、显示或隐藏的图片对象。推荐通过 `asset` 引用可复用的 [VisualAsset](./visual-asset-json.md)：
 
 ```json
 {

@@ -7,7 +7,9 @@ description: 将 Dialogue Data Pack 与 Resource Pack 正确交付给单人实�
 
 ## 本章要实现什么
 
-把教程中的 `example` 内容整理成同一版本的数据包和资源包，并交付给服务端与玩家，避免“服务端允许但客户端没有画面”或“客户端有选项但服务端找不到目标”。
+把教程中的 `example` 内容整理成同一版本的数据包和资源包，并交付给服务端与玩家，避免"服务端允许但客户端没有画面"或"客户端有选项但服务端找不到目标"。
+
+如果你还没想明白"为什么要两份"，先读[双端分工](../concepts/dual-pack.md)。
 
 ## 开始前
 
@@ -63,6 +65,18 @@ require-resource-pack=true
 ```
 
 服务器资源包负责把客户端资源交付给玩家；Data Pack 仍然放在世界目录中。更新内容时应同时更换两个 ZIP，并更新下载地址或 SHA-1。
+
+SHA-1 可以在本机计算后填进配置。Windows 在资源包 ZIP 所在目录执行：
+
+```text
+certutil -hashfile example_dialogue_resources-1.0.0.zip SHA1
+```
+
+Linux / macOS 执行：
+
+```text
+sha1sum example_dialogue_resources-1.0.0.zip
+```
 
 ## 进入游戏验证
 

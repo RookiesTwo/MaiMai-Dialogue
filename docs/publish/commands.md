@@ -63,7 +63,11 @@ description: 使用 /maimai_dialogue 打开对话并管理在线玩家的 Progre
 /maimai_dialogue progress check @s guide.secret_unlocked
 ```
 
-节点存在时命令 result 为 `1`，不存在时为 `0`，可以放进 Minecraft 的 `execute if` 条件。
+节点存在时命令 result 为 `1`，不存在时为 `0`，可以放进 Minecraft 的 `execute if` 条件。例如在命令方块里，只有玩家拥有 `guide.secret_unlocked` 节点时才执行后续命令：
+
+```text
+/execute if command /maimai_dialogue progress check @s guide.secret_unlocked run say 已解锁
+```
 
 ## 进入游戏验证
 

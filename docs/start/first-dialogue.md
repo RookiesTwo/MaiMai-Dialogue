@@ -46,7 +46,7 @@ description: 创建并打开 example:guide/welcome。
 }
 ```
 
-`presentation.theme` 使用 MOD 内置的默认 Theme。`end` 是这个 Dialogue 必须拥有的结束点，`exit` 决定到达这里后如何离开。
+`presentation.theme` 使用 MOD 内置的默认主题。主题（Theme）是对话界面的外观设置（颜色、字号、按钮样式），这一章先直接用默认值，[制作主题](../scene/themes.md)一章会教你创建自己的主题。`end` 是这个 Dialogue 必须拥有的结束点，`exit` 决定到达这里后如何离开。
 
 这次由命令直接打开 `welcome`，所以它承担入口 Dialogue 的角色；入口处的 `return` 会关闭界面。文件名来自内容含义，与“入口”角色无关。
 

@@ -48,7 +48,7 @@ description: 按玩家看到的现象排查安装、双端资源、选项、图�
 - 确认服务端存在目标 Dialogue；不存在的目标也会被隐藏。
 - 所有 Dialogue target 都被过滤时，当前结尾会采用 Return fallback。
 
-## Speaker 显示成 ID
+## 说话者显示成代号
 
 客户端缺少或无法解析：
 
@@ -58,7 +58,7 @@ description: 按玩家看到的现象排查安装、双端资源、选项、图�
 
 检查 `speaker.id`、文件 ID 和非空 `name`。显示 ID 只是诊断回退。
 
-## Theme 回退为默认样式
+## 主题回退为默认样式
 
 检查 `presentation.theme` 对应的：
 
@@ -86,7 +86,7 @@ JSON 中的：
 
 ## SceneAction 没有播放
 
-- 外部 Action 是否位于 `<资源包>/assets/<namespace>/actions/`；
+- 动画文件是否位于 `<资源包>/assets/<namespace>/actions/`；
 - `target` 是否已经声明；
 - `background` 是否只修改 `variant`；
 - `dialogue` 是否只修改 `x`、`y`、`scale`、`opacity`；

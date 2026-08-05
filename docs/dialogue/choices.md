@@ -106,6 +106,17 @@ description: 在入口 Dialogue 中显示选项，并进入可返回的子 Dialo
 
 把完整 `welcome.json` 同步保存到两个 Pack。
 
+这里的"入口 Dialogue"是一个重要概念：用命令直接打开的 `welcome` 就是这次会话的入口，整个会话期间它不会改变。`about` 里的 `return` 会回到入口 `welcome` 的开头重新播放；入口里的 `return` 才会关闭界面。系统没有"上一页"按钮。完整的会话规则见[会话与导航](../concepts/session.md)。
+
+```mermaid
+flowchart TD
+    W[入口对话 welcome] -->|选项: 了解村庄| A[子对话 about]
+    A -->|读完, 执行 return| W2[回到 welcome 开头重新播放]
+    W -->|选项: 离开, 执行 return| C[关闭界面]
+```
+
+`icon` 是选项左侧的小图标，可选 `none`、`question`、`exclamation`、`dialogue`，省略时默认 `none`。
+
 ### 可选：点击时执行指令
 
 Option 可以在执行原 `target` 前先运行服务端指令。例如接受任务后关闭入口 Dialogue：
