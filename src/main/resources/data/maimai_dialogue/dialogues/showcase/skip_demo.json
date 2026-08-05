@@ -1,0 +1,181 @@
+{
+  "skip_summary": "## 跳过摘要\n\n这是一段用于测试**快进**与**跳过**的演示对话。\n\n确认要跳过它，直接看到结尾吗？",
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:showcase/wheat_musume"
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:showcase/wheat_musume"
+      },
+      "text": "这是一段故意写得长长的对话，用来体验玩家侧的操作。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "soft_smile"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "按住左侧或右侧的 Ctrl，文字和动画默认会以四倍速度快进；一直按住，还会自动播放下一个 Step。",
+      "typewriter_interval_ms": 60,
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "speaker": {
+        "type": "hide"
+      },
+      "text": "松开 Ctrl，速度就会恢复正常。",
+      "typewriter_interval_ms": 60
+    },
+    {
+      "text": "这是用于测试加速的文本（1/4）。按住 Ctrl 时，这一段会以四倍速度显示。松开后恢复常速，反复切换也不会回退。",
+      "typewriter_interval_ms": 60
+    },
+    {
+      "text": "这是用于测试加速的文本（2/4）。一直按住 Ctrl，文字播完后会自动进入下一个 Step，不需要再按空格。",
+      "typewriter_interval_ms": 60
+    },
+    {
+      "text": "这是用于测试加速的文本（3/4）。文字与动画使用各自独立的进度，快进时两者都会同步加速。",
+      "typewriter_interval_ms": 60
+    },
+    {
+      "text": "这是用于测试加速的文本（4/4）。松开 Ctrl 后，下一次推进才会进入下一个 Step。",
+      "typewriter_interval_ms": 60
+    },
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:showcase/wheat_musume"
+      },
+      "text": "右上角的小方钮是\"跳过\"：长按一会儿，圆环转满，就会直接跳到本段对话的结尾。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "如果作者写了\"跳过摘要\"，长按后会先弹出确认窗口，按 Esc 或\"取消\"就能反悔。"
+    },
+    {
+      "text": "不过，要是你把我的台词全跳过去……哼，我可要撅起嘴生气了哦！",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "annoyed_pout"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "按 H 键、或者点击左上角的图标，可以随时翻开历史记录，回顾看过的正文与选项。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "calm_eyes_closed"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "只是，关掉对话之后，历史记录就会清空，不会保存。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "sad"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "text": "体验就到这里啦。那么，再见了，旅行者。如果以后还来，我会在麦田边等你。",
+    "actions": [
+      {
+        "target": "wheat",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 300,
+            "easing": "ease_out",
+            "variant": {
+              "at": 0.5,
+              "value": "sad_eyes_closed"
+            }
+          }
+        }
+      }
+    ],
+    "exit": {
+      "type": "dialogue",
+      "dialogue": "maimai_dialogue:showcase/end_options"
+    }
+  }
+}

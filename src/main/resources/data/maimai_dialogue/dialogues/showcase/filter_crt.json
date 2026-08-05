@@ -1,0 +1,54 @@
+{
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:showcase/filter_crt"
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:showcase/wheat_musume"
+      },
+      "text": "这复古的 CRT 味道，来自场景滤镜。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "soft_smile"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "text": "滤镜只影响背景与立绘，对话框和文字始终清晰。",
+    "actions": [
+      {
+        "target": "wheat",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 300,
+            "easing": "ease_out",
+            "variant": {
+              "at": 0.5,
+              "value": "neutral"
+            }
+          }
+        }
+      }
+    ],
+    "exit": {
+      "type": "dialogue",
+      "dialogue": "maimai_dialogue:showcase/end_options"
+    }
+  }
+}

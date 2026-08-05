@@ -1,12 +1,21 @@
 {
+  "background": {
+    "variants": {
+      "default": "maimai_dialogue:bg01.png",
+      "dusk": "maimai_dialogue:bg02.png"
+    },
+    "initial_variant": "default",
+    "fit": "cover",
+    "opacity": 1.0
+  },
   "visual_objects": {
     "wheat": {
       "asset": "maimai_dialogue:showcase/wheat_musume",
       "initial_variant": "neutral",
-      "x": 0.5,
-      "y": 1.0,
+      "x": 0.55,
+      "y": 2.0,
       "anchor": "bottom_center",
-      "scale": 1.0,
+      "scale": 6.0,
       "opacity": 1.0,
       "visible": true,
       "z_index": 10

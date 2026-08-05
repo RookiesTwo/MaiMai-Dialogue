@@ -1,0 +1,200 @@
+{
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:showcase/wheat_musume"
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:showcase/wheat_musume"
+      },
+      "text": "你好呀，旅行者！我是小麦娘。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "happy_eyes_closed"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "今天，我为你准备了一场小演示，把 MaiMai Dialogue 在对话时的功能全都展示给你看。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "soft_smile"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "如果你是整合包作者，接下来的介绍也许能帮上大忙哦。"
+    },
+    {
+      "text": "我们先从最基础的开始：一段对话可以拆成许多\"步骤\"(Step)。比如，当前显示的这两句话就是一个\"步骤\"。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "Step 像翻书一样一页一页往下读。默认按空格，或者点一下画面，就能切换到下一个。"
+    },
+    {
+      "text": "文字还没显示完时按空格，会先把当前 Step 显示完整；再按一次，才会进入下一个 Step。"
+    },
+    {
+      "text": "我现在说话的时候，文字会一个字一个字地浮现——这是预制的打字机效果动画。每一步的速度都可以单独配置。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "calm_eyes_closed"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "想慢慢说，就放慢一点。锄禾日当午，汗滴禾下土。",
+      "typewriter_interval_ms": 100
+    },
+    {
+      "text": "想说得快，就加快速度。锄禾日当午，汗滴禾下土。",
+      "typewriter_interval_ms": 5,
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "你甚至可以让它完全没有等待时间，瞬间显示。",
+      "typewriter_interval_ms": 0,
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "soft_smile"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "锄禾日当午，汗滴禾下土。",
+      "typewriter_interval_ms": 0,
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "text": "基础玩法讲完啦。要不要先听一句随机台词，还是继续看看正文排版？",
+    "actions": [
+      {
+        "target": "wheat",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 300,
+            "easing": "ease_out",
+            "variant": {
+              "at": 0.5,
+              "value": "soft_smile"
+            }
+          }
+        }
+      }
+    ],
+    "exit": {
+      "type": "options",
+      "options": [
+        {
+          "text": "随机台词演示",
+          "icon": "dialogue",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:showcase/random"
+          }
+        },
+        {
+          "text": "继续介绍",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:showcase/main"
+          }
+        }
+      ]
+    }
+  }
+}

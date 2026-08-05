@@ -1,0 +1,279 @@
+{
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:showcase/main"
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:showcase/wheat_musume"
+      },
+      "text": "Step 正文支持 Markdown 排版：**粗体**、*斜体*、`行内代码`。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "Step 正文支持 Markdown 排版，下面每个元素都写了自己的名字：\n\n# 这是一级标题\n\n这是普通段落，用来放正文。\n\n- 这是无序列表项\n- 这是另一个列表项\n\n> 这是引用块\n\n```json\n{\n  \"key\": \"value\"\n}\n```\n\n以上就是一个 Step 里能渲染出来的正文样式。"
+    },
+    {
+      "text": "对话框上方会显示说话人的名字，比如现在的\"小麦娘\"。"
+    },
+    {
+      "speaker": {
+        "type": "hide"
+      },
+      "text": "名字隐藏后，剩下的文字就像安静的旁白。"
+    },
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:showcase/wheat_musume"
+      },
+      "text": "当然，对话时的差分变化也是肯定会支持的！",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "开心的表情。比如现在，听到你来看我，我就换上它了。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "happy_eyes_closed"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "闹别扭的表情。要是有人把我的台词全跳过去，我就会换上它。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "annoyed_talking"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "立绘的位置、大小、透明度和前后层级也都能单独调整。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "场景里的对象都能动起来，MOD 自带了预设动画，引用 ID 就能直接用。"
+    },
+    {
+      "text": "比如这个\"弹跳\"预设：我向上跳一下，再落回原位。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "happy_eyes_closed"
+              }
+            }
+          }
+        },
+        {
+          "target": "wheat",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/bounce"
+          }
+        }
+      ]
+    },
+    {
+      "text": "这个是\"脉动\"预设：先放大一点，再缩回。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "soft_smile"
+              }
+            }
+          }
+        },
+        {
+          "target": "wheat",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/pulse"
+          }
+        }
+      ]
+    },
+    {
+      "text": "预设之外，也可以自己写关键帧动画，或者把常用动画存成外部 Action 资源再引用。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "对话框本身也能做动画，比如\"震动\"预设：整个对话框会快速小幅震动，用来表达强烈的情绪。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "annoyed_talking"
+              }
+            }
+          }
+        },
+        {
+          "target": "dialogue",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/dialogue_shake"
+          }
+        }
+      ]
+    },
+    {
+      "text": "背景也一样，可以是一张全景图，也可以在 Step 之间切换差分。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "text": "背景现在切换成了另一张差分图。",
+    "actions": [
+      {
+        "target": "wheat",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 300,
+            "easing": "ease_out",
+            "variant": {
+              "at": 0.5,
+              "value": "calm_eyes_closed"
+            }
+          }
+        }
+      },
+      {
+        "target": "background",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 800,
+            "easing": "ease_in_out",
+            "variant": {
+              "at": 0.5,
+              "value": "dusk"
+            }
+          }
+        }
+      }
+    ],
+    "exit": {
+      "type": "dialogue",
+      "dialogue": "maimai_dialogue:showcase/end_options"
+    }
+  }
+}

@@ -21,6 +21,7 @@ import top.rookiestwo.maimai_dialogue.theme.ThemeOption;
 import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
 
 import java.util.Objects;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 final class DialogueBoxView extends LinearLayout {
@@ -37,7 +38,8 @@ final class DialogueBoxView extends LinearLayout {
     };
     private long renderedTextToken = Long.MIN_VALUE;
     private ThemeDefinition theme = ThemeDefinition.DEFAULT;
-    private Consumer<Boolean> optionsExpandedChanged = ignored -> {
+    private BiConsumer<Boolean, Boolean> optionsExpandedChanged =
+            (ignoredExpanded, ignoredAnimateCollapse) -> {
     };
     private DialogueTypography typography = DialogueTypography.resolve(
             ClientConfig.get()
@@ -180,9 +182,9 @@ final class DialogueBoxView extends LinearLayout {
         );
     }
 
-    void setOptionsExpandedChanged(Consumer<Boolean> listener) {
+    void setOptionsExpandedChanged(BiConsumer<Boolean, Boolean> listener) {
         optionsExpandedChanged = Objects.requireNonNull(listener, "listener");
-        optionsExpandedChanged.accept(options.isExpanded());
+        optionsExpandedChanged.accept(options.isExpanded(), false);
     }
 
     // 把 Theme 应用到对话框及其直接子视图。
@@ -283,9 +285,12 @@ final class DialogueBoxView extends LinearLayout {
         headerDivider.setVisibility(show ? VISIBLE : GONE);
     }
 
-    private void onExpandVisibilityChanged() {
+    private void onExpandVisibilityChanged(boolean animateCollapse) {
         updateHeaderVisibility();
-        optionsExpandedChanged.accept(options.isExpanded());
+        optionsExpandedChanged.accept(
+                options.isExpanded(),
+                animateCollapse
+        );
     }
 
     private int measureReservedHeight(

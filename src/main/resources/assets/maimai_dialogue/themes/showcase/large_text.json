@@ -1,0 +1,8 @@
+{
+  "text": {
+    "speaker_size": 22,
+    "dialogue_size": 24,
+    "option_size": 20,
+    "auxiliary_size": 16
+  }
+}

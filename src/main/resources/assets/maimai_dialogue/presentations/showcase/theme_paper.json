@@ -1,0 +1,8 @@
+{
+  "theme": "maimai_dialogue:showcase/paper",
+  "scene": "maimai_dialogue:showcase/wheat_musume",
+  "dialogue_box": {
+    "width": 0.7,
+    "max_height": 0.5
+  }
+}

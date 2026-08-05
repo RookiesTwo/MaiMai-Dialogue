@@ -1,0 +1,23 @@
+{
+  "box": {
+    "background": "#F2F5EFE2",
+    "border": "#FF74543A",
+    "divider": "#8074543A"
+  },
+  "text": {
+    "primary": "#FF30251C",
+    "error": "#FFC2382B"
+  },
+  "option": {
+    "background": "#22000000",
+    "hover_background": "#403F6A5A",
+    "pressed_background": "#70503B2A",
+    "border": "#704B3928",
+    "hover_border": "#FF7E4F2A"
+  },
+  "controls": {
+    "icon": "#FF7E4F2A",
+    "scrollbar_thumb": "#C07E4F2A",
+    "scrollbar_track": "#407E4F2A"
+  }
+}

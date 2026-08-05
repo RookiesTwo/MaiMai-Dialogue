@@ -1,0 +1,54 @@
+{
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:showcase/theme_paper"
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:showcase/wheat_musume"
+      },
+      "text": "这一页羊皮纸的质感，就是\"主题\"的功劳。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "soft_smile"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "text": "颜色、字体、边框、布局……一套主题就能统一整场对话的模样。",
+    "actions": [
+      {
+        "target": "wheat",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 300,
+            "easing": "ease_out",
+            "variant": {
+              "at": 0.5,
+              "value": "neutral"
+            }
+          }
+        }
+      }
+    ],
+    "exit": {
+      "type": "dialogue",
+      "dialogue": "maimai_dialogue:showcase/end_options"
+    }
+  }
+}

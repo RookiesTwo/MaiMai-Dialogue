@@ -1,0 +1,57 @@
+{
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:showcase/wheat_musume"
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:showcase/wheat_musume"
+      },
+      "text": "Step 的台词可以在几句备选中随机抽取一句，每次打开对话都可能不同。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "soft_smile"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "text": [
+      "随机文本演示（结果1）：这句是从三句备选台词里随机抽出来的。",
+      "随机文本演示（结果2）：重新抽取的话，可能就抽到这一句。",
+      "随机文本演示（结果3）：每次重新打开对话，都可能听到不同的一句。"
+    ],
+    "exit": {
+      "type": "options",
+      "options": [
+        {
+          "text": "再Roll一句",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:showcase/random"
+          }
+        },
+        {
+          "text": "继续介绍",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:showcase/main"
+          }
+        }
+      ]
+    }
+  }
+}

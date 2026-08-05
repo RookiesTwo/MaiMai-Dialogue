@@ -220,4 +220,4 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 
 ## 下一步
 
-继续[调整对话框布局](./dialogue-box.md)。完整字段和关键帧规则可在 [SceneAction JSON 参考](../reference/scene-action-json.md)中查阅。
+继续[调整对话框布局](./dialogue-box.md)。完整字段和关键帧规则可在 [SceneAction JSON 参考](../reference/scene-action-json.md)中查阅,MOD 自带的可直接引用的动画见[内置预设 SceneAction](../reference/preset-actions.md)。

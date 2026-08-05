@@ -1,0 +1,54 @@
+{
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:showcase/wheat_musume"
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:showcase/wheat_musume"
+      },
+      "text": "这里是一段子对话。选项可以带你走进更深的剧情。",
+      "actions": [
+        {
+          "target": "wheat",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 300,
+              "easing": "ease_out",
+              "variant": {
+                "at": 0.5,
+                "value": "neutral"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "text": "子对话的结尾也可以直接跳转到指定对话，这里会直接把你带回结束选项。",
+    "actions": [
+      {
+        "target": "wheat",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 300,
+            "easing": "ease_out",
+            "variant": {
+              "at": 0.5,
+              "value": "calm_eyes_closed"
+            }
+          }
+        }
+      }
+    ],
+    "exit": {
+      "type": "dialogue",
+      "dialogue": "maimai_dialogue:showcase/end_options"
+    }
+  }
+}

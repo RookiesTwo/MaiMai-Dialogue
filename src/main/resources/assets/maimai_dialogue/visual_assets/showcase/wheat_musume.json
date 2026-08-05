@@ -7,7 +7,9 @@
     "annoyed_talking": "maimai_dialogue:characters/wheat_musume/annoyed_talking.png",
     "annoyed_pout": "maimai_dialogue:characters/wheat_musume/annoyed_pout.png",
     "sad": "maimai_dialogue:characters/wheat_musume/sad.png",
-    "sad_eyes_closed": "maimai_dialogue:characters/wheat_musume/sad_eyes_closed.png"
+    "sad_eyes_closed": "maimai_dialogue:characters/wheat_musume/sad_eyes_closed.png",
+    "dislike": "maimai_dialogue:characters/wheat_musume/dislike.png",
+    "speechless": "maimai_dialogue:characters/wheat_musume/speechless.png"
   },
   "sampling": "nearest"
 }

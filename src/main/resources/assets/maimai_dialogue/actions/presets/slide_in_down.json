@@ -1,0 +1,25 @@
+{
+  "duration_ms": 500,
+  "easing": "ease_out",
+  "blocking": true,
+  "y": [
+    {
+      "at": 0.0,
+      "value": -0.25
+    },
+    {
+      "at": 1.0,
+      "value": 0.0
+    }
+  ],
+  "opacity": [
+    {
+      "at": 0.0,
+      "value": -1.0
+    },
+    {
+      "at": 1.0,
+      "value": 0.0
+    }
+  ]
+}

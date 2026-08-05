@@ -1,0 +1,19 @@
+{
+  "duration_ms": 400,
+  "easing": "ease_in_out",
+  "blocking": false,
+  "scale": [
+    {
+      "at": 0.0,
+      "value": 0.0
+    },
+    {
+      "at": 0.5,
+      "value": 0.08
+    },
+    {
+      "at": 1.0,
+      "value": 0.0
+    }
+  ]
+}

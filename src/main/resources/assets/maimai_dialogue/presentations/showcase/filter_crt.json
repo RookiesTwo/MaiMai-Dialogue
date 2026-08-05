@@ -1,0 +1,15 @@
+{
+  "theme": "maimai_dialogue:default",
+  "scene": "maimai_dialogue:showcase/wheat_musume",
+  "filter": {
+    "type": "crt",
+    "curvature": 0.14,
+    "scanline_strength": 0.32,
+    "mask_strength": 0.2,
+    "chromatic_aberration": 1.3,
+    "vignette": 0.3,
+    "noise": 0.05,
+    "flicker": 0.025,
+    "bloom": 0.24
+  }
+}

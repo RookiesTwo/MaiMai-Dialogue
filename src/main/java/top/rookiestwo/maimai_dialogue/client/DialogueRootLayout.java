@@ -51,6 +51,7 @@ final class DialogueRootLayout extends FrameLayout {
     private boolean skipKeyDown;
     private boolean historyKeyDown;
     private boolean optionsExpanded;
+    private boolean animateNextHeightDecrease;
 
     DialogueRootLayout(
             Context context,
@@ -104,11 +105,12 @@ final class DialogueRootLayout extends FrameLayout {
         requestLayout();
     }
 
-    void setOptionsExpanded(boolean expanded) {
+    void setOptionsExpanded(boolean expanded, boolean animateCollapse) {
         if (optionsExpanded == expanded) {
             return;
         }
         optionsExpanded = expanded;
+        animateNextHeightDecrease = animateCollapse && !expanded;
         requestLayout();
     }
 
@@ -380,6 +382,8 @@ final class DialogueRootLayout extends FrameLayout {
     }
 
     private void updateDialogueHeightTarget(int targetHeight) {
+        boolean animateDecrease = animateNextHeightDecrease;
+        animateNextHeightDecrease = false;
         if (dialogueTargetHeight < 0) {
             dialogueTargetHeight = targetHeight;
             dialogueDisplayHeight = targetHeight;
@@ -391,8 +395,8 @@ final class DialogueRootLayout extends FrameLayout {
 
         int previousTargetHeight = dialogueTargetHeight;
         dialogueTargetHeight = targetHeight;
-        // Step 切换导致高度缩小时直接收起，只有内容变高才播放展开动画。
-        if (targetHeight < previousTargetHeight) {
+        // 普通高度缩小立即完成；只有玩家点击“收起”时保留收缩动画。
+        if (targetHeight < previousTargetHeight && !animateDecrease) {
             cancelHeightAnimator();
             dialogueDisplayHeight = targetHeight;
             requestLayout();

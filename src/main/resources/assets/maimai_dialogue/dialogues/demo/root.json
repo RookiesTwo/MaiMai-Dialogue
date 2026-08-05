@@ -23,52 +23,8 @@
         {
           "target": "dialogue",
           "action": {
-            "type": "inline",
-            "action": {
-              "duration_ms": 700,
-              "easing": "ease_out",
-              "blocking": true,
-              "x": [
-                {
-                  "at": 0.0,
-                  "value": -0.08
-                },
-                {
-                  "at": 1.0,
-                  "value": 0.0
-                }
-              ],
-              "y": [
-                {
-                  "at": 0.0,
-                  "value": 0.04
-                },
-                {
-                  "at": 1.0,
-                  "value": 0.0
-                }
-              ],
-              "scale": [
-                {
-                  "at": 0.0,
-                  "value": -0.12
-                },
-                {
-                  "at": 1.0,
-                  "value": 0.0
-                }
-              ],
-              "opacity": [
-                {
-                  "at": 0.0,
-                  "value": 0.0
-                },
-                {
-                  "at": 1.0,
-                  "value": 1.0
-                }
-              ]
-            }
+            "type": "reference",
+            "id": "maimai_dialogue:presets/dialogue_enter"
           }
         }
       ]
@@ -154,6 +110,14 @@
           "target": {
             "type": "dialogue",
             "dialogue": "maimai_dialogue:demo/fast_forward"
+          }
+        },
+        {
+          "text": "Open the preset actions demo",
+          "icon": "dialogue",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:demo/actions"
           }
         },
         {

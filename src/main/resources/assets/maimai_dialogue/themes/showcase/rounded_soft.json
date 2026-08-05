@@ -1,0 +1,12 @@
+{
+  "box": {
+    "background": "#E6F3F0F8",
+    "corner_radius": 16
+  },
+  "option": {
+    "background": "#35FFFFFF",
+    "hover_background": "#75D7C6F0",
+    "pressed_background": "#A0B7A7D7",
+    "corner_radius": 12
+  }
+}

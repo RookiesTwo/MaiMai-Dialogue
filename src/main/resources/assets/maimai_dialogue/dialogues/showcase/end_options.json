@@ -1,0 +1,85 @@
+{
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:showcase/wheat_musume"
+  },
+  "end": {
+    "speaker": {
+      "type": "set",
+      "id": "maimai_dialogue:showcase/wheat_musume"
+    },
+    "text": "基础的本领就展示到这里啦。接下来，想去哪里看看呢？",
+    "actions": [
+      {
+        "target": "wheat",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 300,
+            "easing": "ease_out",
+            "variant": {
+              "at": 0.5,
+              "value": "soft_smile"
+            }
+          }
+        }
+      }
+    ],
+    "exit": {
+      "type": "options",
+      "options": [
+        {
+          "text": "子对话与返回",
+          "icon": "question",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:showcase/sub"
+          }
+        },
+        {
+          "text": "羊皮纸主题",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:showcase/theme_paper"
+          }
+        },
+        {
+          "text": "CRT 滤镜",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:showcase/filter_crt"
+          }
+        },
+        {
+          "text": "被进度锁住的秘密",
+          "icon": "exclamation",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:showcase/secret"
+          }
+        },
+        {
+          "text": "长对话：快进与跳过",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:showcase/skip_demo"
+          }
+        },
+        {
+          "text": "解锁隐藏的秘密（执行一条服务端指令）",
+          "command": "maimai_dialogue progress add @s showcase.secret_unlocked",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:showcase/end_options"
+          }
+        },
+        {
+          "text": "离开",
+          "target": {
+            "type": "close"
+          }
+        }
+      ]
+    }
+  }
+}

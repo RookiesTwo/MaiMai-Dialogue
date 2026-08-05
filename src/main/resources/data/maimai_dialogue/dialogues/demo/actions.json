@@ -1,0 +1,410 @@
+{
+  "skip_summary": "## Skip summary\n\nSkip the remaining preset action demo and go directly to its final choices.",
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:demo/actions"
+  },
+  "steps": [
+    {
+      "text": "本对话依次演示内置预设 Action,每个 Step 的正文标注了当前调用的预设名。开场:`maimai_dialogue:presets/dialogue_enter`(对话框上移淡入)+ `maimai_dialogue:presets/fade_in`(标记从透明淡入)。",
+      "typewriter_interval_ms": 15,
+      "actions": [
+        {
+          "target": "dialogue",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/dialogue_enter"
+          }
+        },
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/fade_in"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/bounce` — 上下弹跳:向上跳起约 15% 再落回原位。非阻塞,打字机可继续推进。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/bounce"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/wiggle` — 左右扭动:向两侧各摆 5%,摇头般可爱的动作。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/wiggle"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/pulse` — 缩放脉冲:先放大 8% 再缩回,用来强调当前台词。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/pulse"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/shake` — 快速抖动:小幅高频左右震动,适合“不行!”“才不是!”这种台词。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/shake"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/dialogue_shake` — 对话框抖动:整个对话框小幅快速震动,用于表达强烈感情。",
+      "actions": [
+        {
+          "target": "dialogue",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/dialogue_shake"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/flash` — 闪烁:透明度骤降再恢复,给受击、惊讶等瞬间反馈。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/flash"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/pop_in` — 弹性弹出:缩小后放大并轻微过冲,弹性的入场感。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/pop_in"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/zoom_in` — 放大出现:从接近消失的微小尺寸放大回原位。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/zoom_in"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/drop_in` — 从上落下:先在上方现形,再加速“落”到原位,有重力感。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/drop_in"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/slide_in_left` — 左侧滑入:从左边 30% 处平移入场。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/slide_in_left"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/slide_in_right` — 右侧滑入:从右边 30% 处平移入场。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/slide_in_right"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/slide_in_up` — 下方滑入:从下方 25% 处上移入场。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/slide_in_up"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/slide_in_down` — 上方滑入:从上方 25% 处下移入场。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/slide_in_down"
+          }
+        }
+      ]
+    },
+    {
+      "text": "背景只能切换差分,没有通用预设:用 inline Action 把背景切到 `alternate`。标记同时再 `maimai_dialogue:presets/pulse` 一下。",
+      "actions": [
+        {
+          "target": "background",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 500,
+              "easing": "ease_in_out",
+              "variant": {
+                "at": 0.55,
+                "value": "alternate"
+              }
+            }
+          }
+        },
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/pulse"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/hide` — 隐藏:立即把标记设为不可见。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/hide"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/show` — 显示:立即恢复可见,与 hide 相对。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/show"
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/fade_out` — 淡出:逐渐变透明直至消失。退出类预设以 −1 偏移结尾,要求进入该步时对象透明度为 1。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/fade_out"
+          }
+        }
+      ]
+    },
+    {
+      "text": "上一步结束后标记已透明,先内联恢复:`opacity` 0 → 1.0(相对偏移)重新回到 100% 透明度,以便继续演示下一个退场。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 350,
+              "easing": "ease_out",
+              "blocking": true,
+              "opacity": [
+                {
+                  "at": 0.0,
+                  "value": 0.0
+                },
+                {
+                  "at": 1.0,
+                  "value": 1.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/slide_out_left` — 向左滑出:边移动边淡出离场。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/slide_out_left"
+          }
+        }
+      ]
+    },
+    {
+      "text": "再次用 inline Action 恢复透明度(0 → 1.0)。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 350,
+              "easing": "ease_out",
+              "blocking": true,
+              "opacity": [
+                {
+                  "at": 0.0,
+                  "value": 0.0
+                },
+                {
+                  "at": 1.0,
+                  "value": 1.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/rise_out` — 向上飘走:缓缓上升并淡出,轻盈的离场。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/rise_out"
+          }
+        }
+      ]
+    },
+    {
+      "text": "继续用 inline Action 恢复透明度(0 → 1.0)。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 350,
+              "easing": "ease_out",
+              "blocking": true,
+              "opacity": [
+                {
+                  "at": 0.0,
+                  "value": 0.0
+                },
+                {
+                  "at": 1.0,
+                  "value": 1.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "`maimai_dialogue:presets/shrink_out` — 缩小消失:一边缩小一边淡出。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:presets/shrink_out"
+          }
+        }
+      ]
+    },
+    {
+      "text": "最后一次恢复透明度(0 → 1.0),标记回到完全可见的初始状态。",
+      "actions": [
+        {
+          "target": "demo_marker",
+          "action": {
+            "type": "inline",
+            "action": {
+              "duration_ms": 350,
+              "easing": "ease_out",
+              "blocking": true,
+              "opacity": [
+                {
+                  "at": 0.0,
+                  "value": 0.0
+                },
+                {
+                  "at": 1.0,
+                  "value": 1.0
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "text": "预设演示完毕。所有预设都以相对偏移量写回原状,可以放心组合使用。",
+    "typewriter_interval_ms": 0,
+    "exit": {
+      "type": "options",
+      "options": [
+        {
+          "text": "Replay the preset demo",
+          "icon": "dialogue",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:demo/actions"
+          }
+        },
+        {
+          "text": "Back to the demo menu",
+          "target": {
+            "type": "return"
+          }
+        }
+      ]
+    }
+  }
+}

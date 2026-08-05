@@ -82,6 +82,7 @@ export default defineConfig({
           { text: "Scene JSON", link: "/reference/scene-json" },
           { text: "VisualAsset JSON", link: "/reference/visual-asset-json" },
           { text: "SceneAction JSON", link: "/reference/scene-action-json" },
+          { text: "内置预设 SceneAction", link: "/reference/preset-actions" },
           { text: "Theme JSON", link: "/reference/theme-json" },
           { text: "Progress 表达式", link: "/reference/progress-expression" },
           { text: "故障排查", link: "/reference/troubleshooting" },

@@ -1,0 +1,31 @@
+{
+  "duration_ms": 300,
+  "easing": "linear",
+  "blocking": false,
+  "x": [
+    {
+      "at": 0.0,
+      "value": 0.0
+    },
+    {
+      "at": 0.2,
+      "value": -0.02
+    },
+    {
+      "at": 0.4,
+      "value": 0.02
+    },
+    {
+      "at": 0.6,
+      "value": -0.02
+    },
+    {
+      "at": 0.8,
+      "value": 0.02
+    },
+    {
+      "at": 1.0,
+      "value": 0.0
+    }
+  ]
+}

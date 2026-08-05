@@ -156,6 +156,17 @@ tasks.named("test", Test) {
     useJUnitPlatform()
 }
 
+// 默认 build 只负责产出构建结果；test 和 check 仍可单独运行。
+def checkTask = tasks.named("check")
+tasks.named("build") {
+    def checkTaskInstance = checkTask.get()
+    setDependsOn(dependsOn.findAll { dependency ->
+        dependency != checkTask
+                && dependency != checkTaskInstance
+                && dependency != "check"
+    })
+}
+
 // This block of code expands all declared replace properties in the specified resource targets.
 // A missing property will result in an error. Properties are expanded using ${} Groovy notation.
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

@@ -35,7 +35,7 @@ final class DialogueOptionsView extends LinearLayout {
             ClientConfig.get()
     );
     private Button expandButton;
-    private Runnable expandVisibilityChanged = () -> {
+    private Consumer<Boolean> expandVisibilityChanged = ignored -> {
     };
 
     DialogueOptionsView(
@@ -75,7 +75,10 @@ final class DialogueOptionsView extends LinearLayout {
         applyTheme(ThemeDefinition.DEFAULT);
     }
 
-    void bindExpandButton(Button button, Runnable visibilityChanged) {
+    void bindExpandButton(
+            Button button,
+            Consumer<Boolean> visibilityChanged
+    ) {
         expandButton = button;
         expandVisibilityChanged = visibilityChanged;
         button.setOnClickListener(view -> toggleExpanded());
@@ -99,14 +102,14 @@ final class DialogueOptionsView extends LinearLayout {
                     optionLayoutParams(option)
             );
         }
-        scroll.post(this::updateExpandVisibility);
+        scroll.post(() -> updateExpandVisibility(false));
     }
 
     // 切换 Dialogue 时复位滚动和展开状态。
     void reset() {
         scroll.setExpanded(false);
         scroll.scrollTo(0, 0);
-        updateExpandVisibility();
+        updateExpandVisibility(false);
     }
 
     void setTypography(DialogueTypography typography) {
@@ -136,11 +139,12 @@ final class DialogueOptionsView extends LinearLayout {
     }
 
     private void toggleExpanded() {
-        scroll.setExpanded(!scroll.isExpanded());
-        updateExpandVisibility();
+        boolean collapsing = scroll.isExpanded();
+        scroll.setExpanded(!collapsing);
+        updateExpandVisibility(collapsing);
     }
 
-    private void updateExpandVisibility() {
+    private void updateExpandVisibility(boolean animateCollapse) {
         Button button = expandButton;
         if (button == null) {
             return;
@@ -153,7 +157,9 @@ final class DialogueOptionsView extends LinearLayout {
                 ? "gui.maimai_dialogue.collapse"
                 : "gui.maimai_dialogue.expand"));
         button.setVisibility(show ? View.VISIBLE : View.GONE);
-        expandVisibilityChanged.run();
+        expandVisibilityChanged.accept(
+                animateCollapse && !scroll.isExpanded()
+        );
     }
 
     private Button createOptionButton(

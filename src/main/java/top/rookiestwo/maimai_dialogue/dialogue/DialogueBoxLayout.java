@@ -30,10 +30,10 @@ public record DialogueBoxLayout(
 
     public static final DialogueBoxLayout DEFAULT = new DialogueBoxLayout(
             0.5F,
-            0.98F,
-            0.5F,
+            0.76F,
             0.4F,
-            VisualAnchor.BOTTOM_CENTER
+            0.4F,
+            VisualAnchor.CENTER
     );
 
     public static final Codec<DialogueBoxLayout> CODEC =

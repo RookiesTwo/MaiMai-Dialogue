@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 final class DialogueSceneView extends FrameLayout {
+    // VisualObject scale 以该屏幕高度为设计基准，其他分辨率自动等比缩放。
+    private static final float DESIGN_SCREEN_HEIGHT = 1080.0F;
     private final Map<String, ObjectBinding> objectBindings =
             new LinkedHashMap<>();
     private final SceneImageRenderer imageRenderer = new SceneImageRenderer();
@@ -250,8 +252,15 @@ final class DialogueSceneView extends FrameLayout {
         );
         view.setPivotX(anchorX * childWidth);
         view.setPivotY(anchorY * childHeight);
-        view.setScaleX(object.scale());
-        view.setScaleY(object.scale());
+        // ImageDrawable 会按 ModernUI density（随 guiScale 变化）自动缩放图片尺寸，
+        // 这里除以 density 抵消，使 scale 在不同分辨率下占屏比例一致。
+        float density = view.getContext()
+                .getResources()
+                .getDisplayMetrics()
+                .density;
+        float resolutionScale = height / DESIGN_SCREEN_HEIGHT / density;
+        view.setScaleX(object.scale() * resolutionScale);
+        view.setScaleY(object.scale() * resolutionScale);
     }
 
     private void startPlayback(
