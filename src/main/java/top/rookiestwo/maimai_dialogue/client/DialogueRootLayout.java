@@ -333,6 +333,15 @@ final class DialogueRootLayout extends FrameLayout {
         int boxTop = Math.round(
                 dialogueBoxState.y() * height - anchorY * boxHeight
         );
+        // 钳制底边不超出屏幕：选项展开时对话框可能超过 anchor 预留的高度，
+        // 溢出时自动改为底部对齐向上生长，保证底部选项始终可见可交互。
+        int boxBottom = boxTop + boxHeight;
+        if (boxBottom > height) {
+            boxTop = height - boxHeight;
+        }
+        if (boxTop < 0) {
+            boxTop = 0;
+        }
         dialogueBox.layout(
                 boxLeft,
                 boxTop,
