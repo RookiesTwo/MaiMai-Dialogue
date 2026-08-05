@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue.server;
 
 import net.minecraft.commands.CommandResultCallback;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
@@ -13,10 +14,12 @@ import top.rookiestwo.maimai_dialogue.dialogue.DialogueTarget;
 import top.rookiestwo.maimai_dialogue.network.DialogueAccessStatus;
 import top.rookiestwo.maimai_dialogue.network.OptionCommandStatus;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public final class OptionCommandService {
@@ -55,7 +58,7 @@ public final class OptionCommandService {
                             dialogueId,
                             optionIndex
                     );
-                    if (option == null || option.command().isEmpty()) {
+                    if (option == null || option.commands().isEmpty()) {
                         return CompletableFuture.completedFuture(
                                 OptionCommandStatus.INVALID_OPTION
                         );
@@ -75,7 +78,7 @@ public final class OptionCommandService {
                                             player,
                                             dialogueId,
                                             optionIndex,
-                                            option.command().orElseThrow()
+                                            option.commands()
                                     );
                                 });
                     }
@@ -84,7 +87,7 @@ public final class OptionCommandService {
                             player,
                             dialogueId,
                             optionIndex,
-                            option.command().orElseThrow()
+                            option.commands()
                     );
                 })
                 .exceptionally(error -> {
@@ -119,49 +122,65 @@ public final class OptionCommandService {
             ServerPlayer player,
             ResourceLocation dialogueId,
             int optionIndex,
-            String command
+            List<String> commands
     ) {
         CompletableFuture<OptionCommandStatus> result = new CompletableFuture<>();
-        MinecraftServer server = player.getServer();
+        MinecraftServer server = Objects.requireNonNull(
+                player.getServer(),
+                "player server"
+        );
         Runnable execution = () -> {
-            AtomicBoolean callbackInvoked = new AtomicBoolean();
-            AtomicBoolean successful = new AtomicBoolean();
-            CommandResultCallback callback = (success, value) -> {
-                callbackInvoked.set(true);
-                if (success) {
-                    successful.set(true);
-                }
-            };
+            CommandSourceStack source;
             try {
-                server.getCommands().performPrefixedCommand(
-                        player.createCommandSourceStack()
-                                .withPermission(COMMAND_PERMISSION_LEVEL)
-                                .withCallback(callback),
-                        command
-                );
-                if (callbackInvoked.get() && successful.get()) {
-                    result.complete(OptionCommandStatus.EXECUTED);
-                    return;
-                }
-                MaiMaiDialogue.LOGGER.warn(
-                        "Option command failed for dialogue {} option {} from player {}: {}",
-                        dialogueId,
-                        optionIndex,
-                        player.getUUID(),
-                        command
-                );
-                result.complete(OptionCommandStatus.COMMAND_FAILED);
+                source = player.createCommandSourceStack()
+                        .withPermission(COMMAND_PERMISSION_LEVEL);
             } catch (RuntimeException error) {
                 MaiMaiDialogue.LOGGER.error(
-                        "Option command crashed for dialogue {} option {} from player {}: {}",
+                        "Failed to prepare option command sequence for dialogue {} option {} from player {}",
                         dialogueId,
                         optionIndex,
                         player.getUUID(),
-                        command,
                         error
                 );
                 result.complete(OptionCommandStatus.INTERNAL_ERROR);
+                return;
             }
+            CommandSequenceResult sequence = executeSequence(
+                    commands,
+                    command -> executeCommand(server, source, command)
+            );
+            if (sequence.successful()) {
+                result.complete(OptionCommandStatus.EXECUTED);
+                return;
+            }
+
+            int failedIndex = sequence.failedCommandIndex();
+            String failedCommand = commands.get(failedIndex);
+            if (sequence.error() != null) {
+                MaiMaiDialogue.LOGGER.error(
+                        "Option command {}/{} crashed for dialogue {} option {} from player {}: {}",
+                        failedIndex + 1,
+                        commands.size(),
+                        dialogueId,
+                        optionIndex,
+                        player.getUUID(),
+                        failedCommand,
+                        sequence.error()
+                );
+                result.complete(OptionCommandStatus.INTERNAL_ERROR);
+                return;
+            }
+
+            MaiMaiDialogue.LOGGER.warn(
+                    "Option command {}/{} failed for dialogue {} option {} from player {}: {}",
+                    failedIndex + 1,
+                    commands.size(),
+                    dialogueId,
+                    optionIndex,
+                    player.getUUID(),
+                    failedCommand
+            );
+            result.complete(OptionCommandStatus.COMMAND_FAILED);
         };
         if (server.isSameThread()) {
             execution.run();
@@ -169,6 +188,52 @@ public final class OptionCommandService {
             server.execute(execution);
         }
         return result;
+    }
+
+    private static boolean executeCommand(
+            MinecraftServer server,
+            CommandSourceStack source,
+            String command
+    ) {
+        AtomicBoolean callbackInvoked = new AtomicBoolean();
+        AtomicBoolean successful = new AtomicBoolean();
+        CommandResultCallback callback = (success, value) -> {
+            callbackInvoked.set(true);
+            if (success) {
+                successful.set(true);
+            }
+        };
+        server.getCommands().performPrefixedCommand(
+                source.withCallback(callback),
+                command
+        );
+        return callbackInvoked.get() && successful.get();
+    }
+
+    // 按配置顺序执行，并在首个失败或异常处停止。
+    static CommandSequenceResult executeSequence(
+            List<String> commands,
+            Predicate<String> executor
+    ) {
+        Objects.requireNonNull(commands, "commands");
+        Objects.requireNonNull(executor, "executor");
+        for (int index = 0; index < commands.size(); index++) {
+            try {
+                if (!executor.test(commands.get(index))) {
+                    return new CommandSequenceResult(false, index, null);
+                }
+            } catch (RuntimeException error) {
+                return new CommandSequenceResult(false, index, error);
+            }
+        }
+        return new CommandSequenceResult(true, -1, null);
+    }
+
+    record CommandSequenceResult(
+            boolean successful,
+            int failedCommandIndex,
+            RuntimeException error
+    ) {
     }
 
     private static OptionCommandStatus sourceRejection(

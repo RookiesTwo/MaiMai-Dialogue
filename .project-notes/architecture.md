@@ -30,7 +30,7 @@ logical server 负责 Dialogue 访问权限、Option command 和玩家进度，c
 3. content 在完整加载和交叉验证后一次性发布，读取方不会看到半更新状态。
 4. service 通过构造参数接收 repository/store；静态入口只保留在事件和 API adapter。
 5. JSON 字段、资源目录和 network payload 属于兼容性边界，内部重构不得修改。
-6. command Option 仍采用无 session 协议：服务端按 source Dialogue 与 Option index 解析 Data Pack，先校验 source/target 再执行，不信任客户端 command。
+6. command Option 仍采用无 session 协议：服务端按 source Dialogue 与 Option index 解析 Data Pack，先校验 source/target 再顺序执行 command，不信任客户端 command 原文。
 
 ## 注释规则
 

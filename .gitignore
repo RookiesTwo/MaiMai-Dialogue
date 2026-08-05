@@ -24,6 +24,7 @@ run
 !/src/test/**/ClientPreferencesTest.java
 !/src/test/**/DialogueDefinitionCodecTest.java
 !/src/test/**/DialogueSessionTest.java
+!/src/test/**/OptionCommandServiceTest.java
 
 # Local project notes（仅保留共享的架构说明）
 /.project-notes/*

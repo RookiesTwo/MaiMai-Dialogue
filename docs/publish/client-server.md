@@ -76,7 +76,7 @@ require-resource-pack=true
 
 确认列表中存在 `example_dialogue_data`，并在客户端测试：公开选项、受 Progress 限制的选项、子 Dialogue Return、背景、动画、Filter 和 Theme。
 
-带 `command` 的 Option 还应使用普通非 OP 玩家测试：确认 `@s` 指向点击玩家、目标条件不满足时指令不会执行、指令失败时仍停留在当前选项页。MaiMai Dialogue 不保存服务端播放 session，也不提供 command 防重放；奖励逻辑必须自行保证幂等或在执行后关闭当前 Dialogue 的 `requires`。
+带 `command` 的 Option 还应使用普通非 OP 玩家测试：确认 `@s` 指向点击玩家、数组按顺序执行、目标条件不满足时指令不会执行，以及中间指令失败时后续指令不会执行并仍停留在当前选项页。MaiMai Dialogue 不保存服务端播放 session，也不提供 command 防重放或副作用回滚；奖励逻辑必须自行保证幂等，或在执行后关闭当前 Dialogue 的 `requires`。
 
 ## 如果没有生效
 

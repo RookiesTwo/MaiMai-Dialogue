@@ -355,7 +355,7 @@ class DialogueSessionTest {
         DialogueOption option = new DialogueOption(
                 "Run and open child",
                 OptionIcon.DIALOGUE,
-                Optional.of("say hello"),
+                List.of("say first", "say second"),
                 new DialogueTarget(CHILD)
         );
         DialogueDefinition root = dialogue(

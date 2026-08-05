@@ -157,9 +157,12 @@
           }
         },
         {
-          "text": "Run a server command and close",
+          "text": "Run server commands and close",
           "icon": "exclamation",
-          "command": "tellraw @s {\"text\":\"Option command executed.\",\"color\":\"green\"}",
+          "command": [
+            "tellraw @s {\"text\":\"Option command 1/2 executed.\",\"color\":\"green\"}",
+            "tellraw @s {\"text\":\"Option command 2/2 executed.\",\"color\":\"aqua\"}"
+          ],
           "target": {
             "type": "return"
           }

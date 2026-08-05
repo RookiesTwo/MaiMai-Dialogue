@@ -392,7 +392,7 @@ public final class DialogueSession {
                 || !active.visibleOptions.contains(option)) {
             return update(List.of(), false);
         }
-        if (option.command().isPresent()) {
+        if (!option.commands().isEmpty()) {
             return requestOptionCommand(option);
         }
         if (option.target() instanceof ReturnTarget) {

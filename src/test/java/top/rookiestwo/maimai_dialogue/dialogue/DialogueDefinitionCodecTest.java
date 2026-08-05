@@ -5,11 +5,16 @@ import com.mojang.serialization.JsonOps;
 import org.junit.jupiter.api.Test;
 import top.rookiestwo.maimai_dialogue.progress.ProgressNode;
 
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -384,7 +389,7 @@ class DialogueDefinitionCodecTest {
     }
 
     @Test
-    void decodesAndNormalizesOptionalOptionCommands() {
+    void decodesAndNormalizesOptionCommandForms() {
         DialogueDefinition definition = decode("""
                 {
                   "presentation": {"theme": "maimai_dialogue:default"},
@@ -399,6 +404,19 @@ class DialogueDefinitionCodecTest {
                         },
                         {
                           "text": "Legacy",
+                          "command": [
+                            "  tag @s add accepted  ",
+                            "function example:accept_quest"
+                          ],
+                          "target": {"type": "return"}
+                        },
+                        {
+                          "text": "No command",
+                          "target": {"type": "return"}
+                        },
+                        {
+                          "text": "Single array entry",
+                          "command": ["say once"],
                           "target": {"type": "return"}
                         }
                       ]
@@ -412,20 +430,66 @@ class DialogueDefinitionCodecTest {
                 definition.end().exit()
         );
         assertEquals(
-                "/say hello",
-                exit.options().getFirst().command().orElseThrow()
+                List.of("/say hello"),
+                exit.options().getFirst().commands()
         );
-        assertTrue(exit.options().get(1).command().isEmpty());
+        assertEquals(
+                List.of(
+                        "tag @s add accepted",
+                        "function example:accept_quest"
+                ),
+                exit.options().get(1).commands()
+        );
+        assertTrue(exit.options().get(2).commands().isEmpty());
+        assertEquals(
+                List.of("say once"),
+                exit.options().get(3).commands()
+        );
+        assertEquals(List.of("say legacy"), new DialogueOption(
+                "Legacy constructor",
+                OptionIcon.NONE,
+                Optional.of("  say legacy  "),
+                ReturnTarget.INSTANCE
+        ).commands());
         assertTrue(new DialogueOption(
                 "Legacy constructor",
                 OptionIcon.NONE,
                 ReturnTarget.INSTANCE
-        ).command().isEmpty());
+        ).commands().isEmpty());
+
+        var encoded = DialogueDefinition.CODEC.encodeStart(
+                JsonOps.INSTANCE,
+                definition
+        ).getOrThrow(AssertionError::new);
+        var encodedOptions = encoded.getAsJsonObject()
+                .getAsJsonObject("end")
+                .getAsJsonObject("exit")
+                .getAsJsonArray("options");
+        assertTrue(encodedOptions.get(0).getAsJsonObject()
+                .get("command").isJsonPrimitive());
+        assertTrue(encodedOptions.get(1).getAsJsonObject()
+                .get("command").isJsonArray());
+        assertFalse(encodedOptions.get(2).getAsJsonObject().has("command"));
+        assertTrue(encodedOptions.get(3).getAsJsonObject()
+                .get("command").isJsonPrimitive());
+        assertEquals(
+                definition,
+                DialogueDefinition.CODEC.parse(JsonOps.INSTANCE, encoded)
+                        .getOrThrow(AssertionError::new)
+        );
     }
 
     @Test
-    void rejectsBlankAndMultilineOptionCommands() {
-        for (String command : List.of("   ", "say first\nsay second")) {
+    void rejectsInvalidOptionCommandForms() {
+        for (String command : List.of(
+                "\"   \"",
+                "\"say first\\nsay second\"",
+                "[]",
+                "[\"say valid\", \"   \"]",
+                "[\"say valid\", 1]",
+                "[\"say valid\", null]",
+                "null"
+        )) {
             assertTrue(DialogueDefinition.CODEC.parse(
                     JsonOps.INSTANCE,
                     JsonParser.parseString("""
@@ -442,11 +506,33 @@ class DialogueDefinitionCodecTest {
                                 }
                               }
                             }
-                            """.formatted(
-                                    new com.google.gson.JsonPrimitive(command)
-                            ))
+                            """.formatted(command))
             ).error().isPresent());
         }
+    }
+
+    @Test
+    void bundledClientAndServerCommandSequencesMatch() {
+        DialogueDefinition client = decodeResource(
+                "assets/maimai_dialogue/dialogues/demo/root.json"
+        );
+        DialogueDefinition server = decodeResource(
+                "data/maimai_dialogue/dialogues/demo/root.json"
+        );
+
+        assertEquals(server, client);
+        ChoiceExit exit = assertInstanceOf(
+                ChoiceExit.class,
+                client.end().exit()
+        );
+        DialogueOption commandOption = exit.options().stream()
+                .filter(option -> !option.commands().isEmpty())
+                .findFirst()
+                .orElseThrow();
+        assertEquals(List.of(
+                "tellraw @s {\"text\":\"Option command 1/2 executed.\",\"color\":\"green\"}",
+                "tellraw @s {\"text\":\"Option command 2/2 executed.\",\"color\":\"aqua\"}"
+        ), commandOption.commands());
     }
 
     private static DialogueDefinition decode(String json) {
@@ -454,5 +540,23 @@ class DialogueDefinitionCodecTest {
                 JsonOps.INSTANCE,
                 JsonParser.parseString(json)
         ).getOrThrow(AssertionError::new);
+    }
+
+    private static DialogueDefinition decodeResource(String path) {
+        try (InputStreamReader reader = new InputStreamReader(
+                Objects.requireNonNull(
+                        DialogueDefinitionCodecTest.class.getClassLoader()
+                                .getResourceAsStream(path),
+                        "Missing resource " + path
+                ),
+                StandardCharsets.UTF_8
+        )) {
+            return DialogueDefinition.CODEC.parse(
+                    JsonOps.INSTANCE,
+                    JsonParser.parseReader(reader)
+            ).getOrThrow(AssertionError::new);
+        } catch (IOException error) {
+            throw new AssertionError("Failed to read " + path, error);
+        }
     }
 }

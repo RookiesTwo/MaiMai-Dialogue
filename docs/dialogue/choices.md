@@ -108,19 +108,22 @@ description: 在入口 Dialogue 中显示选项，并进入可返回的子 Dialo
 
 ### 可选：点击时执行指令
 
-Option 可以在执行原 `target` 前先运行一条服务端指令。例如接受任务后关闭入口 Dialogue：
+Option 可以在执行原 `target` 前先运行服务端指令。例如接受任务后关闭入口 Dialogue：
 
 ```json
 {
   "text": "接受任务",
-  "command": "function example:accept_quest",
+  "command": [
+    "tag @s add accepted_quest",
+    "tellraw @s {\"text\":\"任务已接受\",\"color\":\"green\"}"
+  ],
   "target": {
     "type": "return"
   }
 }
 ```
 
-`command` 可以省略，`target` 始终必填。服务端会先检查 Dialogue 和 target 是否允许访问，再以点击玩家作为 `@s`、permission level 2 执行；只有成功后才继续 target。多条指令请放入 Data Pack function，并让奖励逻辑可安全地重复调用。
+`command` 可以省略，也可以写成一条 string；array 会从上到下依次执行。服务端会先检查 Dialogue 和 `target` 是否允许访问，再以点击玩家作为 `@s`、permission level 2 执行；任意一条失败都会停止后续指令并留在当前选项页，全部成功后才继续 `target`。已经成功的副作用不会回滚，因此奖励逻辑要能安全地重复调用；复杂或需要集中维护的流程仍建议放入 Data Pack function。
 
 2. 创建 `about.json`。它是一段新的 Dialogue，因此下面高亮的是整个内容结构：
 

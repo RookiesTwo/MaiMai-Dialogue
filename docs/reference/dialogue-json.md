@@ -143,7 +143,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 |---|---:|---|
 | `text` | 是 | 非空普通文本，不解析 Markdown |
 | `icon` | 否 | `none`；还可用 `question`、`exclamation`、`dialogue` |
-| `command` | 否 | target 前由 logical server 执行的一条 Minecraft 指令 |
+| `command` | 否 | target 前由 logical server 执行的一条指令，或按顺序执行的指令数组 |
 | `target` | 是 | `dialogue` 或 `return` |
 
 `options` 至少一项。Dialogue target 在显示前由服务端查询，点击时再次校验。条件不满足的目标会隐藏；过滤后没有可见选项时，下一次推进按 Return 处理。
@@ -155,7 +155,10 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 ```json
 {
   "text": "接受任务",
-  "command": "function example:accept_quest",
+  "command": [
+    "tag @s add accepted_quest",
+    "function example:accept_quest"
+  ],
   "target": {
     "type": "dialogue",
     "dialogue": "example:quest/accepted"
@@ -163,11 +166,11 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 }
 ```
 
-- 指令必须是非空单行字符串；开头的 `/` 可以省略。多条指令应写入 Data Pack function。
-- 服务端先检查当前 Dialogue 和 Dialogue target 的访问条件，再以点击玩家作为 `@s` 和执行位置、permission level 2 执行指令。
-- 指令成功后才执行原 target；失败时玩家留在当前选项页。指令不能用于解锁本次 target。
-- 服务端只执行 Data Pack 中对应 Option 的 command，不信任客户端 Resource Pack 的指令内容。
-- command 可以重复触发且副作用不会回滚。奖励类指令应配合 `requires`、score、tag 或幂等 function 防止重复领取。
+- `command` 可以是一个 string，也可以是至少包含一项的 string array；每条指令都必须是非空单行字符串，开头的 `/` 可以省略。
+- 服务端先检查当前 Dialogue 和 Dialogue target 的访问条件，再以点击玩家作为 `@s` 和执行位置、permission level 2 按数组顺序执行。
+- 任意一条失败或抛出异常都会立即停止后续指令，玩家留在当前选项页；全部成功后才执行原 target。指令不能用于解锁本次 target。
+- 服务端只执行 Data Pack 中对应 Option 的 command 序列，不信任客户端 Resource Pack 的指令内容。
+- command 可以重复触发，已经完成的副作用不会因后续失败而回滚。奖励类指令应配合 `requires`、score、tag 或幂等 function 防止重复领取；复杂、可复用或要求集中维护的流程仍建议使用 Data Pack function。
 
 ## 播放规则
 
