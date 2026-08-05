@@ -6,6 +6,7 @@ import icyllis.modernui.text.Spanned;
 import icyllis.modernui.widget.TextView;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Renders Dialogue body Markdown and reveals the rendered text progressively.
@@ -15,13 +16,21 @@ final class DialogueTextPlayer {
 
     private final TextView textView;
     private final Markflow markflow;
+    private final Consumer<Boolean> textUpdated;
     private final PlaybackTimeline timeline = new PlaybackTimeline();
     private long playbackToken = Long.MIN_VALUE;
     private Spanned renderedText;
     private String plainText;
 
-    DialogueTextPlayer(TextView textView) {
+    DialogueTextPlayer(
+            TextView textView,
+            Consumer<Boolean> textUpdated
+    ) {
         this.textView = Objects.requireNonNull(textView, "textView");
+        this.textUpdated = Objects.requireNonNull(
+                textUpdated,
+                "textUpdated"
+        );
         markflow = DialogueMarkdown.create(textView.getContext());
     }
 
@@ -65,6 +74,7 @@ final class DialogueTextPlayer {
         renderedText = null;
         plainText = null;
         textView.setText("");
+        textUpdated.accept(false);
     }
 
     void setPlaybackRate(float playbackRate) {
@@ -99,6 +109,7 @@ final class DialogueTextPlayer {
                     end
             );
             textView.setText(prefix, TextView.BufferType.SPANNABLE);
+            textUpdated.accept(true);
             if (!reported[0] && visibleCodePoints == codePoints) {
                 reported[0] = true;
                 showFullText();
@@ -125,6 +136,7 @@ final class DialogueTextPlayer {
         } else {
             markflow.setRenderedMarkdown(textView, text);
         }
+        textUpdated.accept(false);
     }
 
     private void cancelAnimator() {

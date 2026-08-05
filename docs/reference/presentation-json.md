@@ -68,7 +68,9 @@ Presentation 中的局部 Background 和 Filter 会整体覆盖 Scene 对应字�
 
 `x`、`y` 范围为 `[0,1]`；`width`、`max_height` 范围为 `(0,1]`。anchor 可选：
 
-`max_height` 是选项收缩时的高度上限。选项可展开时，点击展开按钮会临时把高度上限放宽到 `1.0`，再次收缩或进入其他 Dialogue 后恢复这里配置的上限。
+`max_height` 是选项收缩时整个 DialogueBox 的高度上限。正文超过 Header、错误提示和 Option 之外的剩余高度时，会自动使用独立的滚动区域；Option 超出 Theme 配置的显示数量时继续使用自己的滚动区域。选项可展开时，点击展开按钮会临时把高度上限放宽到 `1.0`，再次收缩或进入其他 Dialogue 后恢复这里配置的上限。
+
+正文和 Option 可以分别滚动，但建议不要在显示大量 Option 的结尾同时放置长正文，以免两个滚动区域挤占可读空间。
 
 ```text
 top_left      top_center      top_right

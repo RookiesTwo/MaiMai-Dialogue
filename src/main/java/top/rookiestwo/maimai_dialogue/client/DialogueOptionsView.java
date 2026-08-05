@@ -132,7 +132,7 @@ final class DialogueOptionsView extends LinearLayout {
                 theme.spacing().optionsCollapsedLimit(),
                 theme.spacing().optionsExpandedLimit()
         );
-        applyScrollbarTheme();
+        DialogueScrollbarStyle.apply(scroll, theme);
     }
 
     private void toggleExpanded() {
@@ -201,22 +201,6 @@ final class DialogueOptionsView extends LinearLayout {
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
         );
         return label;
-    }
-
-    private void applyScrollbarTheme() {
-        int width = scroll.dp(theme.controls().scrollbarWidthDp());
-        ShapeDrawable thumb = new ShapeDrawable();
-        thumb.setShape(ShapeDrawable.VLINE);
-        thumb.setStroke(width, theme.controls().scrollbarThumb().argb());
-        thumb.setSize(width, -1);
-        thumb.setCornerRadius(width / 2.0F);
-        scroll.setVerticalScrollbarThumbDrawable(thumb);
-        ShapeDrawable track = new ShapeDrawable();
-        track.setShape(ShapeDrawable.VLINE);
-        track.setStroke(width, theme.controls().scrollbarTrack().argb());
-        track.setSize(width, -1);
-        track.setCornerRadius(width / 2.0F);
-        scroll.setVerticalScrollbarTrackDrawable(track);
     }
 
     private static StateListDrawable createOptionBackground(

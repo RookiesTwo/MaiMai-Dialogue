@@ -125,6 +125,21 @@ Option 可以在执行原 `target` 前先运行服务端指令。例如接受任
 
 `command` 可以省略，也可以写成一条 string；array 会从上到下依次执行。服务端会先检查 Dialogue 和 `target` 是否允许访问，再以点击玩家作为 `@s`、permission level 2 执行；任意一条失败都会停止后续指令并留在当前选项页，全部成功后才继续 `target`。已经成功的副作用不会回滚，因此奖励逻辑要能安全地重复调用；复杂或需要集中维护的流程仍建议放入 Data Pack function。
 
+### 可选：从任意 Dialogue 直接关闭
+
+`return` 在子 Dialogue 中会回到入口。如果这个选项应该直接结束整个对话，改用 `close`：
+
+```json
+{
+  "text": "结束交谈",
+  "target": {
+    "type": "close"
+  }
+}
+```
+
+`close` 只能作为 Option target；它在入口和子 Dialogue 中都会直接关闭界面。Option 同时配置 `command` 时，仍然只有全部指令成功后才会关闭。
+
 2. 创建 `about.json`。它是一段新的 Dialogue，因此下面高亮的是整个内容结构：
 
 ```json:line-numbers {2-14} [about.json]
@@ -147,7 +162,7 @@ Option 可以在执行原 `target` 前先运行服务端指令。例如接受任
 
 把 `about.json` 同步保存到资源包和数据包。选项的 Dialogue target 负责从 `welcome` 进入 `about`；`about` 的 Return 会回到本次入口 `welcome`。在入口 `welcome` 选择 Return 则会关闭界面。
 
-### 可选：播放结束后自动进入下一个 Dialogue
+### 可选：结束后进入下一个 Dialogue
 
 如果不需要玩家选择，可以把 `end.exit` 直接写成 Dialogue target：
 
@@ -163,7 +178,7 @@ Option 可以在执行原 `target` 前先运行服务端指令。例如接受任
 }
 ```
 
-EndStep 的文字和 blocking Action 全部播放完成后会自动进入 `market`。目标仍需同时存在于 Data Pack 与 Resource Pack，并通过服务端 `requires` 检查；这个跳转不会改变本次会话的入口 Dialogue。
+EndStep 的文字和 blocking Action 全部播放完成后会停留在当前画面；玩家再次推进时进入 `market`。目标仍需同时存在于 Data Pack 与 Resource Pack，并通过服务端 `requires` 检查；这个跳转不会改变本次会话的入口 Dialogue。
 
 ## 进入游戏验证
 

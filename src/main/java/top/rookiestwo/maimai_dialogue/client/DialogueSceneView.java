@@ -31,6 +31,7 @@ final class DialogueSceneView extends FrameLayout {
     private final SceneImageRenderer imageRenderer = new SceneImageRenderer();
     private SceneContentView currentScene;
     private SceneContentView outgoingScene;
+    private Presentation renderedPresentation;
     private boolean sceneTransitionPending;
     private SceneImageRenderer.ImageLayers backgroundLayers;
     private final PlaybackTimeline sceneTimeline = new PlaybackTimeline();
@@ -54,12 +55,19 @@ final class DialogueSceneView extends FrameLayout {
         cancelSceneAnimator();
         playbackToken = Long.MIN_VALUE;
         finishSceneTransition();
+        // Theme 或 DialogueBox 改变时复用相同 Scene，避免角色被重复淡入。
+        if (currentScene != null
+                && sameSceneContent(renderedPresentation, presentation)) {
+            renderedPresentation = presentation;
+            return;
+        }
         outgoingScene = currentScene;
         outgoingCoverageOpacity = currentBackgroundOpacity;
         objectBindings.clear();
         backgroundLayers = null;
         currentBackgroundOpacity = 0.0F;
         currentScene = new SceneContentView(getContext());
+        renderedPresentation = presentation;
         sceneTransitionPending = true;
 
         presentation.background().ifPresent(this::addBackground);
@@ -121,6 +129,7 @@ final class DialogueSceneView extends FrameLayout {
         objectBindings.clear();
         currentScene = null;
         outgoingScene = null;
+        renderedPresentation = null;
         sceneTransitionPending = false;
         backgroundLayers = null;
         currentBackgroundOpacity = 0.0F;
@@ -302,7 +311,7 @@ final class DialogueSceneView extends FrameLayout {
             }
             SceneObjectState object = entry.getValue();
             binding.state = object;
-            imageRenderer.apply(
+            boolean imageChanged = imageRenderer.apply(
                     binding.layers,
                     object.variants(),
                     object.image(),
@@ -311,6 +320,9 @@ final class DialogueSceneView extends FrameLayout {
                     transitions.get(entry.getKey()),
                     binding.owner
             );
+            if (imageChanged) {
+                currentScene.measureObjectImages(binding);
+            }
             int visibility = object.visible() ? VISIBLE : GONE;
             binding.layers.primary.setVisibility(visibility);
             if (!object.visible()) {
@@ -447,6 +459,16 @@ final class DialogueSceneView extends FrameLayout {
         };
     }
 
+    private static boolean sameSceneContent(
+            Presentation current,
+            Presentation next
+    ) {
+        return current != null
+                && current.background().equals(next.background())
+                && current.visualObjects().equals(next.visualObjects())
+                && current.filter().equals(next.filter());
+    }
+
     private static float horizontalAnchor(VisualAnchor anchor) {
         return switch (anchor) {
             case TOP_LEFT, CENTER_LEFT, BOTTOM_LEFT -> 0.0F;
@@ -511,6 +533,25 @@ final class DialogueSceneView extends FrameLayout {
 
         private void applyObjectLayout(ObjectBinding binding) {
             applyObjectLayout(binding, getWidth(), getHeight());
+        }
+
+        // 与 Scene 切换一致，先准备新图片尺寸，再开始双层过渡。
+        private void measureObjectImages(ObjectBinding binding) {
+            int width = getWidth();
+            int height = getHeight();
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+            int widthSpec = MeasureSpec.makeMeasureSpec(
+                    width,
+                    MeasureSpec.AT_MOST
+            );
+            int heightSpec = MeasureSpec.makeMeasureSpec(
+                    height,
+                    MeasureSpec.AT_MOST
+            );
+            binding.layers.underlay.measure(widthSpec, heightSpec);
+            binding.layers.primary.measure(widthSpec, heightSpec);
         }
 
         private static void applyObjectLayout(

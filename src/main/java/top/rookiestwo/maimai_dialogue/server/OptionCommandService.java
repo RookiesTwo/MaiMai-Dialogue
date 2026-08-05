@@ -133,7 +133,8 @@ public final class OptionCommandService {
             CommandSourceStack source;
             try {
                 source = player.createCommandSourceStack()
-                        .withPermission(COMMAND_PERMISSION_LEVEL);
+                        .withPermission(COMMAND_PERMISSION_LEVEL)
+                        .withSuppressedOutput();
             } catch (RuntimeException error) {
                 MaiMaiDialogue.LOGGER.error(
                         "Failed to prepare option command sequence for dialogue {} option {} from player {}",

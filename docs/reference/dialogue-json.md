@@ -115,7 +115,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 - 子 Dialogue 的 Return 从本次入口 Dialogue 开头重新播放。
 - 系统没有导航栈或恢复位置。
 
-## 自动进入 Dialogue
+## 进入指定 Dialogue
 
 在 `end.exit` 中直接指定下一个 Dialogue：
 
@@ -126,7 +126,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 }
 ```
 
-当前 EndStep 的正文和全部 blocking SceneAction 播放完成后，客户端会自动请求进入目标 Dialogue，不需要玩家再次推进。目标仍会由服务端检查是否存在以及是否满足 `requires`；检查失败时会留在当前 EndStep 并显示错误。自动进入的 Dialogue 仍属于同一个 session，最初打开的 root 不会改变，之后执行 Return 仍会回到该 root。
+当前 EndStep 的正文和全部 blocking SceneAction 播放完成后会停留在画面上；玩家再次主动推进时，客户端才会请求进入目标 Dialogue。目标仍会由服务端检查是否存在以及是否满足 `requires`；检查失败时会留在当前 EndStep 并显示错误。进入的 Dialogue 仍属于同一个 session，最初打开的 root 不会改变，之后执行 Return 仍会回到该 root。
 
 ## Options
 
@@ -157,9 +157,24 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 | `text` | 是 | 非空普通文本，不解析 Markdown |
 | `icon` | 否 | `none`；还可用 `question`、`exclamation`、`dialogue` |
 | `command` | 否 | target 前由 logical server 执行的一条指令，或按顺序执行的指令数组 |
-| `target` | 是 | `dialogue` 或 `return` |
+| `target` | 是 | `dialogue`、`return` 或 `close` |
 
 `options` 至少一项。Dialogue target 在显示前由服务端查询，点击时再次校验。条件不满足的目标会隐藏；过滤后没有可见选项时，下一次推进按 Return 处理。
+
+### Close target
+
+Option 可以不经过 root，直接关闭整个 Dialogue 界面：
+
+```json
+{
+  "text": "结束交谈",
+  "target": {
+    "type": "close"
+  }
+}
+```
+
+`close` 只用于 Option 的 `target`。无论当前位于入口还是子 Dialogue，点击后都会结束整个 session；它不能写在 `end.exit` 中。需要返回入口时仍应使用 `return`。
 
 ### Option command
 
@@ -189,7 +204,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 
 - 正文和全部 blocking SceneAction 完成后，当前步骤才可继续。
 - 播放期间第一次推进只提交当前文字和动画的最终状态。
-- 再次推进才进入下一步或执行 `return`；`options` 需要玩家选择，`dialogue` 会在 EndStep 就绪时自动执行。
-- 默认按住 Ctrl 会以 4 倍速度播放正文和有限 SceneAction；Continue Step 就绪后会自动进入下一步，直到进入 `end`。`end` 仍会加速播放，但只会自动执行 `dialogue` Exit，不会自动执行 Return 或选择 Option。玩家可在客户端设置中调整倍率和键位。
+- 再次推进才进入下一步或执行 `return`、`dialogue` Exit；`options` 需要玩家选择。
+- 默认按住 Ctrl 会以 4 倍速度播放正文和有限 SceneAction；Continue Step 就绪后会自动进入下一步，直到进入 `end`。`end` 仍会加速播放，但不会自动执行任何 Exit。玩家可在客户端设置中调整倍率和键位。
 - 右上角跳过按钮默认需长按 600ms；玩家可以配置统一的鼠标/键盘长按时长。触发后会结算剩余 Speaker 与 SceneAction，并直接完成 `end`；尚未进入的正文不会写入历史。
 - `exit` 和普通 Option 只导航；只有显式配置的 Option `command` 会产生服务端副作用。

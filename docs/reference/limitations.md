@@ -9,8 +9,8 @@ description: MaiMai Dialogue 0.1.0-alpha 当前支持范围与尚未提供的功
 
 ## 对话与导航
 
-- Option target 只有 `dialogue` 和 `return`。
-- Dialogue 内部步骤线性播放；唯一结尾可以 Return、显示 Options，或自动进入一个指定 Dialogue。
+- Option target 支持 `dialogue`、`return` 和 `close`。
+- Dialogue 内部步骤线性播放；唯一结尾可以 Return、显示 Options，或进入一个指定 Dialogue。
 - 子 Dialogue 的 Return 返回本次入口 Dialogue 的开头；入口 Dialogue 的 Return 关闭界面。
 - 没有导航栈、恢复点、Option ID、脚本动作或自动修改进度。
 - 服务端 Dialogue 必须来自已启用的 Data Pack；客户端 Dialogue 与画面资源必须来自已启用的 Resource Pack。
@@ -22,7 +22,7 @@ description: MaiMai Dialogue 0.1.0-alpha 当前支持范围与尚未提供的功
 - Markdown 分割线不渲染；标题仍支持，但一级、二级标题不绘制下划线。
 - Speaker、Option 和控制按钮使用普通字符串。
 - 没有文本本地化模型和自定义字体。
-- 没有全局自动播放、世界暂停或隐藏世界功能；只有显式配置的 `dialogue` Exit 会在 EndStep 就绪后自动导航。
+- 没有全局自动播放、世界暂停或隐藏世界功能；`dialogue` Exit 也需要玩家在 EndStep 就绪后主动推进。
 - 没有玩家主题编辑、动画倍率或 reduced motion 设置。
 
 ## 场景与动画

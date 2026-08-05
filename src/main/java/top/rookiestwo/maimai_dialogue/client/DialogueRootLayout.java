@@ -389,7 +389,15 @@ final class DialogueRootLayout extends FrameLayout {
             return;
         }
 
+        int previousTargetHeight = dialogueTargetHeight;
         dialogueTargetHeight = targetHeight;
+        // Step 切换导致高度缩小时直接收起，只有内容变高才播放展开动画。
+        if (targetHeight < previousTargetHeight) {
+            cancelHeightAnimator();
+            dialogueDisplayHeight = targetHeight;
+            requestLayout();
+            return;
+        }
         if (heightAnimationPosted) {
             return;
         }

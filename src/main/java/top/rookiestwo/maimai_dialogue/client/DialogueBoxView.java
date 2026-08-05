@@ -6,6 +6,7 @@ import icyllis.modernui.graphics.drawable.ShapeDrawable;
 import icyllis.modernui.graphics.drawable.StateListDrawable;
 import icyllis.modernui.util.StateSet;
 import icyllis.modernui.view.Gravity;
+import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.Button;
@@ -27,11 +28,14 @@ final class DialogueBoxView extends LinearLayout {
     private final TextView speakerName;
     private final Button expandButton;
     private final View headerDivider;
-    private final LinearLayout content;
+    private final DialogueTextViewport textViewport;
     private final TextView dialogueText;
     private final DialogueTextPlayer textPlayer;
     private final TextView errorText;
     private final DialogueOptionsView options;
+    private Runnable advanceAction = () -> {
+    };
+    private long renderedTextToken = Long.MIN_VALUE;
     private ThemeDefinition theme = ThemeDefinition.DEFAULT;
     private Consumer<Boolean> optionsExpandedChanged = ignored -> {
     };
@@ -73,11 +77,15 @@ final class DialogueBoxView extends LinearLayout {
         ));
         addView(headerDivider);
 
-        content = new LinearLayout(context);
-        content.setOrientation(VERTICAL);
+        textViewport = new DialogueTextViewport(context);
+        textViewport.setOnClickListener(view -> advanceAction.run());
         dialogueText = new TextView(context);
         dialogueText.setGravity(Gravity.START);
-        content.addView(dialogueText, new LayoutParams(
+        textViewport.addView(dialogueText, new DialogueTextViewport.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+        addView(textViewport, new LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
@@ -85,16 +93,15 @@ final class DialogueBoxView extends LinearLayout {
         errorText = new TextView(context);
         errorText.setGravity(Gravity.START);
         errorText.setVisibility(GONE);
-        content.addView(errorText, new LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
-        addView(content, new LayoutParams(
+        addView(errorText, new LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
 
-        textPlayer = new DialogueTextPlayer(dialogueText);
+        textPlayer = new DialogueTextPlayer(
+                dialogueText,
+                textViewport::onTextUpdated
+        );
         options = new DialogueOptionsView(context, optionSelected);
         options.bindExpandButton(
                 expandButton,
@@ -109,6 +116,8 @@ final class DialogueBoxView extends LinearLayout {
 
     // 切换 Dialogue 时清理旧播放状态并应用新 Theme。
     void reset(ThemeDefinition nextTheme) {
+        renderedTextToken = Long.MIN_VALUE;
+        textViewport.resetForStep();
         textPlayer.clear();
         options.reset();
         applyTheme(nextTheme);
@@ -124,6 +133,10 @@ final class DialogueBoxView extends LinearLayout {
         long textToken = state.scenePlayback()
                 .map(ScenePlayback::token)
                 .orElse(Long.MIN_VALUE);
+        if (textToken != renderedTextToken) {
+            renderedTextToken = textToken;
+            textViewport.resetForStep();
+        }
         textPlayer.render(
                 textToken,
                 state.text().orElse(""),
@@ -135,6 +148,7 @@ final class DialogueBoxView extends LinearLayout {
         boolean hasError = state.error().isPresent();
         errorText.setText(state.error().orElse(""));
         errorText.setVisibility(hasError ? VISIBLE : GONE);
+        updateContentPadding();
         options.render(
                 state.options(),
                 state.loadingOptions(),
@@ -143,6 +157,8 @@ final class DialogueBoxView extends LinearLayout {
     }
 
     void clear() {
+        renderedTextToken = Long.MIN_VALUE;
+        textViewport.resetForStep();
         textPlayer.clear();
         options.reset();
     }
@@ -155,6 +171,13 @@ final class DialogueBoxView extends LinearLayout {
 
     void setPlaybackRate(float playbackRate) {
         textPlayer.setPlaybackRate(playbackRate);
+    }
+
+    void setAdvanceAction(Runnable advanceAction) {
+        this.advanceAction = Objects.requireNonNull(
+                advanceAction,
+                "advanceAction"
+        );
     }
 
     void setOptionsExpandedChanged(Consumer<Boolean> listener) {
@@ -183,13 +206,9 @@ final class DialogueBoxView extends LinearLayout {
                 header.dp(spacing.headerHorizontalDp()),
                 header.dp(spacing.headerVerticalDp())
         );
-        content.setPadding(
-                content.dp(spacing.contentHorizontalDp()),
-                content.dp(spacing.contentVerticalDp()),
-                content.dp(spacing.contentHorizontalDp()),
-                content.dp(spacing.contentVerticalDp())
-        );
+        updateContentPadding();
         options.applyTheme(theme);
+        textViewport.applyTheme(theme);
 
         speakerName.setTextColor(textTheme.primary().argb());
         typography.apply(speakerName, textTheme.speakerSizeSp());
@@ -200,6 +219,47 @@ final class DialogueBoxView extends LinearLayout {
         typography.apply(dialogueText, textTheme.dialogueSizeSp());
         errorText.setTextColor(textTheme.error().argb());
         typography.apply(errorText, textTheme.auxiliarySizeSp());
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int heightMode = MeasureSpec.getMode(heightMeasureSpec);
+        if (heightMode == MeasureSpec.UNSPECIFIED) {
+            textViewport.setHeightLimit(Integer.MAX_VALUE);
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+            return;
+        }
+
+        int reservedHeight = getPaddingTop() + getPaddingBottom();
+        reservedHeight = measureReservedHeight(
+                header,
+                widthMeasureSpec,
+                heightMeasureSpec,
+                reservedHeight
+        );
+        reservedHeight = measureReservedHeight(
+                headerDivider,
+                widthMeasureSpec,
+                heightMeasureSpec,
+                reservedHeight
+        );
+        reservedHeight = measureReservedHeight(
+                errorText,
+                widthMeasureSpec,
+                heightMeasureSpec,
+                reservedHeight
+        );
+        reservedHeight = measureReservedHeight(
+                options,
+                widthMeasureSpec,
+                heightMeasureSpec,
+                reservedHeight
+        );
+        textViewport.setHeightLimit(Math.max(
+                0,
+                MeasureSpec.getSize(heightMeasureSpec) - reservedHeight
+        ));
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
     static void applyControlButtonTheme(
@@ -226,6 +286,43 @@ final class DialogueBoxView extends LinearLayout {
     private void onExpandVisibilityChanged() {
         updateHeaderVisibility();
         optionsExpandedChanged.accept(options.isExpanded());
+    }
+
+    private int measureReservedHeight(
+            View child,
+            int widthMeasureSpec,
+            int heightMeasureSpec,
+            int usedHeight
+    ) {
+        if (child.getVisibility() == GONE) {
+            return usedHeight;
+        }
+        measureChildWithMargins(
+                child,
+                widthMeasureSpec,
+                0,
+                heightMeasureSpec,
+                usedHeight
+        );
+        ViewGroup.MarginLayoutParams params =
+                (ViewGroup.MarginLayoutParams) child.getLayoutParams();
+        return usedHeight
+                + child.getMeasuredHeight()
+                + params.topMargin
+                + params.bottomMargin;
+    }
+
+    private void updateContentPadding() {
+        int horizontal = dp(theme.spacing().contentHorizontalDp());
+        int vertical = dp(theme.spacing().contentVerticalDp());
+        boolean hasError = errorText.getVisibility() == VISIBLE;
+        textViewport.setPadding(
+                horizontal,
+                vertical,
+                horizontal,
+                hasError ? 0 : vertical
+        );
+        errorText.setPadding(horizontal, 0, horizontal, vertical);
     }
 
     private static StateListDrawable createOptionBackground(

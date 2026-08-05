@@ -27,8 +27,8 @@ final class SceneImageRenderer {
         return image;
     }
 
-    // 应用图片 variant，并在切换期间维护双层 crossfade。
-    void apply(
+    // 应用图片 variant；返回值用于让 WRAP_CONTENT 图层先完成测量。
+    boolean apply(
             ImageLayers layers,
             Map<String, ResourceLocation> variants,
             ResourceLocation imageId,
@@ -40,19 +40,20 @@ final class SceneImageRenderer {
         layers.primary.setScaleType(scaleType);
         layers.underlay.setScaleType(scaleType);
         if (transition == null) {
-            promoteOrLoad(layers, imageId, owner);
+            boolean imageChanged = promoteOrLoad(layers, imageId, owner);
             layers.primary.setImageAlpha(opacity);
             clearUnderlay(layers);
-            return;
+            return imageChanged;
         }
 
         ResourceLocation fromImage = variants.get(transition.fromVariant());
         ResourceLocation toImage = variants.get(transition.toVariant());
-        setPrimaryImage(layers, fromImage, owner);
-        setUnderlayImage(layers, toImage, owner);
+        boolean primaryChanged = setPrimaryImage(layers, fromImage, owner);
+        boolean underlayChanged = setUnderlayImage(layers, toImage, owner);
         layers.primary.setImageAlpha(transition.outgoingAlpha(opacity));
         layers.underlay.setImageAlpha(transition.incomingAlpha(opacity));
         layers.underlay.setVisibility(View.VISIBLE);
+        return primaryChanged || underlayChanged;
     }
 
     void applySampling(ImageView view, VisualSampling sampling) {
@@ -73,44 +74,47 @@ final class SceneImageRenderer {
         }
     }
 
-    private void promoteOrLoad(
+    private boolean promoteOrLoad(
             ImageLayers layers,
             ResourceLocation imageId,
             String owner
     ) {
         if (imageId.equals(layers.underlayId)
                 && layers.underlayImage != null) {
+            boolean imageChanged = !imageId.equals(layers.primaryId);
             layers.primary.setImage(layers.underlayImage);
             applySampling(layers.primary, layers.sampling);
             layers.primaryId = layers.underlayId;
-            return;
+            return imageChanged;
         }
-        setPrimaryImage(layers, imageId, owner);
+        return setPrimaryImage(layers, imageId, owner);
     }
 
-    private void setPrimaryImage(
+    private boolean setPrimaryImage(
             ImageLayers layers,
             ResourceLocation imageId,
             String owner
     ) {
         if (imageId.equals(layers.primaryId)) {
-            return;
+            return false;
         }
         Image image = load(imageId, owner);
         if (image != null) {
             layers.primary.setImage(image);
             applySampling(layers.primary, layers.sampling);
             layers.primaryId = imageId;
+            return true;
         }
+        return false;
     }
 
-    private void setUnderlayImage(
+    private boolean setUnderlayImage(
             ImageLayers layers,
             ResourceLocation imageId,
             String owner
     ) {
         if (imageId.equals(layers.underlayId)) {
-            return;
+            return false;
         }
         Image image = load(imageId, owner);
         if (image != null) {
@@ -118,7 +122,9 @@ final class SceneImageRenderer {
             applySampling(layers.underlay, layers.sampling);
             layers.underlayId = imageId;
             layers.underlayImage = image;
+            return true;
         }
+        return false;
     }
 
     private static void clearUnderlay(ImageLayers layers) {

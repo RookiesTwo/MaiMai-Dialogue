@@ -6,7 +6,10 @@ import com.mojang.serialization.MapCodec;
 
 import java.util.Arrays;
 
-public sealed interface OptionTarget permits DialogueTarget, ReturnTarget {
+public sealed interface OptionTarget permits
+        DialogueTarget,
+        ReturnTarget,
+        CloseTarget {
     Codec<OptionTarget> CODEC = Type.CODEC.dispatch(
             "type",
             OptionTarget::type,
@@ -17,7 +20,8 @@ public sealed interface OptionTarget permits DialogueTarget, ReturnTarget {
 
     enum Type {
         DIALOGUE("dialogue", DialogueTarget.CODEC),
-        RETURN("return", ReturnTarget.CODEC);
+        RETURN("return", ReturnTarget.CODEC),
+        CLOSE("close", CloseTarget.CODEC);
 
         private static final Codec<Type> CODEC = Codec.STRING.comapFlatMap(
                 Type::parse,

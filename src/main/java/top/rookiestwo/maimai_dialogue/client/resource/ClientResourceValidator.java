@@ -266,7 +266,7 @@ public final class ClientResourceValidator {
         if (end.exit() instanceof DialogueTargetExit target
                 && !dialogues.contains(target.dialogue())) {
             errors.add(dialogueId
-                    + ": automatic exit targets missing Dialogue "
+                    + ": dialogue exit targets missing Dialogue "
                     + target.dialogue());
         } else if (end.exit() instanceof ChoiceExit options) {
             options.options().forEach(option -> {

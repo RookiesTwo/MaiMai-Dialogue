@@ -146,7 +146,7 @@ final class DialogueHistoryView extends FrameLayout {
         closeButton.setTextColor(text.primary().argb());
         typography.apply(closeButton, text.auxiliarySizeSp());
         applyControlButtonTheme(closeButton);
-        applyScrollbarTheme();
+        DialogueScrollbarStyle.apply(scroll, theme);
     }
 
     private LinearLayout createEntry(DialogueHistoryEntry entry) {
@@ -274,22 +274,6 @@ final class DialogueHistoryView extends FrameLayout {
         int horizontal = button.dp(option.horizontalPaddingDp());
         int vertical = button.dp(Math.max(2, option.verticalPaddingDp() / 2));
         button.setPadding(horizontal, vertical, horizontal, vertical);
-    }
-
-    private void applyScrollbarTheme() {
-        int width = scroll.dp(theme.controls().scrollbarWidthDp());
-        ShapeDrawable thumb = new ShapeDrawable();
-        thumb.setShape(ShapeDrawable.VLINE);
-        thumb.setStroke(width, theme.controls().scrollbarThumb().argb());
-        thumb.setSize(width, -1);
-        thumb.setCornerRadius(width / 2.0F);
-        scroll.setVerticalScrollbarThumbDrawable(thumb);
-        ShapeDrawable track = new ShapeDrawable();
-        track.setShape(ShapeDrawable.VLINE);
-        track.setStroke(width, theme.controls().scrollbarTrack().argb());
-        track.setSize(width, -1);
-        track.setCornerRadius(width / 2.0F);
-        scroll.setVerticalScrollbarTrackDrawable(track);
     }
 
     private static StateListDrawable createOptionBackground(

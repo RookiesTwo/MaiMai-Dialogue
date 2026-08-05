@@ -52,6 +52,8 @@ Dialogue 继续使用原来的 reference，不需要修改双端副本。
 
 `x`、`y` 范围是 `[0,1]`；`width`、`max_height` 范围是 `(0,1]`。展开选项后，高度上限会临时放宽到 `1.0`，实际高度仍由正文和 Option 数量决定。
 
+正文超过剩余高度时会自动变成可滚动区域，Speaker 和 Option 不会跟着正文滚动。Option 数量超过 Theme 的显示上限时，也会使用自己的滚动区域。因此正文和 Option 可以分别滚动，但为了让玩家更容易阅读，建议不要在显示大量 Option 的结尾同时放置长正文。
+
 ## 进入游戏验证
 
 按 `F3 + T` reload Resource Pack 后再次打开 `example:guide/welcome`。对话框应稍微离开底边，宽度约占画面的 82%。这里只修改客户端 Presentation，不需要执行 `/reload`。
@@ -60,7 +62,8 @@ Dialogue 继续使用原来的 reference，不需要修改双端副本。
 
 - 布局没有变化：确认修改的是 `presentations/guide/welcome.json`，Dialogue reference ID 是 `example:guide/welcome`。
 - 对话框出现在意外位置：检查 `anchor`；本例使用 `bottom_center`。
-- 内容被压缩：适当提高 `max_height`，或使用选项展开按钮。
+- 正文出现滚动条：说明内容超过了 `max_height`；可以滚动阅读，或适当提高高度上限。
+- Option 区域过小：使用选项展开按钮，并避免在选项页同时放置长正文。
 - JSON 报错：确认 `width`、`max_height` 大于 0，且没有超过 1。
 
 ## 下一步

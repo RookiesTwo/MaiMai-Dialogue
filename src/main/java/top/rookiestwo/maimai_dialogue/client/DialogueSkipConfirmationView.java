@@ -158,7 +158,7 @@ final class DialogueSkipConfirmationView extends FrameLayout {
         typography.apply(confirmButton, text.auxiliarySizeSp());
         DialogueBoxView.applyControlButtonTheme(cancelButton, theme);
         DialogueBoxView.applyControlButtonTheme(confirmButton, theme);
-        applyScrollbarTheme(theme);
+        DialogueScrollbarStyle.apply(scroll, theme);
     }
 
     void setTypography(
@@ -192,19 +192,4 @@ final class DialogueSkipConfirmationView extends FrameLayout {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
-    private void applyScrollbarTheme(ThemeDefinition theme) {
-        int width = scroll.dp(theme.controls().scrollbarWidthDp());
-        ShapeDrawable thumb = new ShapeDrawable();
-        thumb.setShape(ShapeDrawable.VLINE);
-        thumb.setStroke(width, theme.controls().scrollbarThumb().argb());
-        thumb.setSize(width, -1);
-        thumb.setCornerRadius(width / 2.0F);
-        scroll.setVerticalScrollbarThumbDrawable(thumb);
-        ShapeDrawable track = new ShapeDrawable();
-        track.setShape(ShapeDrawable.VLINE);
-        track.setStroke(width, theme.controls().scrollbarTrack().argb());
-        track.setSize(width, -1);
-        track.setCornerRadius(width / 2.0F);
-        scroll.setVerticalScrollbarTrackDrawable(track);
-    }
 }

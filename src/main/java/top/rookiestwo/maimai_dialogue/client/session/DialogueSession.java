@@ -10,6 +10,7 @@ import top.rookiestwo.maimai_dialogue.client.scene.SceneRuntime;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneTransitions;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueText;
+import top.rookiestwo.maimai_dialogue.dialogue.CloseTarget;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueTarget;
@@ -157,7 +158,7 @@ public final class DialogueSession {
         String accessError = null;
         for (DialogueOption option : pending.options) {
             OptionTarget target = option.target();
-            if (target instanceof ReturnTarget) {
+            if (target instanceof ReturnTarget || target instanceof CloseTarget) {
                 visible.add(option);
             } else if (target instanceof DialogueTarget dialogueTarget) {
                 DialogueAccessDecision status = statuses.get(
@@ -256,6 +257,10 @@ public final class DialogueSession {
             recordOption(option);
             return performReturn();
         }
+        if (option.target() instanceof CloseTarget) {
+            recordOption(option);
+            return performClose();
+        }
         if (option.target() instanceof DialogueTarget target) {
             DialogueDefinition definition = content.dialogue(
                     target.dialogue()
@@ -280,7 +285,7 @@ public final class DialogueSession {
         return update(List.of(), false);
     }
 
-    // 推进正文、跳过播放，或在结束节点执行 Return 行为。
+    // 推进正文、跳过播放，或在结束节点执行 Exit。
     public DialogueSessionUpdate advance() {
         if (hasPendingOptionAction()) {
             return update(List.of(), false);
@@ -290,9 +295,7 @@ public final class DialogueSession {
             active.sceneComplete = true;
             active.textComplete = true;
             active.playbackSkipped = true;
-            List<DialogueSessionEffect> effects = new ArrayList<>();
-            requestAutomaticExit(effects);
-            return update(effects, true);
+            return update(List.of(), true);
         }
         if (active.stepIndex < active.definition.steps().size()) {
             active.stepIndex++;
@@ -302,6 +305,12 @@ public final class DialogueSession {
         }
         if (active.definition.end().exit() instanceof ReturnExit) {
             return performReturn();
+        }
+        if (active.definition.end().exit()
+                instanceof DialogueTargetExit target) {
+            List<DialogueSessionEffect> effects = new ArrayList<>();
+            requestTarget(target.dialogue(), null, effects);
+            return update(effects, true);
         }
         if (active.definition.end().exit() instanceof ChoiceExit
                 && pendingAccessQuery == null
@@ -325,9 +334,7 @@ public final class DialogueSession {
             active.textComplete = true;
             active.playbackSkipped = true;
             updatePlaybackPhase(active);
-            List<DialogueSessionEffect> effects = new ArrayList<>();
-            requestAutomaticExit(effects);
-            return update(effects, true);
+            return update(List.of(), true);
         }
 
         List<DialogueSessionEffect> effects = new ArrayList<>();
@@ -361,7 +368,6 @@ public final class DialogueSession {
                         active.speakerName,
                         text
                 )));
-        requestAutomaticExit(effects);
         return update(effects, true);
     }
 
@@ -377,9 +383,7 @@ public final class DialogueSession {
         }
         active.sceneComplete = true;
         updatePlaybackPhase(active);
-        List<DialogueSessionEffect> effects = new ArrayList<>();
-        requestAutomaticExit(effects);
-        return update(effects, true);
+        return update(List.of(), true);
     }
 
     // 标记打字机播放完成，并在场景也完成时解除播放锁定。
@@ -394,9 +398,7 @@ public final class DialogueSession {
         }
         active.textComplete = true;
         updatePlaybackPhase(active);
-        List<DialogueSessionEffect> effects = new ArrayList<>();
-        requestAutomaticExit(effects);
-        return update(effects, true);
+        return update(List.of(), true);
     }
 
     // 校验并执行玩家选择的当前可见选项。
@@ -412,6 +414,10 @@ public final class DialogueSession {
         if (option.target() instanceof ReturnTarget) {
             recordOption(option);
             return performReturn();
+        }
+        if (option.target() instanceof CloseTarget) {
+            recordOption(option);
+            return performClose();
         }
         if (option.target() instanceof DialogueTarget target) {
             List<DialogueSessionEffect> effects = new ArrayList<>();
@@ -495,7 +501,7 @@ public final class DialogueSession {
     // 根 Dialogue 的 Return 关闭界面，子 Dialogue 的 Return 回到根节点。
     private DialogueSessionUpdate performReturn() {
         if (active.currentDialogueId.equals(rootDialogueId)) {
-            return update(List.of(new DialogueSessionEffect.Close()), true);
+            return performClose();
         }
         DialogueDefinition root = content.dialogue(rootDialogueId).orElse(null);
         if (root == null) {
@@ -509,6 +515,10 @@ public final class DialogueSession {
         List<DialogueSessionEffect> effects = new ArrayList<>();
         activate(rootDialogueId, root, effects);
         return update(effects, true);
+    }
+
+    private DialogueSessionUpdate performClose() {
+        return update(List.of(new DialogueSessionEffect.Close()), true);
     }
 
     // 应用当前步骤的 Speaker 变更并准备对应的场景播放。
@@ -535,21 +545,6 @@ public final class DialogueSession {
                         current.speakerName,
                         text
                 )));
-        requestAutomaticExit(effects);
-    }
-
-    // EndStep 播放完成后，自动请求配置的下一个 Dialogue。
-    private void requestAutomaticExit(
-            List<DialogueSessionEffect> effects
-    ) {
-        if (active.stepIndex < active.definition.steps().size()
-                || active.playbackPhase != PlaybackPhase.READY
-                || hasPendingOptionAction()
-                || !(active.definition.end().exit()
-                instanceof DialogueTargetExit target)) {
-            return;
-        }
-        requestTarget(target.dialogue(), null, effects);
     }
 
     private void requestTarget(
