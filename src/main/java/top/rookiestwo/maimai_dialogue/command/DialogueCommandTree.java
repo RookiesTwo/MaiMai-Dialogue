@@ -4,12 +4,14 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import top.rookiestwo.maimai_dialogue.MaiMaiDialogue;
 import top.rookiestwo.maimai_dialogue.api.MaiMaiDialogueApi;
+import top.rookiestwo.maimai_dialogue.internal.bootstrap.CommonServices;
 
 final class DialogueCommandTree {
     private static final String PLAYER_ARGUMENT = "player";
@@ -29,6 +31,14 @@ final class DialogueCommandTree {
                                         DIALOGUE_ARGUMENT,
                                         ResourceLocationArgument.id()
                                 )
+                                .suggests((context, builder) ->
+                                        SharedSuggestionProvider.suggestResource(
+                                                CommonServices.get()
+                                                        .serverDialogues()
+                                                        .current()
+                                                        .ids(),
+                                                builder
+                                        ))
                                 .executes(DialogueCommandTree::open)));
     }
 
