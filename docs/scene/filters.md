@@ -15,7 +15,7 @@ description: 使用 color_adjust 或 crt 改变背景与 VisualObject 的画面�
 
 ## 需要修改的文件
 
-继续修改 Resource Pack 中的 PresentationDefinition：
+继续修改 Resource Pack 中的演出配置文件（PresentationDefinition）：
 
 ```text
 <资源包>/assets/example/presentations/guide/welcome.json
@@ -49,7 +49,7 @@ description: 使用 color_adjust 或 crt 改变背景与 VisualObject 的画面�
 `color_adjust` 字段：
 
 | 字段 | 范围 | 默认值 | 白话含义 |
-|---|---|---:|---:|---|
+|---|---|---|---|
 | `brightness` | `[-1,1]` | `0` | 亮度，负数变暗，正数变亮 |
 | `contrast` | `[0,2]` | `1` | 对比度，大于 1 明暗反差更大 |
 | `saturation` | `[0,2]` | `1` | 饱和度，小于 1 颜色变灰，0 是黑白 |
@@ -71,7 +71,7 @@ CRT 还支持 curvature、scanline、RGB mask、chromatic aberration、vignette�
 
 ## 如果没有生效
 
-- 完全没有变化：确认 Filter 写在 PresentationDefinition 中，而不是 Theme 中。
+- 完全没有变化：确认 Filter 写在演出配置文件中，而不是 Theme 中。
 - DialogueBox 也被染色：这不是预期行为，请检查是否使用了额外 shader MOD。
 - 画面过暗：把 `brightness` 调回接近 `0`，并降低 `contrast`。
 - CRT 开销或效果过强：改用 `color_adjust`，或降低动态参数。

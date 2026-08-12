@@ -1,0 +1,93 @@
+{
+  "presentation": {
+    "type": "reference",
+    "id": "example:guide/welcome"
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "example:guide"
+      },
+      "text": "# 欢迎来到村庄\n\n我是这里的 **向导**。",
+      "actions": [
+        {
+          "target": "guide_marker",
+          "action": {
+            "type": "reference",
+            "id": "example:guide/enter"
+          }
+        }
+      ]
+    },
+    {
+      "text": "沿着 *石路* 向前，就能找到 `market`。"
+    }
+  ],
+  "end": {
+    "speaker": {
+      "type": "hide"
+    },
+    "text": "请选择一个话题。",
+    "actions": [
+      {
+        "target": "guide_marker",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 500,
+            "easing": "ease_in_out",
+            "x": [
+              { "at": 1.0, "value": 0.18 }
+            ],
+            "variant": {
+              "at": 0.55,
+              "value": "alternate"
+            }
+          }
+        }
+      },
+      {
+        "target": "background",
+        "action": {
+          "type": "inline",
+          "action": {
+            "duration_ms": 500,
+            "easing": "ease_in_out",
+            "variant": {
+              "at": 0.55,
+              "value": "alternate"
+            }
+          }
+        }
+      }
+    ],
+    "exit": {
+      "type": "options",
+      "options": [
+        {
+          "text": "了解村庄",
+          "icon": "question",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "example:guide/about"
+          }
+        },
+        {
+          "text": "询问秘密地点",
+          "icon": "exclamation",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "example:guide/secret"
+          }
+        },
+        {
+          "text": "离开",
+          "target": {
+            "type": "return"
+          }
+        }
+      ]
+    }
+  }
+}

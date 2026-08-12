@@ -21,7 +21,7 @@ description: 创建可复用 Theme，定制对话框、文字、选项和滚动�
 <资源包>/assets/example/themes/parchment.json
 ```
 
-并修改 PresentationDefinition：
+并修改演出配置文件（PresentationDefinition）：
 
 ```text
 <资源包>/assets/example/presentations/guide/welcome.json
@@ -105,7 +105,7 @@ Dialogue 的双端 reference 不需要修改。
 }
 ```
 
-Theme 的每个区块和字段都可以省略；省略部分使用内置默认值。因为多个 Dialogue 可以引用同一个 PresentationDefinition，这次修改会同时影响它们。
+Theme 的每个区块和字段都可以省略；省略部分使用内置默认值。因为多个 Dialogue 可以引用同一个演出配置文件，这次修改会同时影响它们。
 
 ::: tip 颜色格式
 主题里所有颜色都用 `#RRGGBB`（红绿蓝）或 `#AARRGGBB`（前两位是透明度）写法。透明度 `FF` 是不透明，`00` 是全透明，比如 `#30FFFFFF` 就是透明度 30% 的白色。
@@ -113,14 +113,16 @@ Theme 的每个区块和字段都可以省略；省略部分使用内置默认�
 
 ## 进入游戏验证
 
+<!-- TODO(截图): 默认主题 vs parchment 羊皮纸主题的对比图 -->
+
 按 `F3 + T` 后重新打开 Dialogue。DialogueBox、文字、Options 和 scrollbar 应变成羊皮纸风格，Scene 图片与 Filter 保持不变。
 
 ## 如果没有生效
 
-- 仍显示默认 Theme：检查 PresentationDefinition 的 `theme` ID。
+- 仍显示默认 Theme：检查演出配置文件的 `theme` ID。
 - Theme 文件未加载：确认目录是 `themes`。
 - 颜色透明度异常：颜色格式使用 `#RRGGBB` 或 `#AARRGGBB`。
-- 只想修改一个 Dialogue：为它创建单独的 PresentationDefinition，再切换 reference ID。
+- 只想修改一个 Dialogue：为它创建单独的演出配置文件，再切换 reference ID。
 
 ## 下一步
 

@@ -5,6 +5,8 @@ description: ProgressNode 命名、requires 运算符、优先级和访问行为
 
 # Progress 表达式
 
+教程对应章节：[Progress 条件](../dialogue/progress.md)
+
 ## ProgressNode
 
 ProgressNode 是玩家拥有的一组布尔标记：
@@ -65,3 +67,8 @@ Dialogue 顶层可声明：
 ```
 
 文件由系统异步、原子保存，不建议手工编辑。当前只支持在线玩家。
+
+## 下一步
+
+- 管理节点的命令见[命令与管理](../publish/commands.md)。
+- 在对话里使用条件的字段是 [Dialogue JSON](./dialogue-json.md) 的 `requires`。

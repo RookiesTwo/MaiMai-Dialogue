@@ -26,6 +26,7 @@ export default defineConfig(withMermaid({
       {
         text: "更多",
         items: [
+          { text: "常见任务速查", link: "/reference/quick-recipes" },
           { text: "概念总览", link: "/concepts/overview" },
           { text: "术语表", link: "/concepts/glossary" },
           { text: "Java API", link: "/integration/java-api" },
@@ -39,7 +40,7 @@ export default defineConfig(withMermaid({
         text: "开始使用",
         items: [
             { text: "安装", link: "/start/installation" },
-            { text: "MOD 如何工作", link: "/start/dialogue-structure" },
+            { text: "认识 Dialogue", link: "/start/dialogue" },
             { text: "创建内容包", link: "/start/content-project" },
           { text: "第一段对话", link: "/start/first-dialogue" },
         ],
@@ -48,7 +49,6 @@ export default defineConfig(withMermaid({
         text: "核心概念",
         items: [
           { text: "概念总览", link: "/concepts/overview" },
-          { text: "双端分工", link: "/concepts/dual-pack" },
           { text: "会话与导航", link: "/concepts/session" },
           { text: "术语表", link: "/concepts/glossary" },
         ],
@@ -91,20 +91,45 @@ export default defineConfig(withMermaid({
       },
       {
         text: "参考资料",
-        collapsed: true,
         items: [
+          { text: "常见任务速查", link: "/reference/quick-recipes" },
+          { text: "内置演示内容", link: "/reference/built-in-content" },
           { text: "资源路径与 ID", link: "/reference/resource-paths" },
-          { text: "Dialogue JSON", link: "/reference/dialogue-json" },
-          { text: "Presentation JSON", link: "/reference/presentation-json" },
-          { text: "可复用 Presentation", link: "/reference/presentation-definition-json" },
-          { text: "Scene JSON", link: "/reference/scene-json" },
-          { text: "VisualAsset JSON", link: "/reference/visual-asset-json" },
-          { text: "SceneAction JSON", link: "/reference/scene-action-json" },
-          { text: "内置预设 SceneAction", link: "/reference/preset-actions" },
-          { text: "Theme JSON", link: "/reference/theme-json" },
-          { text: "Progress 表达式", link: "/reference/progress-expression" },
           { text: "故障排查", link: "/reference/troubleshooting" },
           { text: "当前限制", link: "/reference/limitations" },
+          {
+            text: "对话与条件",
+            collapsed: true,
+            items: [
+              { text: "Dialogue JSON", link: "/reference/dialogue-json" },
+              { text: "Progress 表达式", link: "/reference/progress-expression" },
+            ],
+          },
+          {
+            text: "画面",
+            collapsed: true,
+            items: [
+              { text: "Presentation JSON", link: "/reference/presentation-json" },
+              { text: "演出配置文件", link: "/reference/presentation-definition-json" },
+              { text: "Scene JSON", link: "/reference/scene-json" },
+              { text: "VisualAsset JSON", link: "/reference/visual-asset-json" },
+            ],
+          },
+          {
+            text: "动画",
+            collapsed: true,
+            items: [
+              { text: "SceneAction JSON", link: "/reference/scene-action-json" },
+              { text: "内置预设 SceneAction", link: "/reference/preset-actions" },
+            ],
+          },
+          {
+            text: "主题",
+            collapsed: true,
+            items: [
+              { text: "Theme JSON", link: "/reference/theme-json" },
+            ],
+          },
         ],
       },
     ],

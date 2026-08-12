@@ -1,11 +1,13 @@
 ---
-title: 可复用 Presentation
+title: 演出配置文件
 description: 将完整 Presentation 定义一次，并在多个 Dialogue 中引用。
 ---
 
-# 可复用 Presentation
+# 演出配置文件
 
-演出配置定义（PresentationDefinition）是存成独立文件的演出配置。它保存完整的显示方案，包括 Theme、Scene、DialogueBox 布局，以及可选的局部 Background、VisualObject 和 Filter。多个对话可以用同一个代号引用它，不用把方案抄进每个对话。
+教程对应章节：[添加 VisualObject](../scene/visual-objects.md) · [调整对话框布局](../scene/dialogue-box.md) · [添加场景滤镜](../scene/filters.md) · [制作 Theme](../scene/themes.md)
+
+演出配置文件（PresentationDefinition）是存成独立文件的演出配置。它保存完整的显示方案，包括 Theme、Scene、DialogueBox 布局，以及可选的局部 Background、VisualObject 和 Filter。多个对话可以用同一个代号引用它，不用把方案抄进每个对话。
 
 ## 文件位置
 
@@ -64,8 +66,7 @@ reference 不能同时声明 `theme`、`scene`、`dialogue_box` 或其他 inline
 ## 与 Scene 的职责区别
 
 - Scene 复用纯视觉舞台：Background、VisualObject、Filter。
-- PresentationDefinition 复用一次完整演出配置：Theme、Scene 引用、DialogueBox 和局部场景覆盖。
-- Dialogue 负责正文、Speaker、步骤、SceneAction 调用、条件与选项。
+- PresentationDefinition 复用一次完整演出配置：Theme、Scene 引用、DialogueBox 和局部场景覆盖。- Dialogue 负责正文、Speaker、步骤、SceneAction 调用、条件与选项。
 
 客户端打开 Dialogue 时按以下顺序解析：
 
@@ -79,3 +80,8 @@ PresentationDefinition
 ```
 
 PresentationDefinition 不能引用另一个 PresentationDefinition，因此不会产生引用循环。它只放在 Resource Pack；引用它的 Dialogue JSON 仍须同步到 Resource Pack 与 Data Pack。
+
+## 下一步
+
+- 字段内容与 [Presentation JSON](./presentation-json.md) 完全相同。
+- 不想建文件、只想写在一段对话里时，直接使用内嵌写法。

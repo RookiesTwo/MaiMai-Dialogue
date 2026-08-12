@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "default": "minecraft:item/emerald.png",
+    "alternate": "minecraft:item/diamond.png"
+  },
+  "sampling": "nearest"
+}

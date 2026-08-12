@@ -9,6 +9,8 @@ description: 配置播放速度、操作键位、对话字体和文字大小。
 
 在 Minecraft 的 Mods 列表中选择 **MaiMai Dialogue**，然后点击 **Config**。设置界面由 ModernUI 绘制；修改会立即反映在预览中，返回时自动保存到 `config/maimai_dialogue/client.toml`。
 
+<!-- TODO(截图): Config 界面的播放/键位/字体三个分区 -->
+
 ## 播放
 
 - **快进倍率**：范围 `1.0x–32.0x`，默认 `4.0x`。拖动条按 `0.5x` 调整，也可以在输入框中填写更精确的小数。

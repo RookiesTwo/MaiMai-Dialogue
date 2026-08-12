@@ -5,6 +5,8 @@ description: MOD 自带的可复用动画清单、ID、参数与使用约定。
 
 # 内置预设 SceneAction
 
+教程对应章节：[播放 SceneAction](../scene/actions.md)
+
 MOD 自带一组可直接引用的预设动画，文件位于 `assets/maimai_dialogue/actions/presets/`，代号统一为 `maimai_dialogue:presets/<名称>`。演示对话 `maimai_dialogue:debug/actions` 会逐条播放全部预设，并标注当前调用的名称与说明。
 
 ## 使用方式
@@ -71,3 +73,7 @@ MOD 自带一组可直接引用的预设动画，文件位于 `assets/maimai_dia
 | `hide` | 立即隐藏 | 0ms |
 
 `dialogue_enter` 只用于 `target: dialogue`，其透明度轨道以进入该步时的对话框状态为基准（对话开场时为 0）；`show` / `hide` 只写 `visible`，不改变透明度。
+
+## 下一步
+
+- 自己写动画的完整语法见 [SceneAction JSON](./scene-action-json.md)。

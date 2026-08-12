@@ -22,7 +22,7 @@ description: MaiMai Dialogue 0.1.0-alpha 当前支持范围与尚未提供的功
 - Markdown 分割线不渲染；标题仍支持，但一级、二级标题不绘制下划线。
 - Speaker、Option 和控制按钮使用普通字符串。
 - 没有文本本地化模型和自定义字体。
-- 没有全局自动播放、世界暂停或隐藏世界功能；`dialogue` Exit 也需要玩家在 EndStep 就绪后主动推进。
+- 没有全局自动播放、世界暂停或隐藏世界功能；`dialogue` Exit 也需要玩家在结尾页就绪后主动推进。
 - 没有玩家主题编辑、动画倍率或 reduced motion 设置。
 
 ## 场景与动画

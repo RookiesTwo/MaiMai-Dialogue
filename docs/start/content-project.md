@@ -7,11 +7,11 @@ description: 为 example namespace 建立 Resource Pack 与 Data Pack。
 
 ## 本章要实现什么
 
-完成后，你会得到配套的资源包（Resource Pack）和数据包（Data Pack）。资源包向客户端提供正文与画面，数据包向服务端提供访问检查所需的 Dialogue。
+完成后，你会得到配套的资源包（Resource Pack）和数据包（Data Pack）。资源包提供玩家看到的正文与画面，数据包提供"现在能不能看"的判断依据（Dialogue）。
 
 ## 开始前
 
-你已经[了解 MOD 如何工作](./dialogue-structure.md)，并创建了一个用于测试的单人世界。退出世界后，在单人游戏列表中选择该世界，通过“编辑 → 打开世界文件夹”可以找到它的目录。
+你已经[认识 Dialogue](./dialogue.md)，并创建了一个用于测试的单人世界。退出世界后，在单人游戏列表中选择该世界，通过“编辑 → 打开世界文件夹”可以找到它的目录。
 
 本教程固定使用：
 
@@ -54,7 +54,7 @@ description: 为 example namespace 建立 Resource Pack 与 Data Pack。
 | `dialogues/` | 对话文件（正文、步骤、选项、条件），资源包和数据包里各一份 | 每一章都会用到 |
 | `speakers/` | 说话者：一个名字（比如"村庄向导"） | 要显示说话人名字时 |
 | `themes/` | 主题：对话界面的外观（颜色、字号、按钮样式） | 要改界面外观时 |
-| `presentations/` | 演出配置：一段对话的显示方案（用哪个主题、哪个场景） | 多个对话共用同一套画面设置时 |
+| `presentations/` | 演出配置文件：一段对话的显示方案（用哪个主题、哪个场景） | 多个对话共用同一套画面设置时 |
 | `scenes/` | 场景：一套可复用的背景、视觉对象、滤镜组合 | 背景和人物图想集中管理时 |
 | `visual_assets/` | 视觉资源：给一组图片（差分）起代号 | 人物或道具图要复用、要切换表情时 |
 | `actions/` | 场景动作：可复用的动画 | 动画要在多个对话里重复使用时 |
@@ -103,10 +103,23 @@ assets/example/dialogues/guide/welcome.json
 
 每个 Dialogue 都要有两份同 ID 文件：
 
-- 资源包中的 `assets` 副本供客户端显示正文和画面；
-- 数据包中的 `data` 副本供服务端检查 Dialogue、`requires` 和访问权限。
+- 资源包中的 `assets` 副本负责显示正文和画面；
+- 数据包中的 `data` 副本负责判断 Dialogue、`requires` 和访问权限。
 
 后续每次修改 Dialogue，都要把相同 JSON 同步保存到两个 Pack 中。Speaker、Theme、Presentation、Scene、VisualAsset、SceneAction 和图片只放入资源包。
+
+## 不想手打？直接下载示例包
+
+本教程所有章节的最终结果已经打包成两个示例包，可直接下载后放进对应目录，一边对照教程一边理解每个文件：
+
+- [example_dialogue_resources-1.0.0.zip](/MaiMai-Dialogue/examples/example_dialogue_resources-1.0.0.zip) → 放入 `<游戏实例>/resourcepacks/` 后在“选项 → 资源包”中启用
+- [example_dialogue_data-1.0.0.zip](/MaiMai-Dialogue/examples/example_dialogue_data-1.0.0.zip) → 放入 `<测试世界>/datapacks/`
+
+示例包全程使用 Minecraft 自带图片，因此没有 `textures/dialogue/` 目录；将来用到自备 PNG 时再创建它。
+
+::: tip 内置范例
+MOD 的 jar 自带完整范例：解压 jar 后查看 `data/maimai_dialogue/` 与 `assets/maimai_dialogue/` 目录，里面有 `debug`（调试演示）和 `showcase`（成品演示）两套内容，以及 `assets/maimai_dialogue/actions/presets/` 下的内置预设动画。写自己的内容时可以直接对照这些真实 JSON。
+:::
 
 ## 进入游戏验证
 

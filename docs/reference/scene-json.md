@@ -5,6 +5,8 @@ description: 定义可复用的背景、VisualObject 与 Scene Filter。
 
 # Scene JSON
 
+教程对应章节：[添加 VisualObject](../scene/visual-objects.md)
+
 Scene 是可复用的视觉舞台。它集中保存背景、视觉对象和滤镜；Dialogue 的 Presentation 继续决定 Theme 与 DialogueBox 布局。
 
 ## 文件位置
@@ -114,4 +116,9 @@ Dialogue 仍可在引用 Scene 后声明局部内容：
 - `theme` 与 `dialogue_box` 始终属于 Dialogue Presentation，不进入 Scene。
 
 Scene 不继承其他 Scene，避免形成循环引用。需要另一种舞台组合时，创建新的 Scene 文件。
+
+## 下一步
+
+- Background 与 VisualObject 的完整字段在 [Presentation JSON](./presentation-json.md)。
+- 给图片起代号见 [VisualAsset JSON](./visual-asset-json.md)。
 

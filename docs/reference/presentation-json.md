@@ -5,7 +5,9 @@ description: Theme、Scene、背景、对话框布局、VisualObject 和 Filter 
 
 # Presentation JSON
 
-Presentation 可以直接写在 Dialogue 中，也可以保存为可复用的 [PresentationDefinition](./presentation-definition-json.md)。
+教程对应章节：[添加背景](../scene/background.md) · [添加 VisualObject](../scene/visual-objects.md) · [调整对话框布局](../scene/dialogue-box.md) · [添加场景滤镜](../scene/filters.md)
+
+演出配置（Presentation）有两种写法：直接把字段写在 Dialogue 的 `presentation` 里（内嵌写法），或存成独立的[演出配置文件](./presentation-definition-json.md)再用代号引用。
 
 引用形式为：
 
@@ -165,3 +167,8 @@ VisualAsset 只提供差分和 sampling；位置、缩放、透明度、可见�
 | `bloom` | `0.1` | `[0,1]` |
 
 Filter 只处理背景与 VisualObject，不处理 Dialogue UI 或后方的 Minecraft 世界。
+
+## 下一步
+
+- 可复用的组合放 [Scene JSON](./scene-json.md)；给图片起代号见 [VisualAsset JSON](./visual-asset-json.md)。
+- 动画写法见 [SceneAction JSON](./scene-action-json.md)。

@@ -9,7 +9,7 @@ description: 将 Dialogue Data Pack 与 Resource Pack 正确交付给单人实�
 
 把教程中的 `example` 内容整理成同一版本的数据包和资源包，并交付给服务端与玩家，避免"服务端允许但客户端没有画面"或"客户端有选项但服务端找不到目标"。
 
-如果你还没想明白"为什么要两份"，先读[双端分工](../concepts/dual-pack.md)。
+如果你还没想明白"为什么要两份"，先读[认识 Dialogue](../start/dialogue.md)。
 
 ## 开始前
 
@@ -41,7 +41,7 @@ example_dialogue_data-1.0.0.zip
 ## 跟着做
 
 1. 确认每个 `assets/example/dialogues/<path>.json` 都有同 ID 的 `data` 副本。
-2. 确认两份 Dialogue 内容一致，尤其是 `requires`、Presentation reference、Option 顺序、`command`、目标 ID 和文件名。Presentation 与 Scene 本体只由客户端加载；command 最终只采用服务端 Data Pack 中的内容。
+2. 确认两份 Dialogue 内容一致，尤其是 `requires`、Presentation reference、Option 顺序、`command`、目标 ID 和文件名。Presentation 与 Scene 本体只放在资源包；`command` 以数据包里的内容为准（资源包里的 `command` 不会被采用）。
 3. 确认所有 Speaker、Theme、Presentation、Scene、VisualAsset、SceneAction 和图片都已包含在资源包的 `assets` 中。
 4. 分别压缩资源包和数据包根目录。不要把外层文件夹一起套进 ZIP。
 5. 为两个 ZIP 使用相同版本号，例如 `example_dialogue_resources-1.0.0.zip` 与 `example_dialogue_data-1.0.0.zip`。
@@ -90,7 +90,7 @@ sha1sum example_dialogue_resources-1.0.0.zip
 
 确认列表中存在 `example_dialogue_data`，并在客户端测试：公开选项、受 Progress 限制的选项、子 Dialogue Return、背景、动画、Filter 和 Theme。
 
-带 `command` 的 Option 还应使用普通非 OP 玩家测试：确认 `@s` 指向点击玩家、数组按顺序执行、目标条件不满足时指令不会执行，以及中间指令失败时后续指令不会执行并仍停留在当前选项页。MaiMai Dialogue 不保存服务端播放 session，也不提供 command 防重放或副作用回滚；奖励逻辑必须自行保证幂等，或在执行后关闭当前 Dialogue 的 `requires`。
+带 `command` 的 Option 还应使用普通非 OP 玩家测试：确认 `@s` 指向点击玩家、数组按顺序执行、目标条件不满足时指令不会执行，以及中间指令失败时后续指令不会执行并仍停留在当前选项页。MaiMai Dialogue 不保存播放进度，也不提供 command 防重放或副作用回滚；奖励逻辑必须自行保证幂等，或在执行后关闭当前 Dialogue 的 `requires`。
 
 ## 如果没有生效
 

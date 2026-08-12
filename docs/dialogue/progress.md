@@ -28,7 +28,7 @@ description: 使用 ProgressNode 控制 Dialogue 和选项是否可访问。
 
 ::: code-group
 
-```json{2-10} [新增选项]
+```json{2-8} [新增选项]
 {
   "text": "询问秘密地点",
   "icon": "exclamation",

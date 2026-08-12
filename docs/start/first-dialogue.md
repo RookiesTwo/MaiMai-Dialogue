@@ -48,7 +48,7 @@ description: 创建并打开 example:guide/welcome。
 
 `presentation.theme` 使用 MOD 内置的默认主题。主题（Theme）是对话界面的外观设置（颜色、字号、按钮样式），这一章先直接用默认值，[制作主题](../scene/themes.md)一章会教你创建自己的主题。`end` 是这个 Dialogue 必须拥有的结束点，`exit` 决定到达这里后如何离开。
 
-这次由命令直接打开 `welcome`，所以它承担入口 Dialogue 的角色；入口处的 `return` 会关闭界面。文件名来自内容含义，与“入口”角色无关。
+这次由命令直接打开 `welcome`，所以它承担入口对话的角色；入口处的 `return` 会关闭界面。文件名 `welcome` 只是按内容含义起的名字——“入口”取决于对话是被哪条命令打开的，与文件名无关。
 
 ::: tip 如何阅读后续代码
 后续章节会把“本章改动”和“完整文件”放进同一个代码组。先看高亮的小片段抓住变化，需要复制时再切换到完整文件。
@@ -56,13 +56,13 @@ description: 创建并打开 example:guide/welcome。
 
 ## 进入游戏验证
 
-进入世界后先重载服务端数据包：
+进入世界后先重载数据包：
 
 ```text
 /reload
 ```
 
-再按 `F3 + T` 重载客户端资源包，然后执行：
+再按 `F3 + T` 重载资源包，然后执行：
 
 ```text
 /maimai_dialogue open @s example:guide/welcome

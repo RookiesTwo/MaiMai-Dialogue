@@ -5,6 +5,8 @@ description: 查询 Dialogue、Speaker、Theme、Presentation、Scene、VisualAs
 
 # 资源路径与 ID
 
+教程对应章节：[创建内容包](../start/content-project.md)
+
 ## Pack 根目录
 
 教程中的两个占位符分别表示：
@@ -50,6 +52,14 @@ description: 查询 Dialogue、Speaker、Theme、Presentation、Scene、VisualAs
 - Speaker、Theme、Presentation、Scene、VisualAsset、SceneAction 与图片只由客户端加载。
 - 同一 Dialogue 的两份 JSON 应保持一致。
 
+## 两份对不上会怎样
+
+- 只有数据包、没有资源包：命令提示已打开，但界面上什么都没有。
+- 只有资源包、没有数据包：打开命令直接报"Dialogue 不存在"。
+- 两份内容不同：条件按数据包判断、画面按资源包显示，可能出现"选项显示出来了、点了却没反应"。
+
+为什么需要两份、各包回答什么问题，见[认识 Dialogue](../start/dialogue.md)。
+
 ## 命名规则
 
 - namespace 与资源路径遵循 Minecraft `ResourceLocation` 规则，使用小写字符。
@@ -63,3 +73,8 @@ description: 查询 Dialogue、Speaker、Theme、Presentation、Scene、VisualAs
 - `F3 + T`：重新加载客户端 Dialogue、Speaker、Theme、Presentation、Scene、VisualAsset、SceneAction 和图片。
 
 修改 Dialogue 时通常需要同时执行两种 reload。客户端 reload 后会集中报告缺失 Theme、Speaker、Presentation、Scene、VisualAsset、目标 Dialogue、Action、target、variant 和图片。
+
+## 下一步
+
+- 出问题时按现象查[故障排查](./troubleshooting.md)。
+- 想知道"该动哪个文件"时查[常见任务速查](./quick-recipes.md)。

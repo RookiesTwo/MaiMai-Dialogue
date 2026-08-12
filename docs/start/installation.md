@@ -22,6 +22,12 @@ description: 安装 MaiMai Dialogue，并确认内置示例可以正常打开。
 | MaiMai Dialogue | 0.1.0-alpha |
 | Modern UI | 3.13.0.1 或更高版本 |
 
+### 下载
+
+- **MaiMai Dialogue**：从 [GitHub Releases](https://github.com/RookiesTwo/MaiMai-Dialogue/releases) 下载与版本要求匹配的 jar。
+- **Modern UI**：在 CurseForge / Modrinth 等 MOD 平台搜索 Modern UI，下载支持 Minecraft 1.21.1 的 3.13.0.1 或更高版本。
+- **NeoForge**：用官方安装器为 Minecraft 1.21.1 安装 NeoForge 21.x。
+
 ## 需要修改的文件
 
 把 MOD 文件放进测试实例的：
@@ -30,7 +36,7 @@ description: 安装 MaiMai Dialogue，并确认内置示例可以正常打开。
 <游戏实例>/mods/
 ```
 
-单人游戏和普通客户端需要 MaiMai Dialogue 与 Modern UI。Dedicated Server 需要 MaiMai Dialogue，但不需要安装客户端界面依赖 Modern UI。
+单人游戏和普通客户端需要 MaiMai Dialogue 与 Modern UI。专用服务器（Dedicated Server）只需要 MaiMai Dialogue，不需要安装 Modern UI。
 
 ## 跟着做
 
@@ -50,6 +56,8 @@ description: 安装 MaiMai Dialogue，并确认内置示例可以正常打开。
 
 命令默认需要 permission level 2。正确安装后会出现一段带背景、动画和选项的示例对话。
 
+<!-- TODO(截图): 内置 Demo 打开后的画面（能看到背景、立绘、对话框和选项） -->
+
 ## 如果没有生效
 
 - 命令不存在：检查 NeoForge 是否实际加载了 MaiMai Dialogue。
@@ -59,4 +67,4 @@ description: 安装 MaiMai Dialogue，并确认内置示例可以正常打开。
 
 ## 下一步
 
-继续[了解 MOD 如何工作](./dialogue-structure.md)，看看 Data Pack、Resource Pack 和 MOD 怎样一起把对话显示给玩家。
+继续[认识 Dialogue](./dialogue.md)，理解对话文件能做什么，以及为什么每段对话有两份。

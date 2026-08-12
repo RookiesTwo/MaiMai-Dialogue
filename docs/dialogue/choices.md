@@ -106,7 +106,7 @@ description: 在入口 Dialogue 中显示选项，并进入可返回的子 Dialo
 
 把完整 `welcome.json` 同步保存到两个 Pack。
 
-这里的"入口 Dialogue"是一个重要概念：用命令直接打开的 `welcome` 就是这次会话的入口，整个会话期间它不会改变。`about` 里的 `return` 会回到入口 `welcome` 的开头重新播放；入口里的 `return` 才会关闭界面。系统没有"上一页"按钮。完整的会话规则见[会话与导航](../concepts/session.md)。
+这里出现了一个重要概念——入口对话：用命令直接打开的 `welcome` 就是这次会话的入口，整个会话期间它不会改变。`about` 里的 `return` 会回到入口 `welcome` 的开头重新播放；入口里的 `return` 才会关闭界面。系统没有"上一页"按钮。完整的会话规则见[会话与导航](../concepts/session.md)。
 
 ```mermaid
 flowchart TD
@@ -119,7 +119,7 @@ flowchart TD
 
 ### 可选：点击时执行指令
 
-Option 可以在执行原 `target` 前先运行服务端指令。例如接受任务后关闭入口 Dialogue：
+Option 可以在执行原 `target` 前先运行一条或多条指令。例如接受任务后关闭入口 Dialogue：
 
 ```json
 {
@@ -134,7 +134,7 @@ Option 可以在执行原 `target` 前先运行服务端指令。例如接受任
 }
 ```
 
-`command` 可以省略，也可以写成一条 string；array 会从上到下依次执行。服务端会先检查 Dialogue 和 `target` 是否允许访问，再以点击玩家作为 `@s`、permission level 2 执行；任意一条失败都会停止后续指令并留在当前选项页，全部成功后才继续 `target`。已经成功的副作用不会回滚，因此奖励逻辑要能安全地重复调用；复杂或需要集中维护的流程仍建议放入 Data Pack function。
+`command` 可以省略，也可以写成一条 string；array 会从上到下依次执行。指令执行前会先检查 Dialogue 和 `target` 是否允许访问；通过后以点击玩家作为 `@s`、permission level 2 执行；任意一条失败都会停止后续指令并留在当前选项页，全部成功后才继续 `target`。已经成功的副作用不会回滚，因此奖励逻辑要能安全地重复调用；复杂或需要集中维护的流程仍建议放入 Data Pack function。
 
 ### 可选：从任意 Dialogue 直接关闭
 
@@ -189,7 +189,7 @@ Option 可以在执行原 `target` 前先运行服务端指令。例如接受任
 }
 ```
 
-EndStep 的文字和 blocking Action 全部播放完成后会停留在当前画面；玩家再次推进时进入 `market`。目标仍需同时存在于 Data Pack 与 Resource Pack，并通过服务端 `requires` 检查；这个跳转不会改变本次会话的入口 Dialogue。
+结尾页的文字和 blocking Action 全部播放完成后会停留在当前画面；玩家再次推进时进入 `market`。目标仍需同时存在于 Data Pack 与 Resource Pack，并通过 `requires` 检查；这个跳转不会改变本次会话的入口 Dialogue。
 
 ## 进入游戏验证
 

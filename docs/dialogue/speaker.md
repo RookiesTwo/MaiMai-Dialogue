@@ -100,7 +100,7 @@ description: 创建可复用的 Speaker，并在步骤中显示或隐藏名称�
 
 ## 如果没有生效
 
-- 名称显示成 `example:guide`：客户端没有成功加载 Speaker 文件。
+- 名称显示成 `example:guide`：资源包中的 Speaker 文件没有被正确加载。
 - 第二页没有名称：检查第一步是否成功执行了 `speaker.type: set`。
 - 名称栏没有隐藏：确认 `hide` 写在实际播放的 `end` 中。
 

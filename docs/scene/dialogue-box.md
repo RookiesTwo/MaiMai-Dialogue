@@ -15,7 +15,7 @@ description: 使用归一化坐标改变对话框的位置、宽度和最大高�
 
 ## 需要修改的文件
 
-只修改 Resource Pack 中的 PresentationDefinition：
+只修改 Resource Pack 中的演出配置文件（PresentationDefinition）：
 
 ```text
 <资源包>/assets/example/presentations/guide/welcome.json
@@ -25,7 +25,7 @@ Dialogue 继续使用原来的 reference，不需要修改双端副本。
 
 ## 跟着做
 
-在 PresentationDefinition 中加入 `dialogue_box`：
+在演出配置文件中加入 `dialogue_box`：
 
 ```json:line-numbers {4-10} [presentations/guide/welcome.json]
 {
@@ -60,13 +60,13 @@ center_left   center          center_right
 bottom_left   bottom_center   bottom_right
 ```
 
-`x`、`y` 是"anchor 点"在画面中的位置。例如 `x: 0.5, y: 0.95, anchor: bottom_center` 表示：对话框底部中心点放在画面水平正中、离底边 5% 的位置。
+`x`、`y` 是"anchor 点"在画面中的位置。这里的"画面"指整个对话界面铺满的游戏窗口区域。例如 `x: 0.5, y: 0.95, anchor: bottom_center` 表示：对话框底部中心点放在画面水平正中、离底边 5% 的位置。
 
 正文超过剩余高度时会自动变成可滚动区域，Speaker 和 Option 不会跟着正文滚动。Option 数量超过 Theme 的显示上限时，也会使用自己的滚动区域。因此正文和 Option 可以分别滚动，但为了让玩家更容易阅读，建议不要在显示大量 Option 的结尾同时放置长正文。
 
 ## 进入游戏验证
 
-按 `F3 + T` reload Resource Pack 后再次打开 `example:guide/welcome`。对话框应稍微离开底边，宽度约占画面的 82%。这里只修改客户端 Presentation，不需要执行 `/reload`。
+按 `F3 + T` reload Resource Pack 后再次打开 `example:guide/welcome`。对话框应稍微离开底边，宽度约占画面的 82%。这里只改了资源包，不需要执行 `/reload`。
 
 ## 如果没有生效
 

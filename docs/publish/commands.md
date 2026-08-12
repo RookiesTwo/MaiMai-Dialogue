@@ -31,7 +31,7 @@ description: 使用 /maimai_dialogue 打开对话并管理在线玩家的 Progre
 /maimai_dialogue open @s example:guide/welcome
 ```
 
-服务端会检查 Dialogue 是否存在、玩家进度是否可用以及 `requires` 是否满足。“已发送”表示打开请求已经发给客户端，不保证缺少本地资源的客户端一定能显示。
+打开前会检查 Dialogue 是否存在、玩家进度是否可用以及 `requires` 是否满足。命令显示"已发送"表示打开请求已经发出；如果客户端缺少对应的资源包内容，界面仍可能不显示。
 
 ### 添加节点
 
@@ -89,7 +89,7 @@ description: 使用 /maimai_dialogue 打开对话并管理在线玩家的 Progre
 
 ## 如果没有生效
 
-- selector 选中了多人：改用能解析为单个在线玩家的参数。
+- 选择器选中了多人：改用能解析为单个在线玩家的参数。
 - 节点格式非法：使用小写点分名称，不要使用冒号或连续点号。
 - Dialogue 被拒绝：检查目标的 `requires`，并用 `progress list` 查看真实节点。
 - 玩家已经打开对话：新的 open 请求不会替换当前 MaiMai Dialogue UI。

@@ -5,6 +5,8 @@ description: SceneActionCall、关键帧、差分切换、target 和播放规则
 
 # SceneAction JSON
 
+教程对应章节：[播放 SceneAction](../scene/actions.md)
+
 场景动作（SceneAction）是一段可复用的动画。它可以在一段时间内改变视觉对象的位置、缩放、透明度、差分和可见性，也可以切换背景差分、移动对话框。
 
 ## SceneActionCall（动画调用）
@@ -105,3 +107,8 @@ description: SceneActionCall、关键帧、差分切换、target 和播放规则
 blocking Action 会与打字机共同阻止步骤继续。播放中推进会立即提交预先计算的最终状态，不会从中间状态重复叠加相对值。
 
 首个步骤如果没有显式控制 `dialogue`，系统会自动加入 250ms `ease_out` 的阻塞淡入。只要首个步骤显式调用了 `dialogue` Action，就由该 Action 完整负责入场效果；需要淡入时应同时提供 opacity 轨道。
+
+## 下一步
+
+- MOD 自带的可直接引用的动画见 [内置预设 SceneAction](./preset-actions.md)。
+- 动画作用对象（VisualObject 等）的声明见 [Presentation JSON](./presentation-json.md)。

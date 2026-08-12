@@ -5,6 +5,8 @@ description: 定义可复用的 VisualObject 差分与图片采样方式。
 
 # VisualAsset JSON
 
+教程对应章节：[添加 VisualObject](../scene/visual-objects.md)
+
 视觉资源（VisualAsset）把角色或道具的差分图片集中定义一次。这里的"差分（variant）"指同一个对象的不同图片——比如同一个角色的不同表情。Dialogue 中的 VisualObject 只负责该次出场的位置、缩放、透明度与初始差分。
 
 ## 文件位置
@@ -90,3 +92,8 @@ VisualAsset 只复用图片集合与 sampling，不保存位置等场景状态�
 ```
 
 经常复用的角色、道具建议建立 VisualAsset；只在单个 Dialogue 使用的简单对象可以保留 inline 写法。
+
+## 下一步
+
+- 对象在画面上的位置、缩放等字段见 [Presentation JSON](./presentation-json.md#visualobject-视觉对象)。
+- 切换差分用动画，见 [SceneAction JSON](./scene-action-json.md)。

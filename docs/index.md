@@ -21,7 +21,7 @@ features:
   - title: 做出有条件的分支
     details: 使用选项、子 Dialogue 和 ProgressNode，根据玩家进度决定哪些内容可以进入。
   - title: 同一套内容用于单人与服务器
-    details: 服务端判断访问权限，客户端负责显示；文档会带你正确准备并分发双端资源。
+    details: “能不能看”由数据包决定，“看到什么”由资源包决定；文档会带你正确准备并分发双端资源。
 ---
 
 ## 它适合谁
@@ -33,11 +33,21 @@ features:
 ## 四步开始
 
 1. [安装 MaiMai Dialogue](./start/installation.md)，准备一个 Minecraft 1.21.1 测试实例。
-2. [了解 MOD 如何工作](./start/dialogue-structure.md)，看懂 Data Pack、Resource Pack 与 MOD 怎样配合。
+2. [认识 Dialogue](./start/dialogue.md)，理解对话文件能做什么，以及为什么每段对话有两份。
 3. [创建内容包](./start/content-project.md)，建立配套的 Resource Pack 与 Data Pack。
 4. [制作第一段对话](./start/first-dialogue.md)，进入世界亲自打开它。
 
 完成后，沿左侧目录逐章加入 Speaker、Markdown、选项、Progress、背景、立绘、动画和主题。所有教程都会继续使用同一个 `example` 示例工程。
+
+## 常用资源
+
+- [常见任务速查](./reference/quick-recipes.md)：想做某件事时，该改哪个文件、用哪个字段
+- [概念总览](./concepts/overview.md)：所有资源类型和它们的关系，一张图看懂
+- [术语表](./concepts/glossary.md)：全部术语的白话解释
+- [故障排查](./reference/troubleshooting.md)：打不开、不显示时按现象排查
+- 不想手打示例？直接下载[示例资源包](/MaiMai-Dialogue/examples/example_dialogue_resources-1.0.0.zip)与[示例数据包](/MaiMai-Dialogue/examples/example_dialogue_data-1.0.0.zip)
+
+<!-- TODO(截图): hero 区域或本页下方放一张内置 Demo 打开后的截图 -->
 
 ::: warning 当前版本
 MaiMai Dialogue 当前为 `0.1.0-alpha`。正式发布内容包前，请在测试环境走完所有对话路径，并备份重要存档。

@@ -5,6 +5,8 @@ description: DialogueBox、文字、选项、间距和控制件的 Theme 字段�
 
 # Theme JSON
 
+教程对应章节：[制作 Theme](../scene/themes.md)
+
 Theme 文件位于：
 
 ```text
@@ -65,7 +67,7 @@ assets/<namespace>/themes/<path>.json
 ## 数值范围
 
 - 颜色：`#RRGGBB` 或 `#AARRGGBB`。
-- 普通 dp 字段：`0..64`。
+- 普通尺寸字段（dp，界面尺寸单位）：`0..64`。
 - `scrollbar_width`：`1..64`。
 - 文字大小：`8..64`。
 - `options_collapsed_limit`、`options_expanded_limit`：`1..32`。
@@ -80,3 +82,7 @@ assets/<namespace>/themes/<path>.json
 - `controls`：Option icon、History/Options 滚动条。
 
 Theme 不控制背景、VisualObject 或 Scene Filter。缺失 Theme 时客户端会报告错误并临时回退内置默认值；发布内容不应依赖该回退。
+
+## 下一步
+
+- 用 Theme 的地方是 [Presentation JSON](./presentation-json.md) 的 `theme` 字段。

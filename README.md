@@ -10,6 +10,8 @@ MaiMai Dialogue 是面向 Minecraft 1.21.1、NeoForge 与 Modern UI 的数据驱
 
 **https://rookiestwo.github.io/MaiMai-Dialogue/**
 
+MOD 下载：**https://github.com/RookiesTwo/MaiMai-Dialogue/releases**
+
 安装内置开发版本后，可在测试世界执行：
 
 ```text

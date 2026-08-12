@@ -1,0 +1,15 @@
+{
+  "presentation": {
+    "theme": "maimai_dialogue:default"
+  },
+  "end": {
+    "speaker": {
+      "type": "set",
+      "id": "example:guide"
+    },
+    "text": "这里以农田和集市闻名。",
+    "exit": {
+      "type": "return"
+    }
+  }
+}

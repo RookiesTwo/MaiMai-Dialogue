@@ -24,7 +24,7 @@ description: 全部术语的中文名、英文名、白话定义和详细参考�
 | 中文名 | 英文名 | 白话定义 | 详细参考 |
 |---|---|---|---|
 | 演出配置 | Presentation | 一段对话的显示方案：用哪个主题、哪个场景、对话框放哪 | [Presentation JSON](../reference/presentation-json.md) |
-| 演出配置定义 | PresentationDefinition | 存成独立文件的演出配置，多个对话可以用代号引用它 | [可复用 Presentation](../reference/presentation-definition-json.md) |
+| 演出配置文件 | PresentationDefinition | 存成独立文件的演出配置，多个对话可以用代号引用它 | [演出配置文件](../reference/presentation-definition-json.md) |
 | 场景 | Scene | 一套可复用的画面组合：背景 + 视觉对象 + 滤镜 | [Scene JSON](../reference/scene-json.md) |
 | 背景 | Background | 对话框后面的整张图片，可以有多张"差分"并在动画中切换 | [添加背景](../scene/background.md) |
 | 视觉对象 | VisualObject | 画面上的单个图片对象（如一个立绘、一个道具图标），可移动、缩放、换图、显示或隐藏 | [添加 VisualObject](../scene/visual-objects.md) |
@@ -40,13 +40,13 @@ description: 全部术语的中文名、英文名、白话定义和详细参考�
 | 中文名 | 英文名 | 白话定义 |
 |---|---|---|
 | 内联 | inline | 直接把配置写在对话文件里，不单独存文件 |
-| 引用 | reference | 用代号指向一个独立文件（演出配置定义或外部动画） |
+| 引用 | reference | 用代号指向一个独立文件（演出配置文件或外部动画） |
 | 代号 | Resource ID | 资源的唯一名称，格式为"命名空间:路径"，如 `example:guide/welcome` | 
 
 ## 端与包
 
 | 中文名 | 英文名 | 白话定义 |
 |---|---|---|
-| 数据包 | Data Pack | 放进服务端或世界存档的文件夹，存放对话的服务端副本 |
-| 资源包 | Resource Pack | 放进客户端的文件夹，存放文字、画面和界面资源 |
+| 数据包 | Data Pack | 放进世界存档（或服务器世界）的文件夹，存放"现在能不能看"的对话副本 |
+| 资源包 | Resource Pack | 放进游戏客户端（或单人实例）的文件夹，存放"看到什么"的内容 |
 | 双端 | 客户端 + 服务端 | 同一份对话 JSON 需要在两个包里各放一份 |
