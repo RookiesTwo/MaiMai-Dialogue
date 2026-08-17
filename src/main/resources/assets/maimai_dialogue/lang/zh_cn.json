@@ -57,6 +57,8 @@
   "commands.maimai_dialogue.dialogue.open.not_found": "对话不存在：%s",
   "commands.maimai_dialogue.dialogue.open.requirements_not_met": "%s 不满足对话要求。",
   "commands.maimai_dialogue.dialogue.open.progress_unavailable": "%s 的进度数据暂不可用。",
+  "commands.maimai_dialogue.dialogue.open.pending_conflict": "%s 已有一个必须完成的对话。",
+  "commands.maimai_dialogue.dialogue.open.persistence_failed": "无法为 %s 安全保存必须完成的对话。",
   "commands.maimai_dialogue.dialogue.open.internal_error": "发生内部错误，无法打开对话。",
   "commands.maimai_dialogue.progress.unavailable": "%s 的进度数据不可用。",
   "commands.maimai_dialogue.progress.list": "%s：%s",

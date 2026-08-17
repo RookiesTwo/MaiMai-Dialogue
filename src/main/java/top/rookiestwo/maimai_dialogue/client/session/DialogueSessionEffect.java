@@ -4,6 +4,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 public sealed interface DialogueSessionEffect {
     record QueryAccess(long requestId, List<ResourceLocation> targets)
@@ -36,6 +37,16 @@ public sealed interface DialogueSessionEffect {
     }
 
     record Close() implements DialogueSessionEffect {
+    }
+
+    record CompleteRequiredDialogue(
+            ResourceLocation rootDialogueId,
+            UUID completionToken
+    ) implements DialogueSessionEffect {
+        public CompleteRequiredDialogue {
+            Objects.requireNonNull(rootDialogueId, "rootDialogueId");
+            Objects.requireNonNull(completionToken, "completionToken");
+        }
     }
 
     record ReportError(String message) implements DialogueSessionEffect {

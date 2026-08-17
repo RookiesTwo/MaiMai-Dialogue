@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.random.RandomGenerator;
 import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
@@ -50,8 +51,10 @@ public final class DialogueSession {
     private final Map<DialogueTextKey, String> resolvedTexts = new HashMap<>();
     private final RandomGenerator random;
     private final IntSupplier defaultTypewriterIntervalMs;
+    private final Optional<UUID> completionToken;
     private long nextRequestId = 1L;
     private long generation;
+    private boolean completionReported;
     private ActiveDialogue active;
     @Nullable
     private PendingAccessQuery pendingAccessQuery;
@@ -72,7 +75,8 @@ public final class DialogueSession {
                 definition,
                 firstGeneration,
                 () -> DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
-                RandomGenerator.getDefault()
+                RandomGenerator.getDefault(),
+                Optional.empty()
         );
     }
 
@@ -89,7 +93,27 @@ public final class DialogueSession {
                 definition,
                 firstGeneration,
                 defaultTypewriterIntervalMs,
-                RandomGenerator.getDefault()
+                RandomGenerator.getDefault(),
+                Optional.empty()
+        );
+    }
+
+    public DialogueSession(
+            DialogueContentLookup content,
+            ResourceLocation rootDialogueId,
+            DialogueDefinition definition,
+            long firstGeneration,
+            IntSupplier defaultTypewriterIntervalMs,
+            Optional<UUID> completionToken
+    ) {
+        this(
+                content,
+                rootDialogueId,
+                definition,
+                firstGeneration,
+                defaultTypewriterIntervalMs,
+                RandomGenerator.getDefault(),
+                completionToken
         );
     }
 
@@ -106,7 +130,8 @@ public final class DialogueSession {
                 definition,
                 firstGeneration,
                 () -> DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
-                random
+                random,
+                Optional.empty()
         );
     }
 
@@ -116,7 +141,8 @@ public final class DialogueSession {
             DialogueDefinition definition,
             long firstGeneration,
             IntSupplier defaultTypewriterIntervalMs,
-            RandomGenerator random
+            RandomGenerator random,
+            Optional<UUID> completionToken
     ) {
         this.content = Objects.requireNonNull(content, "content");
         this.rootDialogueId = Objects.requireNonNull(
@@ -127,6 +153,10 @@ public final class DialogueSession {
         this.defaultTypewriterIntervalMs = Objects.requireNonNull(
                 defaultTypewriterIntervalMs,
                 "defaultTypewriterIntervalMs"
+        );
+        this.completionToken = Objects.requireNonNull(
+                completionToken,
+                "completionToken"
         );
         generation = firstGeneration - 1;
         active = createActive(rootDialogueId, definition, initialEffects);
@@ -439,6 +469,7 @@ public final class DialogueSession {
                 active.playbackSkipped,
                 active.definition.skipSummary(),
                 !atEnd && !hasPendingOptionAction(),
+                completionToken.isPresent(),
                 active.currentTypewriterIntervalMs(
                         defaultTypewriterIntervalMs.getAsInt()
                 ),
@@ -679,7 +710,29 @@ public final class DialogueSession {
             List<DialogueSessionEffect> effects,
             boolean changed
     ) {
-        return new DialogueSessionUpdate(screenState(), effects, changed);
+        List<DialogueSessionEffect> resultEffects = effects;
+        if (changed && shouldReportRequiredCompletion()) {
+            resultEffects = new ArrayList<>(effects);
+            resultEffects.add(new DialogueSessionEffect
+                    .CompleteRequiredDialogue(
+                            rootDialogueId,
+                            completionToken.orElseThrow()
+                    ));
+            completionReported = true;
+        }
+        return new DialogueSessionUpdate(
+                screenState(),
+                resultEffects,
+                changed
+        );
+    }
+
+    private boolean shouldReportRequiredCompletion() {
+        return !completionReported
+                && completionToken.isPresent()
+                && active.currentDialogueId.equals(rootDialogueId)
+                && active.stepIndex >= active.definition.steps().size()
+                && active.playbackPhase == PlaybackPhase.READY;
     }
 
     private void recordOption(DialogueOption option) {

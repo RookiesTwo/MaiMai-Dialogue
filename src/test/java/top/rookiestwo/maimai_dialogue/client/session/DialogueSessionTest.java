@@ -16,6 +16,7 @@ import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.random.RandomGenerator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -819,6 +820,41 @@ class DialogueSessionTest {
         assertEquals(PlaybackPhase.READY, skipped.state().playbackPhase());
         assertTrue(skipped.effects().isEmpty());
         assertFalse(session.skipToEnd().changed());
+    }
+
+    @Test
+    void requiredDialogueReportsRootEndOnlyOnce() {
+        DialogueDefinition root = dialogue("End", ReturnExit.INSTANCE);
+        UUID token = UUID.randomUUID();
+        DialogueSession session = new DialogueSession(
+                content(Map.of(ROOT, root)),
+                ROOT,
+                root,
+                1L,
+                () -> DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
+                Optional.of(token)
+        );
+
+        DialogueSessionUpdate started = session.start();
+        assertTrue(started.state().mustComplete());
+        DialogueSessionUpdate completed = session.skipToEnd();
+        DialogueSessionEffect.CompleteRequiredDialogue effect =
+                assertInstanceOf(
+                        DialogueSessionEffect.CompleteRequiredDialogue.class,
+                        completed.effects().getFirst()
+                );
+        assertEquals(ROOT, effect.rootDialogueId());
+        assertEquals(token, effect.completionToken());
+
+        DialogueSessionUpdate closed = session.advance();
+        assertInstanceOf(
+                DialogueSessionEffect.Close.class,
+                closed.effects().getFirst()
+        );
+        assertTrue(closed.effects().stream().noneMatch(
+                DialogueSessionEffect.CompleteRequiredDialogue.class
+                        ::isInstance
+        ));
     }
 
     private static void finishPlayback(DialogueSession session) {

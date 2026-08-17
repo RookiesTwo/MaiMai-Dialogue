@@ -8,13 +8,13 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.storage.LevelResource;
+import net.neoforged.neoforge.common.IOUtilities;
 import top.rookiestwo.maimai_dialogue.progress.ProgressDataException;
 import top.rookiestwo.maimai_dialogue.progress.ProgressNode;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -83,14 +83,13 @@ public final class NbtProgressStore implements ProgressStore {
     }
 
     @Override
-    // 把稳定排序后的节点写入临时文件，再原子替换正式文件。
+    // 把稳定排序后的节点交给 NeoForge 安全写入。
     public void save(
             MinecraftServer server,
             UUID playerId,
             Set<ProgressNode> nodes
     ) {
         Path file = progressFile(server, playerId);
-        Path temporaryFile = file.resolveSibling(file.getFileName() + ".tmp");
         try {
             Files.createDirectories(file.getParent());
             CompoundTag root = new CompoundTag();
@@ -105,13 +104,7 @@ public final class NbtProgressStore implements ProgressStore {
                 serializedNodes.add(StringTag.valueOf(node));
             }
             root.put("Nodes", serializedNodes);
-            NbtIo.writeCompressed(root, temporaryFile);
-            Files.move(
-                    temporaryFile,
-                    file,
-                    StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING
-            );
+            IOUtilities.writeNbtCompressed(root, file);
         } catch (IOException | RuntimeException exception) {
             throw new ProgressDataException(
                     "Failed to save progress file " + file,

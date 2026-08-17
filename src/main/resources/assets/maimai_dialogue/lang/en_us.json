@@ -57,6 +57,8 @@
   "commands.maimai_dialogue.dialogue.open.not_found": "Dialogue does not exist: %s",
   "commands.maimai_dialogue.dialogue.open.requirements_not_met": "%s does not meet the requirements.",
   "commands.maimai_dialogue.dialogue.open.progress_unavailable": "Progress data is unavailable for %s.",
+  "commands.maimai_dialogue.dialogue.open.pending_conflict": "%s already has a required dialogue to finish.",
+  "commands.maimai_dialogue.dialogue.open.persistence_failed": "Could not safely save the required dialogue for %s.",
   "commands.maimai_dialogue.dialogue.open.internal_error": "An internal error prevented the dialogue from opening.",
   "commands.maimai_dialogue.progress.unavailable": "Progress data is not available for %s.",
   "commands.maimai_dialogue.progress.list": "%s: %s",

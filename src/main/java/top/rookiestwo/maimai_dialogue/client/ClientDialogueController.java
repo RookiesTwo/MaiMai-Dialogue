@@ -23,6 +23,7 @@ import top.rookiestwo.maimai_dialogue.network.DialogueAccessStatus;
 import top.rookiestwo.maimai_dialogue.network.OptionCommandStatus;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueAccessResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueRequestResultS2C;
+import top.rookiestwo.maimai_dialogue.network.payload.CompleteRequiredDialogueC2S;
 import top.rookiestwo.maimai_dialogue.network.payload.ExecuteOptionCommandC2S;
 import top.rookiestwo.maimai_dialogue.network.payload.OpenDialogueS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.OptionCommandResultS2C;
@@ -32,6 +33,8 @@ import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.function.Supplier;
 
@@ -68,7 +71,11 @@ public final class ClientDialogueController {
             return;
         }
         pendingRootRequest = null;
-        openSession(payload.dialogueId(), definition);
+        openSession(
+                payload.dialogueId(),
+                definition,
+                payload.completionToken()
+        );
     }
 
     // 向服务端请求打开一个新的根 Dialogue。
@@ -224,6 +231,7 @@ public final class ClientDialogueController {
                 false,
                 java.util.Optional.empty(),
                 false,
+                false,
                 DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
                 java.util.Optional.empty(),
                 java.util.Optional.empty(),
@@ -252,20 +260,22 @@ public final class ClientDialogueController {
             );
             return;
         }
-        openSession(payload.dialogueId(), definition);
+        openSession(payload.dialogueId(), definition, Optional.empty());
     }
 
     // 创建纯 session，再由 controller 负责建立 Modern UI Screen。
     private void openSession(
             ResourceLocation rootDialogueId,
-            DialogueDefinition definition
+            DialogueDefinition definition,
+            Optional<UUID> completionToken
     ) {
         DialogueSession next = new DialogueSession(
                 contentLookup(),
                 rootDialogueId,
                 definition,
                 nextGeneration++,
-                () -> ClientConfig.get().defaultTypewriterIntervalMs()
+                () -> ClientConfig.get().defaultTypewriterIntervalMs(),
+                completionToken
         );
         session = next;
         DialogueFragment newFragment = new DialogueFragment(this);
@@ -317,6 +327,14 @@ public final class ClientDialogueController {
                 ));
             } else if (effect instanceof DialogueSessionEffect.Close) {
                 Minecraft.getInstance().setScreen(null);
+            } else if (effect instanceof DialogueSessionEffect
+                    .CompleteRequiredDialogue completion) {
+                PacketDistributor.sendToServer(
+                        new CompleteRequiredDialogueC2S(
+                                completion.rootDialogueId(),
+                                completion.completionToken()
+                        )
+                );
             } else if (effect
                     instanceof DialogueSessionEffect.ReportError error) {
                 reportDevelopmentError(error.message());
@@ -415,6 +433,8 @@ public final class ClientDialogueController {
             case PROGRESS_UNAVAILABLE ->
                     DialogueAccessDecision.PROGRESS_UNAVAILABLE;
             case INTERNAL_ERROR -> DialogueAccessDecision.INTERNAL_ERROR;
+            case SERVER_TRIGGER_ONLY ->
+                    DialogueAccessDecision.SERVER_TRIGGER_ONLY;
         };
     }
 

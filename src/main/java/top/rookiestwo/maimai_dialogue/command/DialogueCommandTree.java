@@ -93,6 +93,19 @@ final class DialogueCommandTree {
                                                 player.getName()
                                         )
                                 );
+                                case PENDING_DIALOGUE_CONFLICT ->
+                                        source.sendFailure(
+                                                Component.translatable(
+                                                        "commands.maimai_dialogue.dialogue.open.pending_conflict",
+                                                        player.getName()
+                                                )
+                                        );
+                                case PERSISTENCE_FAILED -> source.sendFailure(
+                                        Component.translatable(
+                                                "commands.maimai_dialogue.dialogue.open.persistence_failed",
+                                                player.getName()
+                                        )
+                                );
                                 case INTERNAL_ERROR -> source.sendFailure(
                                         Component.translatable(
                                                 "commands.maimai_dialogue.dialogue.open.internal_error"

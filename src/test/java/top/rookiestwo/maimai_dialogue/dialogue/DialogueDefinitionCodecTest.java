@@ -25,6 +25,7 @@ class DialogueDefinitionCodecTest {
                 {
                   "requires": "quest.skier.started && !quest.skier.finished",
                   "skip_summary": "## 摘要\n\n直接进入最终选择。",
+                  "must_complete": true,
                   "presentation": {
                     "theme": "example:default",
                     "visual_objects": {}
@@ -80,6 +81,7 @@ class DialogueDefinitionCodecTest {
                 "## 摘要\n\n直接进入最终选择。",
                 definition.skipSummary().orElseThrow()
         );
+        assertTrue(definition.mustComplete());
         assertEquals(3, definition.steps().size());
         assertInstanceOf(SetSpeaker.class,
                 definition.steps().getFirst().speaker().orElseThrow());
@@ -124,6 +126,7 @@ class DialogueDefinitionCodecTest {
 
         assertTrue(definition.requires().isEmpty());
         assertTrue(definition.skipSummary().isEmpty());
+        assertFalse(definition.mustComplete());
         assertTrue(definition.steps().isEmpty());
         assertTrue(definition.end().text().isEmpty());
         assertTrue(definition.end().speaker().isEmpty());
@@ -308,6 +311,24 @@ class DialogueDefinitionCodecTest {
                             """.formatted(summary))
             ).error().isPresent());
         }
+    }
+
+    @Test
+    void rejectsInvalidMustCompleteValue() {
+        assertTrue(DialogueDefinition.CODEC.parse(
+                JsonOps.INSTANCE,
+                JsonParser.parseString("""
+                        {
+                          "must_complete": "true",
+                          "presentation": {
+                            "theme": "maimai_dialogue:default"
+                          },
+                          "end": {
+                            "exit": {"type": "return"}
+                          }
+                        }
+                        """)
+        ).error().isPresent());
     }
 
     @Test

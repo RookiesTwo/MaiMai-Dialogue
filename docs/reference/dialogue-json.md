@@ -13,6 +13,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 {
   "requires": "guide.started && !guide.finished",
   "skip_summary": "跳过后将直接进入最终选择。",
+  "must_complete": true,
   "presentation": {
     "theme": "maimai_dialogue:default"
   },
@@ -29,6 +30,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 |---|---:|---|---|
 | `requires` | 否 | 无条件公开 | 服务端访问表达式 |
 | `skip_summary` | 否 | 无确认摘要 | 长按跳过成功后显示的 Markdown 摘要 |
+| `must_complete` | 否 | `false` | 中断后登录时必须从根节点重新播放 |
 | `presentation` | 是 | — | Theme、场景和对话框布局 |
 | `steps` | 否 | `[]` | 按顺序播放的普通步骤 |
 | `end` | 是 | — | 最后一步，必须提供 `exit` |
@@ -36,6 +38,8 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 不要使用 JSON `null`。可选字段应直接省略。
 
 `skip_summary` 属于整个 Dialogue，而不是单个 Step。字段存在时必须是非空、非纯空白字符串；长按跳过按钮后，玩家需要阅读摘要并确认。字段省略时，长按完成后直接跳至 `end`。摘要支持与正文相同的 Markdown 子集，但不会使用打字机效果，也不会进入历史记录。
+
+`must_complete: true` 只允许由服务端 API 或 `/maimai_dialogue open` 作为根 Dialogue 打开。服务端会在打开前保存玩家尚未完成的 Dialogue；断线或崩溃后，下次登录会从根节点重新播放。此类对话不能按 Esc 主动退出，正常播放或跳过到 `end` 且文字与 Scene 播放完成后才会清空记录。
 
 ## 普通步骤与结尾
 

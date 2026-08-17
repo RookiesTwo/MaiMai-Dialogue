@@ -65,6 +65,22 @@ public final class DialogueAccessService {
                 });
     }
 
+    // 客户端导航不能主动进入必须完成的根 Dialogue。
+    public CompletionStage<DialogueAccessStatus> evaluateClientRequest(
+            ServerPlayer player,
+            ResourceLocation dialogueId
+    ) {
+        DialogueDefinition definition = dialogues.get()
+                .find(dialogueId)
+                .orElse(null);
+        if (definition != null && definition.mustComplete()) {
+            return CompletableFuture.completedFuture(
+                    DialogueAccessStatus.SERVER_TRIGGER_ONLY
+            );
+        }
+        return evaluate(player, dialogueId);
+    }
+
     public CompletionStage<List<DialogueAccessEntry>> evaluateAll(
             ServerPlayer player,
             List<ResourceLocation> dialogueIds
@@ -72,7 +88,7 @@ public final class DialogueAccessService {
         List<CompletableFuture<DialogueAccessEntry>> evaluations =
                 new ArrayList<>(dialogueIds.size());
         for (ResourceLocation dialogueId : dialogueIds) {
-            evaluations.add(evaluate(player, dialogueId)
+            evaluations.add(evaluateClientRequest(player, dialogueId)
                     .thenApply(status -> new DialogueAccessEntry(
                             dialogueId,
                             status

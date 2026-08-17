@@ -89,13 +89,17 @@ MaiMaiDialogueApi.get()
                 }
                 case PROGRESS_UNAVAILABLE -> {
                 }
+                case PENDING_DIALOGUE_CONFLICT -> {
+                }
+                case PERSISTENCE_FAILED -> {
+                }
                 case INTERNAL_ERROR -> {
                 }
             }
         });
 ```
 
-`SENT` 只表示 payload 已发送。客户端缺少本地资源或已经打开另一个 Dialogue 时，仍可能不显示新界面。
+`SENT` 只表示 payload 已发送。对于 `must_complete` Dialogue，它同时表示“尚未完成”记录已安全保存；客户端缺少本地资源或已经打开另一个 Dialogue 时，界面仍可能不显示，但下次登录会重新发送。`PENDING_DIALOGUE_CONFLICT` 表示该玩家已有另一个必须完成的 Dialogue，`PERSISTENCE_FAILED` 表示记录未能安全保存，因此本次不会打开。
 
 ### 5. 管理 Progress
 
@@ -140,7 +144,7 @@ progress.remove(player, node).thenAccept(result -> {
 
 - 启动时报缺失 MOD：检查 `neoforge.mods.toml` 的 `modId` 和运行环境 jar。
 - 编译找不到 API：检查本地 jar 是否在调用方 compile classpath。
-- 抛出线程异常：从玩家所属 logical server thread 发起 Progress API 调用。
+- 抛出线程异常：从玩家所属 logical server thread 发起 Dialogue 和 Progress API 调用。
 - CompletionStage 异常完成：记录原始异常，不要把进度保存失败当成成功。
 - 使用离线玩家失败：当前 API 只接受在线 `ServerPlayer`。
 

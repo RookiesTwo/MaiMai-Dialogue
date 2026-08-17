@@ -7,7 +7,8 @@ public enum DialogueAccessStatus {
     DIALOGUE_NOT_FOUND(1),
     REQUIREMENTS_NOT_MET(2),
     PROGRESS_UNAVAILABLE(3),
-    INTERNAL_ERROR(4);
+    INTERNAL_ERROR(4),
+    SERVER_TRIGGER_ONLY(5);
 
     private final int networkId;
 

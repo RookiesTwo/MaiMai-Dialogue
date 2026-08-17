@@ -19,6 +19,7 @@ public record DialogueScreenState(
         boolean playbackSkipped,
         Optional<String> skipSummary,
         boolean canSkipToEnd,
+        boolean mustComplete,
         int typewriterIntervalMs,
         Optional<String> speaker,
         Optional<String> text,

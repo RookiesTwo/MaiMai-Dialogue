@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 public record DialogueDefinition(
         Optional<ProgressExpression> requires,
         Optional<String> skipSummary,
+        boolean mustComplete,
         Presentation presentation,
         List<DialogueStep> steps,
         DialogueEnd end
@@ -36,6 +37,8 @@ public record DialogueDefinition(
                                     .forGetter(DialogueDefinition::requires),
                             optionalSkipSummaryFieldOf("skip_summary")
                                     .forGetter(DialogueDefinition::skipSummary),
+                            Codec.BOOL.optionalFieldOf("must_complete", false)
+                                    .forGetter(DialogueDefinition::mustComplete),
                             Presentation.CODEC.fieldOf("presentation")
                                     .forGetter(DialogueDefinition::presentation),
                             DialogueStep.CODEC.listOf()
@@ -57,11 +60,35 @@ public record DialogueDefinition(
 
     public DialogueDefinition(
             Optional<ProgressExpression> requires,
+            Optional<String> skipSummary,
             Presentation presentation,
             List<DialogueStep> steps,
             DialogueEnd end
     ) {
-        this(requires, Optional.empty(), presentation, steps, end);
+        this(
+                requires,
+                skipSummary,
+                false,
+                presentation,
+                steps,
+                end
+        );
+    }
+
+    public DialogueDefinition(
+            Optional<ProgressExpression> requires,
+            Presentation presentation,
+            List<DialogueStep> steps,
+            DialogueEnd end
+    ) {
+        this(
+                requires,
+                Optional.empty(),
+                false,
+                presentation,
+                steps,
+                end
+        );
     }
 
     // 区分字段缺失与显式 JSON null，避免把无效摘要当作未配置。

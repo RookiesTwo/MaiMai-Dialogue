@@ -339,7 +339,10 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         exitConfirmationPending = false;
         DialogueRootLayout root = rootLayout;
         DialogueScreenState state = latestState;
-        if (root == null || state == null || root.hasConfirmation()) {
+        if (root == null
+                || state == null
+                || state.mustComplete()
+                || root.hasConfirmation()) {
             return;
         }
 
@@ -567,6 +570,15 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         DialogueRootLayout root = rootLayout;
         if (root == null) {
             return true;
+        }
+        if (root.hasConfirmation()) {
+            root.post(this::dismissConfirmation);
+            return false;
+        }
+        DialogueScreenState state = latestState;
+        if (state != null && state.mustComplete()) {
+            exitConfirmationPending = false;
+            return false;
         }
         if (!exitConfirmationPending) {
             exitConfirmationPending = true;

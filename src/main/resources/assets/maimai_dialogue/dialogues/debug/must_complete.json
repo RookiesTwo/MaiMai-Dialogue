@@ -1,0 +1,26 @@
+{
+  "must_complete": true,
+  "skip_summary": "Skip directly to End. The pending record should only be cleared after the End text and scene are both ready.",
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:debug/default"
+  },
+  "steps": [
+    {
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:debug/guide"
+      },
+      "text": "This is a must-complete dialogue. Pressing Esc must not show an exit confirmation or close the dialogue."
+    },
+    {
+      "text": "Disconnect or close the client before reaching End. After you join again, this dialogue should restart from the beginning."
+    }
+  ],
+  "end": {
+    "text": "End reached. After this text and the scene are ready, the pending record should be cleared and this dialogue should not reopen on the next login.",
+    "exit": {
+      "type": "return"
+    }
+  }
+}

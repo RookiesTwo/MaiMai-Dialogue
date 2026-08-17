@@ -65,7 +65,10 @@ public final class OptionCommandService {
                     }
 
                     if (option.target() instanceof DialogueTarget target) {
-                        return access.evaluate(player, target.dialogue())
+                        return access.evaluateClientRequest(
+                                        player,
+                                        target.dialogue()
+                                )
                                 .thenCompose(targetStatus -> {
                                     OptionCommandStatus targetRejection =
                                             targetRejection(targetStatus);
@@ -249,6 +252,7 @@ public final class OptionCommandService {
             case PROGRESS_UNAVAILABLE ->
                     OptionCommandStatus.PROGRESS_UNAVAILABLE;
             case INTERNAL_ERROR -> OptionCommandStatus.INTERNAL_ERROR;
+            case SERVER_TRIGGER_ONLY -> OptionCommandStatus.INTERNAL_ERROR;
         };
     }
 
@@ -264,6 +268,8 @@ public final class OptionCommandService {
             case PROGRESS_UNAVAILABLE ->
                     OptionCommandStatus.PROGRESS_UNAVAILABLE;
             case INTERNAL_ERROR -> OptionCommandStatus.INTERNAL_ERROR;
+            case SERVER_TRIGGER_ONLY ->
+                    OptionCommandStatus.TARGET_REQUIREMENTS_NOT_MET;
         };
     }
 }
