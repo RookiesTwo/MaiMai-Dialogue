@@ -192,6 +192,12 @@ public final class ClientDialogueController {
         applySessionUpdate(current -> current.selectOption(option));
     }
 
+    // 玩家确认退出时关闭 Screen，session 仍由 Fragment 销毁流程统一清理。
+    void closeFromUi() {
+        requireClientThread();
+        Minecraft.getInstance().setScreen(null);
+    }
+
     // 清理与被销毁 Fragment 绑定的全部会话状态。
     public void onFragmentDestroyed(DialogueFragment destroyedFragment) {
         requireClientThread();

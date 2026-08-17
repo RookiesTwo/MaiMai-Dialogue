@@ -12,45 +12,52 @@ import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.ScrollView;
 import icyllis.modernui.widget.TextView;
-import net.minecraft.client.resources.language.I18n;
-import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
+import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
+import javax.annotation.Nullable;
 import java.util.Objects;
 
-/**
- * Modal confirmation panel shown when a Dialogue provides a skip summary.
- */
-final class DialogueSkipConfirmationView extends FrameLayout {
+// 对话页内共用的模态确认框，支持有标题的长正文和无标题的紧凑正文。
+final class DialogueConfirmationView extends FrameLayout {
     private static final float PANEL_WIDTH_FRACTION = 0.62F;
+    private static final float COMPACT_PANEL_WIDTH_FRACTION =
+            PANEL_WIDTH_FRACTION / 3.0F;
     private static final float PANEL_HEIGHT_FRACTION = 0.65F;
     private static final int PANEL_MAX_WIDTH_DP = 720;
     private static final int PANEL_MAX_HEIGHT_DP = 560;
     private static final int OVERLAY_COLOR = 0x99000000;
 
     private final LinearLayout panel;
+    @Nullable
     private final TextView title;
     private final ScrollView scroll;
-    private final TextView summary;
+    private final TextView body;
     private final Button cancelButton;
     private final Button confirmButton;
     private final Markflow markflow;
-    private final String markdownSummary;
+    private final String markdownBody;
+    private final boolean expandedBody;
     private DialogueTypography typography = DialogueTypography.resolve(
             ClientConfig.get()
     );
 
-    DialogueSkipConfirmationView(
+    DialogueConfirmationView(
             Context context,
-            String markdownSummary,
+            @Nullable String titleText,
+            String markdownBody,
+            String cancelText,
+            String confirmText,
+            boolean expandedBody,
             Runnable cancelledAction,
             Runnable confirmedAction
     ) {
         super(context);
-        this.markdownSummary = Objects.requireNonNull(
-                markdownSummary,
-                "markdownSummary"
+        this.markdownBody = Objects.requireNonNull(
+                markdownBody,
+                "markdownBody"
         );
+        this.expandedBody = expandedBody;
         Objects.requireNonNull(cancelledAction, "cancelledAction");
         Objects.requireNonNull(confirmedAction, "confirmedAction");
         setClickable(true);
@@ -62,45 +69,54 @@ final class DialogueSkipConfirmationView extends FrameLayout {
         panel = new LinearLayout(context);
         panel.setOrientation(LinearLayout.VERTICAL);
 
-        title = new TextView(context);
-        title.setText(I18n.get("gui.maimai_dialogue.skip_confirm.title"));
-        title.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        panel.addView(title, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
+        if (titleText != null) {
+            title = new TextView(context);
+            title.setText(titleText);
+            title.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            panel.addView(title, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            ));
+        } else {
+            title = null;
+        }
 
         scroll = new ScrollView(context);
         scroll.setFillViewport(false);
-        scroll.setVerticalScrollBarEnabled(true);
-        summary = new TextView(context);
-        summary.setGravity(Gravity.START | Gravity.TOP);
-        scroll.addView(summary, new ScrollView.LayoutParams(
+        scroll.setVerticalScrollBarEnabled(expandedBody);
+        body = new TextView(context);
+        body.setGravity(expandedBody
+                ? Gravity.START | Gravity.TOP
+                : Gravity.CENTER);
+        scroll.addView(body, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
-        panel.addView(scroll, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                0,
-                1.0F
-        ));
+        panel.addView(scroll, expandedBody
+                ? new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        0,
+                        1.0F
+                )
+                : new LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                ));
 
         LinearLayout actions = new LinearLayout(context);
         actions.setOrientation(LinearLayout.HORIZONTAL);
-        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        actions.setGravity(expandedBody
+                ? Gravity.END | Gravity.CENTER_VERTICAL
+                : Gravity.CENTER);
         cancelButton = new Button(context);
-        cancelButton.setText(I18n.get(
-                "gui.maimai_dialogue.skip_confirm.cancel"
-        ));
+        cancelButton.setText(Objects.requireNonNull(cancelText, "cancelText"));
         cancelButton.setOnClickListener(ignored -> cancelledAction.run());
         actions.addView(cancelButton, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
         confirmButton = new Button(context);
-        confirmButton.setText(I18n.get(
-                "gui.maimai_dialogue.skip_confirm.confirm"
-        ));
+        confirmButton.setText(Objects.requireNonNull(confirmText, "confirmText"));
         confirmButton.setOnClickListener(ignored -> confirmedAction.run());
         LinearLayout.LayoutParams confirmParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -144,14 +160,16 @@ final class DialogueSkipConfirmationView extends FrameLayout {
         int vertical = dp(Math.max(12, spacing.contentVerticalDp()));
         panel.setPadding(horizontal, vertical, horizontal, vertical);
 
-        title.setTextColor(text.primary().argb());
-        typography.apply(title, text.speakerSizeSp());
-        summary.setTextColor(text.primary().argb());
-        typography.apply(summary, text.dialogueSizeSp());
-        Spanned renderedSummary = markflow.convert(markdownSummary);
-        markflow.setRenderedMarkdown(summary, renderedSummary);
-        int summaryPadding = dp(12);
-        summary.setPadding(0, summaryPadding, 0, summaryPadding);
+        if (title != null) {
+            title.setTextColor(text.primary().argb());
+            typography.apply(title, text.speakerSizeSp());
+        }
+        body.setTextColor(text.primary().argb());
+        typography.apply(body, text.dialogueSizeSp());
+        Spanned renderedBody = markflow.convert(markdownBody);
+        markflow.setRenderedMarkdown(body, renderedBody);
+        int bodyPadding = dp(12);
+        body.setPadding(0, bodyPadding, 0, bodyPadding);
         cancelButton.setTextColor(text.primary().argb());
         typography.apply(cancelButton, text.auxiliarySizeSp());
         confirmButton.setTextColor(text.primary().argb());
@@ -165,7 +183,7 @@ final class DialogueSkipConfirmationView extends FrameLayout {
             DialogueTypography typography,
             ThemeDefinition theme
     ) {
-        this.typography = typography;
+        this.typography = Objects.requireNonNull(typography, "typography");
         applyTheme(theme);
     }
 
@@ -178,18 +196,23 @@ final class DialogueSkipConfirmationView extends FrameLayout {
         params.width = Math.max(
                 1,
                 Math.min(
-                        Math.round(width * PANEL_WIDTH_FRACTION),
-                        dp(PANEL_MAX_WIDTH_DP)
+                        Math.round(width * (expandedBody
+                                ? PANEL_WIDTH_FRACTION
+                                : COMPACT_PANEL_WIDTH_FRACTION)),
+                        dp(expandedBody
+                                ? PANEL_MAX_WIDTH_DP
+                                : PANEL_MAX_WIDTH_DP / 3)
                 )
         );
-        params.height = Math.max(
-                1,
-                Math.min(
-                        Math.round(height * PANEL_HEIGHT_FRACTION),
-                        dp(PANEL_MAX_HEIGHT_DP)
+        params.height = expandedBody
+                ? Math.max(
+                        1,
+                        Math.min(
+                                Math.round(height * PANEL_HEIGHT_FRACTION),
+                                dp(PANEL_MAX_HEIGHT_DP)
+                        )
                 )
-        );
+                : ViewGroup.LayoutParams.WRAP_CONTENT;
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
-
 }

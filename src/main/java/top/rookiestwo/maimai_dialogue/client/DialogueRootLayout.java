@@ -40,9 +40,11 @@ final class DialogueRootLayout extends FrameLayout {
     };
     private Runnable historyAction = () -> {
     };
+    private Runnable exitAction = () -> {
+    };
     private Consumer<Boolean> fastForwardAction = ignored -> {
     };
-    private Runnable confirmationCancelledAction = () -> {
+    private Runnable confirmationEscapeAction = () -> {
     };
     private View confirmationView;
     private float controlsAlpha = 1.0F;
@@ -50,6 +52,7 @@ final class DialogueRootLayout extends FrameLayout {
     private boolean advanceKeyDown;
     private boolean skipKeyDown;
     private boolean historyKeyDown;
+    private boolean escapeKeyDown;
     private boolean optionsExpanded;
     private boolean animateNextHeightDecrease;
 
@@ -135,6 +138,10 @@ final class DialogueRootLayout extends FrameLayout {
         );
     }
 
+    void setExitAction(Runnable exitAction) {
+        this.exitAction = Objects.requireNonNull(exitAction, "exitAction");
+    }
+
     void setSkipAvailable(boolean available) {
         skipButton.setEnabled(available);
         skipButton.setAlpha(
@@ -145,14 +152,14 @@ final class DialogueRootLayout extends FrameLayout {
         }
     }
 
-    void showSkipConfirmation(View view, Runnable cancelledAction) {
-        dismissSkipConfirmation();
+    void showConfirmation(View view, Runnable escapeAction) {
+        dismissConfirmation();
         fastForwardAction.accept(false);
         skipButton.cancelHold();
         confirmationView = Objects.requireNonNull(view, "view");
-        confirmationCancelledAction = Objects.requireNonNull(
-                cancelledAction,
-                "cancelledAction"
+        confirmationEscapeAction = Objects.requireNonNull(
+                escapeAction,
+                "escapeAction"
         );
         addView(
                 view,
@@ -164,17 +171,17 @@ final class DialogueRootLayout extends FrameLayout {
         view.requestFocus();
     }
 
-    void dismissSkipConfirmation() {
+    void dismissConfirmation() {
         View current = confirmationView;
         confirmationView = null;
-        confirmationCancelledAction = () -> {
+        confirmationEscapeAction = () -> {
         };
         if (current != null) {
             removeView(current);
         }
     }
 
-    boolean hasSkipConfirmation() {
+    boolean hasConfirmation() {
         return confirmationView != null;
     }
 
@@ -203,18 +210,31 @@ final class DialogueRootLayout extends FrameLayout {
 
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
-        if (confirmationView != null) {
-            if (event.getKeyCode() == KeyEvent.KEY_ESCAPE
-                    && event.getAction() == KeyEvent.ACTION_UP
-                    && !event.isCanceled()) {
-                confirmationCancelledAction.run();
-            }
-            return true;
-        }
         int keyCode = event.getKeyCode();
         boolean down = event.getAction() == KeyEvent.ACTION_DOWN
                 && !event.isCanceled();
         boolean up = event.getAction() == KeyEvent.ACTION_UP;
+        if (keyCode == KeyEvent.KEY_ESCAPE) {
+            if (confirmationView != null) {
+                if (down && !escapeKeyDown) {
+                    escapeKeyDown = true;
+                    confirmationEscapeAction.run();
+                } else if (up) {
+                    escapeKeyDown = false;
+                }
+                return true;
+            }
+            if (down && !escapeKeyDown) {
+                escapeKeyDown = true;
+                exitAction.run();
+            } else if (up) {
+                escapeKeyDown = false;
+            }
+            return true;
+        }
+        if (confirmationView != null) {
+            return true;
+        }
         if (preferences.matches(ClientControlAction.FAST_FORWARD, keyCode)) {
             if (down && !fastForwardKeyDown) {
                 fastForwardKeyDown = true;
@@ -378,14 +398,16 @@ final class DialogueRootLayout extends FrameLayout {
     public void onWindowFocusChanged(boolean hasWindowFocus) {
         super.onWindowFocusChanged(hasWindowFocus);
         if (!hasWindowFocus) {
+            escapeKeyDown = false;
             cancelTransientInput();
         }
     }
 
     @Override
     protected void onDetachedFromWindow() {
+        escapeKeyDown = false;
         cancelTransientInput();
-        dismissSkipConfirmation();
+        dismissConfirmation();
         cancelHeightAnimator();
         super.onDetachedFromWindow();
     }

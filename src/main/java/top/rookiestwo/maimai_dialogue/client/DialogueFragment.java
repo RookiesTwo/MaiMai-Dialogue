@@ -11,6 +11,7 @@ import icyllis.modernui.mc.ScreenCallback;
 import icyllis.modernui.util.ColorStateList;
 import icyllis.modernui.util.DataSet;
 import icyllis.modernui.util.StateSet;
+import icyllis.modernui.view.KeyEvent;
 import icyllis.modernui.view.LayoutInflater;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
@@ -63,6 +64,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     private DialogueScreenState latestState;
     private long confirmationGeneration = Long.MIN_VALUE;
     private long autoAdvancePlaybackToken = Long.MIN_VALUE;
+    private volatile boolean exitConfirmationPending;
     private boolean fastForwarding;
 
     public DialogueFragment(ClientDialogueController controller) {
@@ -105,6 +107,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         root.setAdvanceAction(this::advanceFromUi);
         root.setFastForwardAction(this::setFastForwarding);
         root.setHistoryAction(this::openHistory);
+        root.setExitAction(this::showExitConfirmation);
         scene.setDialogueBoxStateConsumer(root::setDialogueBoxState);
         root.setFocusable(true);
         root.setFocusableInTouchMode(true);
@@ -144,9 +147,9 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                     || skipButton != skipEntry) {
                 return;
             }
-            if (root.hasSkipConfirmation()
+            if (root.hasConfirmation()
                     && confirmationGeneration != state.generation()) {
-                dismissSkipConfirmation();
+                dismissConfirmation();
             }
             if (state.generation() != renderedGeneration) {
                 renderedGeneration = state.generation();
@@ -158,7 +161,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                 applyPresentation(state, root, scene);
             }
             root.setSkipAvailable(
-                    state.canSkipToEnd() && !root.hasSkipConfirmation()
+                    state.canSkipToEnd() && !root.hasConfirmation()
             );
 
             state.scenePlayback().ifPresent(playback ->
@@ -206,7 +209,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
 
     private void advanceFromUi() {
         DialogueRootLayout root = rootLayout;
-        if (root != null && root.hasSkipConfirmation()) {
+        if (root != null && root.hasConfirmation()) {
             return;
         }
         Minecraft.getInstance().execute(controller::advance);
@@ -214,7 +217,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
 
     private void setFastForwarding(boolean fastForwarding) {
         DialogueRootLayout root = rootLayout;
-        if (root != null && root.hasSkipConfirmation()) {
+        if (root != null && root.hasConfirmation()) {
             fastForwarding = false;
         }
         this.fastForwarding = fastForwarding;
@@ -299,11 +302,15 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
 
         confirmationGeneration = state.generation();
         ThemeDefinition theme = state.theme().orElse(ThemeDefinition.DEFAULT);
-        DialogueSkipConfirmationView confirmation =
-                new DialogueSkipConfirmationView(
+        DialogueConfirmationView confirmation =
+                new DialogueConfirmationView(
                         requireContext(),
+                        I18n.get("gui.maimai_dialogue.skip_confirm.title"),
                         summary,
-                        this::dismissSkipConfirmation,
+                        I18n.get("gui.maimai_dialogue.skip_confirm.cancel"),
+                        I18n.get("gui.maimai_dialogue.skip_confirm.confirm"),
+                        true,
+                        this::dismissConfirmation,
                         this::confirmSkipToEnd
                 );
         confirmation.applyTheme(theme);
@@ -311,9 +318,9 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                 DialogueTypography.resolve(ClientConfig.get()),
                 theme
         );
-        root.showSkipConfirmation(
+        root.showConfirmation(
                 confirmation,
-                this::dismissSkipConfirmation
+                this::dismissConfirmation
         );
         root.setSkipAvailable(false);
     }
@@ -321,20 +328,62 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
     private void confirmSkipToEnd() {
         DialogueRootLayout root = rootLayout;
         if (root != null) {
-            root.dismissSkipConfirmation();
+            root.dismissConfirmation();
             root.setSkipAvailable(false);
         }
         confirmationGeneration = Long.MIN_VALUE;
         Minecraft.getInstance().execute(controller::skipToEnd);
     }
 
-    private void dismissSkipConfirmation() {
+    private void showExitConfirmation() {
+        exitConfirmationPending = false;
+        DialogueRootLayout root = rootLayout;
+        DialogueScreenState state = latestState;
+        if (root == null || state == null || root.hasConfirmation()) {
+            return;
+        }
+
+        root.cancelTransientInput();
+        confirmationGeneration = state.generation();
+        ThemeDefinition theme = state.theme().orElse(ThemeDefinition.DEFAULT);
+        DialogueConfirmationView confirmation =
+                new DialogueConfirmationView(
+                        requireContext(),
+                        null,
+                        I18n.get("gui.maimai_dialogue.exit_confirm.body"),
+                        I18n.get("gui.maimai_dialogue.exit_confirm.cancel"),
+                        I18n.get("gui.maimai_dialogue.exit_confirm.confirm"),
+                        false,
+                        this::dismissConfirmation,
+                        this::confirmExit
+                );
+        confirmation.applyTheme(theme);
+        confirmation.setTypography(
+                DialogueTypography.resolve(ClientConfig.get()),
+                theme
+        );
+        root.showConfirmation(confirmation, this::dismissConfirmation);
+        root.setSkipAvailable(false);
+    }
+
+    private void confirmExit() {
+        DialogueRootLayout root = rootLayout;
+        if (root != null) {
+            root.dismissConfirmation();
+        }
+        confirmationGeneration = Long.MIN_VALUE;
+        exitConfirmationPending = false;
+        Minecraft.getInstance().execute(controller::closeFromUi);
+    }
+
+    private void dismissConfirmation() {
         DialogueRootLayout root = rootLayout;
         if (root == null) {
             return;
         }
-        root.dismissSkipConfirmation();
+        root.dismissConfirmation();
         confirmationGeneration = Long.MIN_VALUE;
+        exitConfirmationPending = false;
         DialogueScreenState state = latestState;
         root.setSkipAvailable(
                 state != null && state.canSkipToEnd()
@@ -475,7 +524,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         DialogueRootLayout root = rootLayout;
         if (root != null) {
             root.cancelTransientInput();
-            root.dismissSkipConfirmation();
+            root.dismissConfirmation();
         }
         DialogueBoxView box = boxView;
         if (box != null) {
@@ -493,6 +542,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
         latestState = null;
         confirmationGeneration = Long.MIN_VALUE;
         autoAdvancePlaybackToken = Long.MIN_VALUE;
+        exitConfirmationPending = false;
         fastForwarding = false;
         renderedGeneration = Long.MIN_VALUE;
         super.onDestroyView();
@@ -505,6 +555,24 @@ public final class DialogueFragment extends Fragment implements ScreenCallback {
                 () -> controller.onFragmentDestroyed(this)
         );
         super.onDestroy();
+    }
+
+    @Override
+    public boolean isBackKey(int keyCode, @NonNull KeyEvent event) {
+        return keyCode == KeyEvent.KEY_ESCAPE;
+    }
+
+    @Override
+    public boolean shouldClose() {
+        DialogueRootLayout root = rootLayout;
+        if (root == null) {
+            return true;
+        }
+        if (!exitConfirmationPending) {
+            exitConfirmationPending = true;
+            root.post(this::showExitConfirmation);
+        }
+        return false;
     }
 
     @Override
