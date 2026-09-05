@@ -19,16 +19,18 @@ hs_err_pid*
 
 # Common working directory
 run
-/src/test/**
-!/src/test/**/
-!/src/test/**/ClientPreferencesTest.java
-!/src/test/**/DialogueDefinitionCodecTest.java
-!/src/test/**/DialogueSessionTest.java
-!/src/test/**/OptionCommandServiceTest.java
 
-# Local project notes（仅保留共享的架构说明）
+# Local tests and their IDEA run configuration
+/src/test/
+/.run/Tests.run.xml
+
+# Refactoring scripts, snapshots and isolated game runs (also covered by build)
+/build/refactor/
+
+# Local project notes（仅保留共享架构与验证记录）
 /.project-notes/*
 !/.project-notes/architecture.md
+!/.project-notes/refactor-verification.md
 
 # Node.js and VitePress
 /node_modules/

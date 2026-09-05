@@ -115,15 +115,15 @@ public final class ClientConfig {
             fastForwardMultiplier = builder.comment(
                             "Playback multiplier while the fast-forward key is held."
                     )
-                    .defineInRange("fastForwardMultiplier", 4.0, 1.0, 32.0);
+                    .defineInRange("fastForwardMultiplier", ClientPreferences.DEFAULT_FAST_FORWARD_MULTIPLIER, ClientPreferences.MIN_FAST_FORWARD_MULTIPLIER, ClientPreferences.MAX_FAST_FORWARD_MULTIPLIER);
             defaultTypewriterIntervalMs = builder.comment(
                             "Default milliseconds per code point when Dialogue JSON omits typewriter_interval_ms."
                     )
-                    .defineInRange("defaultTypewriterIntervalMs", 30, 0, 1_000);
+                    .defineInRange("defaultTypewriterIntervalMs", ClientPreferences.DEFAULT_TYPEWRITER_INTERVAL_MS, ClientPreferences.MIN_TYPEWRITER_INTERVAL_MS, ClientPreferences.MAX_TYPEWRITER_INTERVAL_MS);
             skipHoldDurationMs = builder.comment(
                             "Milliseconds that the skip button or key must be held."
                     )
-                    .defineInRange("skipHoldDurationMs", 600, 200, 3_000);
+                    .defineInRange("skipHoldDurationMs", ClientPreferences.DEFAULT_SKIP_HOLD_DURATION_MS, ClientPreferences.MIN_SKIP_HOLD_DURATION_MS, ClientPreferences.MAX_SKIP_HOLD_DURATION_MS);
             builder.pop();
 
             builder.comment("Dialogue appearance preferences").push("appearance");
@@ -134,25 +134,25 @@ public final class ClientConfig {
             fontScale = builder.comment(
                             "Scale applied to Dialogue theme text sizes."
                     )
-                    .defineInRange("fontScale", 1.0, 0.5, 2.0);
+                    .defineInRange("fontScale", ClientPreferences.DEFAULT_FONT_SCALE, ClientPreferences.MIN_FONT_SCALE, ClientPreferences.MAX_FONT_SCALE);
             builder.pop();
 
             builder.comment("Dialogue-local keyboard bindings").push("controls");
-            fastForwardKey = defineKey(builder, "fastForwardKey", "control");
+            fastForwardKey = defineKey(builder, "fastForwardKey", ClientPreferences.DEFAULT_FAST_FORWARD_KEY.name());
             advanceKey = defineKey(
                     builder,
                     "advanceKey",
-                    "key.keyboard.space"
+                    ClientPreferences.DEFAULT_ADVANCE_KEY.name()
             );
             skipKey = defineKey(
                     builder,
                     "skipKey",
-                    DialogueKey.UNBOUND_NAME
+                    ClientPreferences.DEFAULT_SKIP_KEY.name()
             );
             historyKey = defineKey(
                     builder,
                     "historyKey",
-                    "key.keyboard.h"
+                    ClientPreferences.DEFAULT_HISTORY_KEY.name()
             );
             builder.pop();
         }

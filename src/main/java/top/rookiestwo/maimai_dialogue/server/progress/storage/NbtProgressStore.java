@@ -26,16 +26,25 @@ public final class NbtProgressStore implements ProgressStore {
     private static final long MAX_NBT_BYTES = 1024L * 1024L;
     private static final String DIRECTORY = "data/maimai_dialogue/progress";
     private final Function<MinecraftServer, Path> worldRoot;
+    private final NbtWriter writer;
 
     public NbtProgressStore() {
         this(server -> server.getWorldPath(LevelResource.ROOT));
     }
 
     NbtProgressStore(Function<MinecraftServer, Path> worldRoot) {
+        this(worldRoot, IOUtilities::writeNbtCompressed);
+    }
+
+    NbtProgressStore(
+            Function<MinecraftServer, Path> worldRoot,
+            NbtWriter writer
+    ) {
         this.worldRoot = java.util.Objects.requireNonNull(
                 worldRoot,
                 "worldRoot"
         );
+        this.writer = java.util.Objects.requireNonNull(writer, "writer");
     }
 
     @Override
@@ -104,7 +113,8 @@ public final class NbtProgressStore implements ProgressStore {
                 serializedNodes.add(StringTag.valueOf(node));
             }
             root.put("Nodes", serializedNodes);
-            IOUtilities.writeNbtCompressed(root, file);
+            // 默认仍由 NeoForge 安全替换；包内注入只用于验证写入失败。
+            writer.write(root, file);
         } catch (IOException | RuntimeException exception) {
             throw new ProgressDataException(
                     "Failed to save progress file " + file,
@@ -120,5 +130,10 @@ public final class NbtProgressStore implements ProgressStore {
         return worldRoot.apply(server)
                 .resolve(DIRECTORY)
                 .resolve(playerId + ".dat");
+    }
+
+    @FunctionalInterface
+    interface NbtWriter {
+        void write(CompoundTag tag, Path path) throws IOException;
     }
 }

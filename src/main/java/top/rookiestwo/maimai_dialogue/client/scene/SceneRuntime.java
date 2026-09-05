@@ -1,7 +1,7 @@
 package top.rookiestwo.maimai_dialogue.client.scene;
 
 import net.minecraft.resources.ResourceLocation;
-import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.Presentation;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
 import top.rookiestwo.maimai_dialogue.presentation.action.ActionSpec;
 import top.rookiestwo.maimai_dialogue.presentation.action.ActionProperty;

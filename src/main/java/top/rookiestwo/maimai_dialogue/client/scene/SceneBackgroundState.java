@@ -1,8 +1,8 @@
 package top.rookiestwo.maimai_dialogue.client.scene;
 
 import net.minecraft.resources.ResourceLocation;
-import top.rookiestwo.maimai_dialogue.dialogue.BackgroundFit;
-import top.rookiestwo.maimai_dialogue.dialogue.SceneBackground;
+import top.rookiestwo.maimai_dialogue.presentation.scene.BackgroundFit;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneBackground;
 
 import java.util.Map;
 import java.util.Objects;

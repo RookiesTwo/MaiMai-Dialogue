@@ -2,9 +2,9 @@ package top.rookiestwo.maimai_dialogue.client.session;
 
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
-import top.rookiestwo.maimai_dialogue.dialogue.PresentationDefinition;
-import top.rookiestwo.maimai_dialogue.dialogue.SceneDefinition;
-import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.PresentationDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAssetDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;

@@ -1,5 +1,9 @@
 package top.rookiestwo.maimai_dialogue.client.resource;
 
+import java.util.Optional;
+
+import top.rookiestwo.maimai_dialogue.content.resolve.DialoguePresentationResolver;
+
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import top.rookiestwo.maimai_dialogue.content.DefinitionRegistry;
@@ -8,20 +12,17 @@ import top.rookiestwo.maimai_dialogue.client.scene.SceneRuntime;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneTransitions;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
-import top.rookiestwo.maimai_dialogue.dialogue.DialogueTarget;
-import top.rookiestwo.maimai_dialogue.dialogue.DialogueTargetExit;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueTarget;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueTargetExit;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueEnd;
-import top.rookiestwo.maimai_dialogue.dialogue.ChoiceExit;
-import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
-import top.rookiestwo.maimai_dialogue.dialogue.PresentationDefinition;
-import top.rookiestwo.maimai_dialogue.dialogue.PresentationResolver;
-import top.rookiestwo.maimai_dialogue.dialogue.SceneDefinition;
-import top.rookiestwo.maimai_dialogue.dialogue.SceneResolver;
-import top.rookiestwo.maimai_dialogue.dialogue.SetSpeaker;
-import top.rookiestwo.maimai_dialogue.dialogue.SpeakerOperation;
-import top.rookiestwo.maimai_dialogue.dialogue.VisualObject;
-import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetDefinition;
-import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetResolver;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.ChoiceExit;
+import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.PresentationDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
+import top.rookiestwo.maimai_dialogue.speaker.SetSpeaker;
+import top.rookiestwo.maimai_dialogue.speaker.SpeakerOperation;
+import top.rookiestwo.maimai_dialogue.presentation.visual.VisualObject;
+import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAssetDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
@@ -199,23 +200,13 @@ public final class ClientResourceValidator {
             Predicate<ResourceLocation> imageExists,
             List<String> errors
     ) {
-        PresentationResolver.Result presentationResolution =
-                PresentationResolver.resolve(
-                        dialogue.presentation(),
-                        presentations::find
-                );
-        presentationResolution.errors().forEach(error ->
-                errors.add(dialogueId + ": " + error)
+        var resolved = DialoguePresentationResolver.resolve(
+                dialogue.presentation(), presentations::find, themes::find,
+                scenes::find, visualAssets::find
         );
-        Presentation presentation = validatePresentationContents(
-                dialogueId,
-                presentationResolution.presentation(),
-                themes,
-                scenes,
-                visualAssets,
-                imageExists,
-                errors
-        );
+        resolved.referenceErrors().forEach(error -> errors.add(dialogueId + ": " + error));
+        validateResolvedPresentation(dialogueId, resolved, imageExists, errors);
+        Presentation presentation = resolved.presentation();
 
         SceneRuntime runtime = new SceneRuntime(
                 presentation,
@@ -290,7 +281,22 @@ public final class ClientResourceValidator {
             Predicate<ResourceLocation> imageExists,
             List<String> errors
     ) {
-        if (themes.find(sourcePresentation.theme()).isEmpty()) {
+        var resolved = DialoguePresentationResolver.resolve(
+                sourcePresentation, ignored -> Optional.empty(), themes::find,
+                scenes::find, visualAssets::find
+        );
+        validateResolvedPresentation(ownerId, resolved, imageExists, errors);
+        return resolved.presentation();
+    }
+
+    private static void validateResolvedPresentation(
+            ResourceLocation ownerId,
+            DialoguePresentationResolver.Result resolved,
+            Predicate<ResourceLocation> imageExists,
+            List<String> errors
+    ) {
+        Presentation sourcePresentation = resolved.source();
+        if (resolved.missingTheme()) {
             errors.add(ownerId + ": missing Theme "
                     + sourcePresentation.theme());
         }
@@ -316,21 +322,8 @@ public final class ClientResourceValidator {
                 );
             }
         });
-        SceneResolver.Result sceneResolution = SceneResolver.resolve(
-                sourcePresentation,
-                scenes::find
-        );
-        sceneResolution.errors().forEach(error ->
-                errors.add(ownerId + ": " + error)
-        );
-        VisualAssetResolver.Result resolution = VisualAssetResolver.resolve(
-                sceneResolution.presentation(),
-                visualAssets::find
-        );
-        resolution.errors().forEach(error ->
-                errors.add(ownerId + ": " + error)
-        );
-        return resolution.presentation();
+        resolved.sceneErrors().forEach(error -> errors.add(ownerId + ": " + error));
+        resolved.visualErrors().forEach(error -> errors.add(ownerId + ": " + error));
     }
 
     private static void validateScene(

@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue.client.scene;
 
-import top.rookiestwo.maimai_dialogue.dialogue.DialogueBoxLayout;
+import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
 
 import java.util.Objects;
 

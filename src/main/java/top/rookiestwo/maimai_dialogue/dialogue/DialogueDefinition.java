@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue.dialogue;
 
+import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;

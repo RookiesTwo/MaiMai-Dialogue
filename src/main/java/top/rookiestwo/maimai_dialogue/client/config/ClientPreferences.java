@@ -18,6 +18,15 @@ public record ClientPreferences(
         DialogueKey historyKey,
         Set<ClientControlAction> conflicts
 ) {
+    public static final double MIN_FAST_FORWARD_MULTIPLIER = 1.0;
+    public static final double MAX_FAST_FORWARD_MULTIPLIER = 32.0;
+    public static final int MIN_TYPEWRITER_INTERVAL_MS = 0;
+    public static final int MAX_TYPEWRITER_INTERVAL_MS = 1_000;
+    public static final int MIN_SKIP_HOLD_DURATION_MS = 200;
+    public static final int MAX_SKIP_HOLD_DURATION_MS = 3_000;
+    public static final double MIN_FONT_SCALE = 0.5;
+    public static final double MAX_FONT_SCALE = 2.0;
+
     public static final double DEFAULT_FAST_FORWARD_MULTIPLIER = 4.0;
     public static final int DEFAULT_TYPEWRITER_INTERVAL_MS = 30;
     public static final int DEFAULT_SKIP_HOLD_DURATION_MS = 600;
@@ -31,24 +40,24 @@ public record ClientPreferences(
             new DialogueKey("key.keyboard.h");
 
     public ClientPreferences {
-        if (fastForwardMultiplier < 1.0
-                || fastForwardMultiplier > 32.0) {
+        if (fastForwardMultiplier < MIN_FAST_FORWARD_MULTIPLIER
+                || fastForwardMultiplier > MAX_FAST_FORWARD_MULTIPLIER) {
             throw new IllegalArgumentException(
                     "fastForwardMultiplier must be between 1 and 32."
             );
         }
-        if (defaultTypewriterIntervalMs < 0
-                || defaultTypewriterIntervalMs > 1_000) {
+        if (defaultTypewriterIntervalMs < MIN_TYPEWRITER_INTERVAL_MS
+                || defaultTypewriterIntervalMs > MAX_TYPEWRITER_INTERVAL_MS) {
             throw new IllegalArgumentException(
                     "defaultTypewriterIntervalMs must be between 0 and 1000."
             );
         }
-        if (skipHoldDurationMs < 200 || skipHoldDurationMs > 3_000) {
+        if (skipHoldDurationMs < MIN_SKIP_HOLD_DURATION_MS || skipHoldDurationMs > MAX_SKIP_HOLD_DURATION_MS) {
             throw new IllegalArgumentException(
                     "skipHoldDurationMs must be between 200 and 3000."
             );
         }
-        if (fontScale < 0.5 || fontScale > 2.0) {
+        if (fontScale < MIN_FONT_SCALE || fontScale > MAX_FONT_SCALE) {
             throw new IllegalArgumentException(
                     "fontScale must be between 0.5 and 2.0."
             );

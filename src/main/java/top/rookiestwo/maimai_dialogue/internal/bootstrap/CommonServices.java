@@ -3,10 +3,10 @@ package top.rookiestwo.maimai_dialogue.internal.bootstrap;
 import top.rookiestwo.maimai_dialogue.content.ContentRepository;
 import top.rookiestwo.maimai_dialogue.content.DefinitionRegistry;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
-import top.rookiestwo.maimai_dialogue.progress.DefaultPlayerProgressService;
-import top.rookiestwo.maimai_dialogue.server.DefaultDialogueService;
-import top.rookiestwo.maimai_dialogue.server.DialogueAccessService;
-import top.rookiestwo.maimai_dialogue.server.OptionCommandService;
+import top.rookiestwo.maimai_dialogue.server.progress.DefaultPlayerProgressService;
+import top.rookiestwo.maimai_dialogue.server.dialogue.DefaultDialogueService;
+import top.rookiestwo.maimai_dialogue.server.dialogue.DialogueAccessService;
+import top.rookiestwo.maimai_dialogue.server.option.OptionCommandService;
 import top.rookiestwo.maimai_dialogue.server.pending.PendingDialogueService;
 
 public final class CommonServices {

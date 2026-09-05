@@ -1,9 +1,10 @@
 package top.rookiestwo.maimai_dialogue.client.session;
 
-import top.rookiestwo.maimai_dialogue.client.PlaybackPhase;
+import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
+
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
-import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
-import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueOption;
+import top.rookiestwo.maimai_dialogue.presentation.Presentation;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
 import java.util.List;
@@ -23,12 +24,22 @@ public record DialogueScreenState(
         int typewriterIntervalMs,
         Optional<String> speaker,
         Optional<String> text,
-        Optional<String> error,
+        Optional<SessionMessage> error,
         List<DialogueHistoryEntry> history,
         List<DialogueOption> options,
         boolean loadingOptions,
         boolean requestingTarget
 ) {
+    public static DialogueScreenState empty(long generation) {
+        return new DialogueScreenState(
+                generation, Optional.empty(), Optional.empty(), Optional.empty(),
+                PlaybackPhase.READY, false, Optional.empty(), false, false,
+                DialogueStep.DEFAULT_TYPEWRITER_INTERVAL_MS,
+                Optional.empty(), Optional.empty(), Optional.empty(),
+                List.of(), List.of(), false, false
+        );
+    }
+
     public DialogueScreenState {
         Objects.requireNonNull(presentation, "presentation");
         Objects.requireNonNull(theme, "theme");

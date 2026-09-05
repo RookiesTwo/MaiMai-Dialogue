@@ -23,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class PendingDialogueService {
     private final PendingDialogueStore store;
-    private final Map<UUID, PlayerState> onlinePlayers = new HashMap<>();
+    private final Map<UUID, PendingPlayerState> onlinePlayers = new HashMap<>();
     private final Map<UUID, CompletableFuture<Optional<ResourceLocation>>>
             loadingPlayers = new HashMap<>();
     private final Map<UUID, Throwable> loadFailures = new HashMap<>();
@@ -45,9 +45,9 @@ public final class PendingDialogueService {
         MinecraftServer server = requireServerThread(player);
         UUID playerId = player.getUUID();
 
-        PlayerState loaded = onlinePlayers.get(playerId);
+        PendingPlayerState loaded = onlinePlayers.get(playerId);
         if (loaded != null) {
-            return CompletableFuture.completedFuture(loaded.pendingDialogue);
+            return CompletableFuture.completedFuture(loaded.pendingDialogue());
         }
         CompletableFuture<Optional<ResourceLocation>> existing =
                 loadingPlayers.get(playerId);
@@ -74,20 +74,20 @@ public final class PendingDialogueService {
                 outstandingWrites.remove(trackedLoad)
         );
         loadTask.whenComplete((record, error) -> server.execute(() -> {
-                    if (loadingPlayers.get(playerId) != result) {
-                        return;
-                    }
-                    loadingPlayers.remove(playerId);
-                    if (error != null) {
-                        Throwable cause = unwrap(error);
-                        loadFailures.put(playerId, cause);
-                        result.completeExceptionally(cause);
-                        return;
-                    }
-                    PlayerState state = new PlayerState(record);
-                    onlinePlayers.put(playerId, state);
-                    result.complete(state.pendingDialogue);
-                }));
+            if (loadingPlayers.get(playerId) != result) {
+                return;
+            }
+            loadingPlayers.remove(playerId);
+            if (error != null) {
+                Throwable cause = unwrap(error);
+                loadFailures.put(playerId, cause);
+                result.completeExceptionally(cause);
+                return;
+            }
+            PendingPlayerState state = new PendingPlayerState(record);
+            onlinePlayers.put(playerId, state);
+            result.complete(state.pendingDialogue());
+        }));
         return result;
     }
 
@@ -110,12 +110,12 @@ public final class PendingDialogueService {
         Objects.requireNonNull(dialogueId, "dialogueId");
         MinecraftServer server = requireServerThread(player);
         return requireLoaded(player).thenCompose(state -> {
-            if (state.pendingDialogue.isPresent()) {
+            if (state.pendingDialogue().isPresent()) {
                 return CompletableFuture.completedFuture(
                         OpenPreparation.conflict()
                 );
             }
-            state.pendingDialogue = Optional.of(dialogueId);
+            state.reserve(dialogueId);
             return markPendingAsync(server, state, dialogueId)
                     .handle((ignored, error) -> new SaveOutcome(error))
                     .thenCompose(outcome -> completePreparationOnServer(
@@ -140,15 +140,8 @@ public final class PendingDialogueService {
             ResourceLocation dialogueId
     ) {
         requireServerThread(player);
-        PlayerState state = onlinePlayers.get(player.getUUID());
-        if (state == null
-                || state.activeDialogue != null
-                || !state.pendingDialogue.equals(Optional.of(dialogueId))) {
-            return Optional.empty();
-        }
-        UUID token = UUID.randomUUID();
-        state.activeDialogue = new ActiveDialogue(dialogueId, token);
-        return Optional.of(token);
+        PendingPlayerState state = onlinePlayers.get(player.getUUID());
+        return state == null ? Optional.empty() : state.activateRestored(dialogueId);
     }
 
     public CompletionStage<CompletionResult> complete(
@@ -159,21 +152,11 @@ public final class PendingDialogueService {
         Objects.requireNonNull(dialogueId, "dialogueId");
         Objects.requireNonNull(completionToken, "completionToken");
         MinecraftServer server = requireServerThread(player);
-        PlayerState state = onlinePlayers.get(player.getUUID());
-        ActiveDialogue active = state == null ? null : state.activeDialogue;
-        if (state == null
-                || active == null
-                || state.completionInProgress
-                || !active.dialogueId.equals(dialogueId)
-                || !active.completionToken.equals(completionToken)
-                || !state.pendingDialogue.equals(Optional.of(dialogueId))) {
-            return CompletableFuture.completedFuture(
-                    CompletionResult.REJECTED
-            );
+        PendingPlayerState state = onlinePlayers.get(player.getUUID());
+        if (state == null || !state.beginCompletion(dialogueId, completionToken)) {
+            return CompletableFuture.completedFuture(CompletionResult.REJECTED);
         }
 
-        state.completionInProgress = true;
-        state.activeDialogue = null;
         return clearAsync(server, state)
                 .handle((ignored, error) -> new SaveOutcome(error))
                 .thenCompose(outcome -> completeClearOnServer(
@@ -211,9 +194,9 @@ public final class PendingDialogueService {
         return empty;
     }
 
-    private CompletionStage<PlayerState> requireLoaded(ServerPlayer player) {
+    private CompletionStage<PendingPlayerState> requireLoaded(ServerPlayer player) {
         UUID playerId = player.getUUID();
-        PlayerState state = onlinePlayers.get(playerId);
+        PendingPlayerState state = onlinePlayers.get(playerId);
         if (state != null) {
             return CompletableFuture.completedFuture(state);
         }
@@ -222,7 +205,7 @@ public final class PendingDialogueService {
             return CompletableFuture.failedFuture(failure);
         }
         return loadAsync(player).thenApply(ignored -> {
-            PlayerState loaded = onlinePlayers.get(playerId);
+            PendingPlayerState loaded = onlinePlayers.get(playerId);
             if (loaded == null) {
                 throw new PendingDialogueDataException(
                         "Pending dialogue data is unavailable for player "
@@ -236,7 +219,7 @@ public final class PendingDialogueService {
 
     private CompletableFuture<Void> markPendingAsync(
             MinecraftServer server,
-            PlayerState state,
+            PendingPlayerState state,
             ResourceLocation dialogueId
     ) {
         return enqueueSave(
@@ -251,7 +234,7 @@ public final class PendingDialogueService {
 
     private CompletableFuture<Void> clearAsync(
             MinecraftServer server,
-            PlayerState state
+            PendingPlayerState state
     ) {
         return enqueueSave(
                 server,
@@ -262,7 +245,7 @@ public final class PendingDialogueService {
 
     private CompletableFuture<Void> enqueueSave(
             MinecraftServer server,
-            PlayerState state,
+            PendingPlayerState state,
             PendingDialogueRecord record
     ) {
         CompletableFuture<Void> save = state.saveTail
@@ -277,7 +260,7 @@ public final class PendingDialogueService {
     private CompletionStage<OpenPreparation> completePreparationOnServer(
             MinecraftServer server,
             ServerPlayer player,
-            PlayerState state,
+            PendingPlayerState state,
             ResourceLocation dialogueId,
             @Nullable Throwable error
     ) {
@@ -285,7 +268,7 @@ public final class PendingDialogueService {
         server.execute(() -> {
             if (error != null) {
                 if (onlinePlayers.get(state.playerId) == state) {
-                    state.pendingDialogue = Optional.empty();
+                    state.cancelReservation();
                 }
                 MaiMaiDialogue.LOGGER.error(
                         "Failed to persist required dialogue {} for player {}",
@@ -302,8 +285,7 @@ public final class PendingDialogueService {
                 result.complete(OpenPreparation.playerOffline());
                 return;
             }
-            UUID token = UUID.randomUUID();
-            state.activeDialogue = new ActiveDialogue(dialogueId, token);
+            UUID token = state.activate(dialogueId);
             result.complete(OpenPreparation.ready(token));
         });
         return result;
@@ -311,12 +293,12 @@ public final class PendingDialogueService {
 
     private CompletionStage<CompletionResult> completeClearOnServer(
             MinecraftServer server,
-            PlayerState state,
+            PendingPlayerState state,
             @Nullable Throwable error
     ) {
         CompletableFuture<CompletionResult> result = new CompletableFuture<>();
         server.execute(() -> {
-            state.completionInProgress = false;
+            state.finishClear(error == null);
             if (error != null) {
                 MaiMaiDialogue.LOGGER.error(
                         "Failed to clear required dialogue for player {}",
@@ -326,7 +308,6 @@ public final class PendingDialogueService {
                 result.complete(CompletionResult.PERSISTENCE_FAILED);
                 return;
             }
-            state.pendingDialogue = Optional.empty();
             result.complete(CompletionResult.CLEARED);
         });
         return result;
@@ -404,27 +385,6 @@ public final class PendingDialogueService {
                     Optional.empty()
             );
         }
-    }
-
-    private static final class PlayerState {
-        private final UUID playerId;
-        private Optional<ResourceLocation> pendingDialogue;
-        private CompletableFuture<Void> saveTail =
-                CompletableFuture.completedFuture(null);
-        @Nullable
-        private ActiveDialogue activeDialogue;
-        private boolean completionInProgress;
-
-        private PlayerState(PendingDialogueRecord record) {
-            playerId = record.playerId();
-            pendingDialogue = record.dialogueId();
-        }
-    }
-
-    private record ActiveDialogue(
-            ResourceLocation dialogueId,
-            UUID completionToken
-    ) {
     }
 
     private record SaveOutcome(@Nullable Throwable error) {

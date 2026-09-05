@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue.client.scene;
 
-import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.Presentation;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

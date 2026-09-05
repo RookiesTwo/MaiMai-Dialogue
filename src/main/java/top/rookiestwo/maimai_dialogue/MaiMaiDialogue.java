@@ -11,7 +11,7 @@ import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import org.slf4j.Logger;
 import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
-import top.rookiestwo.maimai_dialogue.client.config.ClientConfigFragment;
+import top.rookiestwo.maimai_dialogue.client.config.ui.ClientConfigFragment;
 
 import java.util.function.Consumer;
 

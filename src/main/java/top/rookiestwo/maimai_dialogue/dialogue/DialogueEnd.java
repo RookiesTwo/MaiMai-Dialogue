@@ -1,5 +1,8 @@
 package top.rookiestwo.maimai_dialogue.dialogue;
 
+import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueExit;
+import top.rookiestwo.maimai_dialogue.speaker.SpeakerOperation;
+
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;

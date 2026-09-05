@@ -1,8 +1,8 @@
 package top.rookiestwo.maimai_dialogue.client.scene;
 
 import net.minecraft.resources.ResourceLocation;
-import top.rookiestwo.maimai_dialogue.dialogue.VisualAnchor;
-import top.rookiestwo.maimai_dialogue.dialogue.VisualObject;
+import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor;
+import top.rookiestwo.maimai_dialogue.presentation.visual.VisualObject;
 
 import java.util.Map;
 import java.util.Objects;

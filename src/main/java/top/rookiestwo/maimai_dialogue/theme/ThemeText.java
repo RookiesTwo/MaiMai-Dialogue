@@ -2,7 +2,7 @@ package top.rookiestwo.maimai_dialogue.theme;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import top.rookiestwo.maimai_dialogue.dialogue.SceneColor;
+import top.rookiestwo.maimai_dialogue.presentation.filter.SceneColor;
 
 import java.util.Objects;
 

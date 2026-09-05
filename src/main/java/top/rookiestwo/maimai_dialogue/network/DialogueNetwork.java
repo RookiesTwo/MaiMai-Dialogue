@@ -1,10 +1,12 @@
 package top.rookiestwo.maimai_dialogue.network;
 
+import top.rookiestwo.maimai_dialogue.network.server.ServerDialoguePayloadHandlers;
+
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import top.rookiestwo.maimai_dialogue.MaiMaiDialogue;
-import top.rookiestwo.maimai_dialogue.client.ClientDialoguePayloadHandlers;
+import top.rookiestwo.maimai_dialogue.network.client.ClientDialoguePayloadHandlers;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueAccessResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.DialogueRequestResultS2C;
 import top.rookiestwo.maimai_dialogue.network.payload.CompleteRequiredDialogueC2S;

@@ -154,6 +154,7 @@ dependencies {
 
 tasks.named("test", Test) {
     useJUnitPlatform()
+    systemProperty 'maimai_dialogue.projectRoot', projectDir.absolutePath
 }
 
 // 默认 build 只负责产出构建结果；test 和 check 仍可单独运行。

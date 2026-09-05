@@ -1,38 +1,34 @@
 package top.rookiestwo.maimai_dialogue.client.session;
 
+import top.rookiestwo.maimai_dialogue.content.resolve.DialoguePresentationResolver;
+
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.client.resources.language.I18n;
 import org.jetbrains.annotations.Nullable;
-import top.rookiestwo.maimai_dialogue.client.PlaybackPhase;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePreparation;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneRuntime;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneTransitions;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueText;
-import top.rookiestwo.maimai_dialogue.dialogue.CloseTarget;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.CloseTarget;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
-import top.rookiestwo.maimai_dialogue.dialogue.DialogueOption;
-import top.rookiestwo.maimai_dialogue.dialogue.DialogueTarget;
-import top.rookiestwo.maimai_dialogue.dialogue.DialogueTargetExit;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueOption;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueTarget;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueTargetExit;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueEnd;
-import top.rookiestwo.maimai_dialogue.dialogue.HideSpeaker;
-import top.rookiestwo.maimai_dialogue.dialogue.OptionTarget;
-import top.rookiestwo.maimai_dialogue.dialogue.Presentation;
-import top.rookiestwo.maimai_dialogue.dialogue.PresentationResolver;
-import top.rookiestwo.maimai_dialogue.dialogue.ChoiceExit;
-import top.rookiestwo.maimai_dialogue.dialogue.ReturnExit;
-import top.rookiestwo.maimai_dialogue.dialogue.ReturnTarget;
-import top.rookiestwo.maimai_dialogue.dialogue.SetSpeaker;
-import top.rookiestwo.maimai_dialogue.dialogue.SceneResolver;
-import top.rookiestwo.maimai_dialogue.dialogue.SpeakerOperation;
-import top.rookiestwo.maimai_dialogue.dialogue.VisualAssetResolver;
+import top.rookiestwo.maimai_dialogue.speaker.HideSpeaker;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.OptionTarget;
+import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.ChoiceExit;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.ReturnExit;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.ReturnTarget;
+import top.rookiestwo.maimai_dialogue.speaker.SetSpeaker;
+import top.rookiestwo.maimai_dialogue.speaker.SpeakerOperation;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,8 +44,7 @@ public final class DialogueSession {
     private final ResourceLocation rootDialogueId;
     private final List<DialogueHistoryEntry> history = new ArrayList<>();
     private final List<DialogueSessionEffect> initialEffects = new ArrayList<>();
-    private final Map<DialogueTextKey, String> resolvedTexts = new HashMap<>();
-    private final RandomGenerator random;
+    private final DialogueTextCache textCache;
     private final IntSupplier defaultTypewriterIntervalMs;
     private final Optional<UUID> completionToken;
     private long nextRequestId = 1L;
@@ -59,9 +54,7 @@ public final class DialogueSession {
     @Nullable
     private PendingAccessQuery pendingAccessQuery;
     @Nullable
-    private PendingTargetRequest pendingTargetRequest;
-    @Nullable
-    private PendingOptionCommand pendingOptionCommand;
+    private PendingAction pendingAction;
 
     public DialogueSession(
             DialogueContentLookup content,
@@ -149,7 +142,7 @@ public final class DialogueSession {
                 rootDialogueId,
                 "rootDialogueId"
         );
-        this.random = Objects.requireNonNull(random, "random");
+        this.textCache = new DialogueTextCache(random);
         this.defaultTypewriterIntervalMs = Objects.requireNonNull(
                 defaultTypewriterIntervalMs,
                 "defaultTypewriterIntervalMs"
@@ -185,7 +178,7 @@ public final class DialogueSession {
         pendingAccessQuery = null;
         List<DialogueOption> visible = new ArrayList<>();
         List<DialogueSessionEffect> effects = new ArrayList<>();
-        String accessError = null;
+        SessionMessage accessError = null;
         for (DialogueOption option : pending.options) {
             OptionTarget target = option.target();
             if (target instanceof ReturnTarget || target instanceof CloseTarget) {
@@ -199,11 +192,11 @@ public final class DialogueSession {
                 } else if (status == DialogueAccessDecision.DIALOGUE_NOT_FOUND) {
                     effects.add(reportMissingServer(dialogueTarget.dialogue()));
                 } else if (status == DialogueAccessDecision.PROGRESS_UNAVAILABLE) {
-                    accessError = I18n.get(
+                    accessError = SessionMessage.translated(
                             "gui.maimai_dialogue.error.progress_unavailable"
                     );
                 } else if (status == DialogueAccessDecision.INTERNAL_ERROR) {
-                    accessError = I18n.get(
+                    accessError = SessionMessage.translated(
                             "gui.maimai_dialogue.error.access_check_failed"
                     );
                 }
@@ -220,14 +213,14 @@ public final class DialogueSession {
             ResourceLocation dialogueId,
             DialogueAccessDecision status
     ) {
-        PendingTargetRequest pending = pendingTargetRequest;
+        PendingTargetRequest pending = pendingAction instanceof PendingTargetRequest target ? target : null;
         if (pending == null
                 || pending.requestId != requestId
                 || pending.generation != active.generation
                 || !pending.target.equals(dialogueId)) {
             return update(List.of(), false);
         }
-        pendingTargetRequest = null;
+        pendingAction = null;
         List<DialogueSessionEffect> effects = new ArrayList<>();
         if (status != DialogueAccessDecision.ALLOWED) {
             if (status == DialogueAccessDecision.DIALOGUE_NOT_FOUND) {
@@ -262,7 +255,7 @@ public final class DialogueSession {
             int optionIndex,
             OptionCommandDecision decision
     ) {
-        PendingOptionCommand pending = pendingOptionCommand;
+        PendingOptionCommand pending = pendingAction instanceof PendingOptionCommand command ? command : null;
         if (pending == null
                 || pending.requestId != requestId
                 || pending.generation != active.generation
@@ -270,7 +263,7 @@ public final class DialogueSession {
                 || pending.optionIndex != optionIndex) {
             return update(List.of(), false);
         }
-        pendingOptionCommand = null;
+        pendingAction = null;
         List<DialogueSessionEffect> effects = new ArrayList<>();
         if (decision != OptionCommandDecision.EXECUTED) {
             active.errorMessage = commandFailureMessage(decision);
@@ -299,7 +292,7 @@ public final class DialogueSession {
                 active.visibleOptions = active.visibleOptions.stream()
                         .filter(visible -> !visible.equals(option))
                         .toList();
-                active.errorMessage = I18n.get(
+                active.errorMessage = SessionMessage.translated(
                         "gui.maimai_dialogue.error.dialogue_not_found"
                 );
                 effects.add(reportMissingClient(
@@ -320,11 +313,8 @@ public final class DialogueSession {
         if (hasPendingOptionAction()) {
             return update(List.of(), false);
         }
-        if (active.playbackPhase == PlaybackPhase.PLAYING) {
-            active.playbackPhase = PlaybackPhase.READY;
-            active.sceneComplete = true;
-            active.textComplete = true;
-            active.playbackSkipped = true;
+        if (active.playbackState.phase() == PlaybackPhase.PLAYING) {
+            active.playbackState.skip();
             return update(List.of(), true);
         }
         if (active.stepIndex < active.definition.steps().size()) {
@@ -357,13 +347,10 @@ public final class DialogueSession {
         }
         int endIndex = active.definition.steps().size();
         if (active.stepIndex >= endIndex) {
-            if (active.playbackPhase == PlaybackPhase.READY) {
+            if (active.playbackState.phase() == PlaybackPhase.READY) {
                 return update(List.of(), false);
             }
-            active.sceneComplete = true;
-            active.textComplete = true;
-            active.playbackSkipped = true;
-            updatePlaybackPhase(active);
+            active.playbackState.skip();
             return update(List.of(), true);
         }
 
@@ -387,10 +374,7 @@ public final class DialogueSession {
                 active.definition.end().actions()
         );
         active.playback = endPreparation.playback();
-        active.sceneComplete = true;
-        active.textComplete = true;
-        active.playbackSkipped = true;
-        updatePlaybackPhase(active);
+        active.playbackState.skip();
         reportPreparationErrors(endPreparation, effects);
         active.resolvedText
                 .filter(text -> !text.isEmpty())
@@ -408,11 +392,9 @@ public final class DialogueSession {
     ) {
         if (active.generation != completedGeneration
                 || active.playback.token() != playbackToken
-                || active.sceneComplete) {
+                || !active.playbackState.completeScene()) {
             return update(List.of(), false);
         }
-        active.sceneComplete = true;
-        updatePlaybackPhase(active);
         return update(List.of(), true);
     }
 
@@ -423,11 +405,9 @@ public final class DialogueSession {
     ) {
         if (active.generation != completedGeneration
                 || active.playback.token() != playbackToken
-                || active.textComplete) {
+                || !active.playbackState.completeText()) {
             return update(List.of(), false);
         }
-        active.textComplete = true;
-        updatePlaybackPhase(active);
         return update(List.of(), true);
     }
 
@@ -459,14 +439,14 @@ public final class DialogueSession {
 
     public DialogueScreenState screenState() {
         boolean atEnd = active.stepIndex >= active.definition.steps().size();
-        boolean ready = active.playbackPhase == PlaybackPhase.READY;
+        boolean ready = active.playbackState.phase() == PlaybackPhase.READY;
         return new DialogueScreenState(
                 active.generation,
                 Optional.of(active.presentation),
                 Optional.of(active.theme),
                 Optional.of(active.playback),
-                active.playbackPhase,
-                active.playbackSkipped,
+                active.playbackState.phase(),
+                active.playbackState.skipped(),
                 active.definition.skipSummary(),
                 !atEnd && !hasPendingOptionAction(),
                 completionToken.isPresent(),
@@ -489,8 +469,7 @@ public final class DialogueSession {
             List<DialogueSessionEffect> effects
     ) {
         pendingAccessQuery = null;
-        pendingTargetRequest = null;
-        pendingOptionCommand = null;
+        pendingAction = null;
         active = createActive(dialogueId, definition, effects);
         enterCurrentStep(active, effects);
         prefetchOptions(active, effects);
@@ -559,16 +538,17 @@ public final class DialogueSession {
     ) {
         current.resolvedText = resolveCurrentText(current);
         applySpeaker(current, current.currentStepSpeaker(), effects);
-        ScenePreparation preparation = current.sceneRuntime.prepare(
-                current.currentStepActions()
-        );
+        List<SceneActionCall> actions = current.currentStepActions();
+        if (current.initialStep) {
+            actions = SceneTransitions.withDefaultFadeIn(actions);
+            current.initialStep = false;
+        }
+        ScenePreparation preparation = current.sceneRuntime.prepare(actions);
         current.playback = preparation.playback();
-        current.sceneComplete = current.playback.blockingDurationMs() == 0;
-        current.textComplete = current.resolvedText
-                .filter(text -> !text.isEmpty())
-                .isEmpty();
-        updatePlaybackPhase(current);
-        current.playbackSkipped = false;
+        current.playbackState.begin(
+                current.playback.blockingDurationMs() == 0,
+                current.resolvedText.filter(text -> !text.isEmpty()).isEmpty()
+        );
         reportPreparationErrors(preparation, effects);
         current.resolvedText
                 .filter(text -> !text.isEmpty())
@@ -584,7 +564,7 @@ public final class DialogueSession {
             List<DialogueSessionEffect> effects
     ) {
         long requestId = nextRequestId();
-        pendingTargetRequest = new PendingTargetRequest(
+        pendingAction = new PendingTargetRequest(
                 requestId,
                 active.generation,
                 target,
@@ -608,28 +588,12 @@ public final class DialogueSession {
 
     // 每个 Dialogue 节点在当前 session 中只抽取一次正文。
     private Optional<String> resolveCurrentText(ActiveDialogue current) {
-        Optional<DialogueText> text = current.currentStepText();
-        if (text.isEmpty()) {
-            return Optional.empty();
-        }
-        DialogueTextKey key;
-        if (current.stepIndex < current.definition.steps().size()) {
-            key = new DialogueTextKey(
-                    current.currentDialogueId,
-                    DialogueTextNode.STEP,
-                    current.stepIndex
-            );
-        } else {
-            key = new DialogueTextKey(
-                    current.currentDialogueId,
-                    DialogueTextNode.END,
-                    0
-            );
-        }
-        return Optional.of(resolvedTexts.computeIfAbsent(
-                key,
-                ignored -> text.orElseThrow().select(random)
-        ));
+        return textCache.resolve(
+                current.currentDialogueId,
+                current.stepIndex,
+                current.stepIndex >= current.definition.steps().size(),
+                current.currentStepText()
+        );
     }
 
     private void applySpeaker(
@@ -661,49 +625,30 @@ public final class DialogueSession {
             List<DialogueSessionEffect> effects
     ) {
         generation++;
-        PresentationResolver.Result resolvedPresentation =
-                PresentationResolver.resolve(
-                        definition.presentation(),
-                        content::presentation
-                );
-        resolvedPresentation.errors().forEach(error -> effects.add(
-                new DialogueSessionEffect.ReportError(
-                        dialogueId + ": " + error
-                )
-        ));
-        ResourceLocation themeId = resolvedPresentation.presentation()
-                .theme();
-        ThemeDefinition theme = content.theme(themeId).orElseGet(() -> {
-            effects.add(reportMissingClient("dialogue theme", themeId));
-            return ThemeDefinition.DEFAULT;
-        });
-        SceneResolver.Result resolvedScene = SceneResolver.resolve(
-                resolvedPresentation.presentation(),
-                content::scene
+        var resolved = DialoguePresentationResolver.resolve(
+                definition.presentation(), content::presentation, content::theme,
+                content::scene, content::visualAsset
         );
-        resolvedScene.errors().forEach(error -> effects.add(
-                new DialogueSessionEffect.ReportError(
-                        dialogueId + ": " + error
-                )
-        ));
-        VisualAssetResolver.Result resolved = VisualAssetResolver.resolve(
-                resolvedScene.presentation(),
-                content::visualAsset
+        reportResolutionErrors(dialogueId, resolved.referenceErrors(), effects);
+        if (resolved.missingTheme()) {
+            effects.add(reportMissingClient("dialogue theme", resolved.source().theme()));
+        }
+        reportResolutionErrors(dialogueId, resolved.sceneErrors(), effects);
+        reportResolutionErrors(dialogueId, resolved.visualErrors(), effects);
+        return new ActiveDialogue(
+                generation, dialogueId, definition,
+                resolved.presentation(), resolved.theme(), content
         );
-        resolved.errors().forEach(error -> effects.add(
-                new DialogueSessionEffect.ReportError(
-                        dialogueId + ": " + error
-                )
+    }
+
+    private static void reportResolutionErrors(
+            ResourceLocation dialogueId,
+            List<String> errors,
+            List<DialogueSessionEffect> effects
+    ) {
+        errors.forEach(error -> effects.add(
+                new DialogueSessionEffect.ReportError(dialogueId + ": " + error)
         ));
-        ActiveDialogue result = new ActiveDialogue(
-                generation,
-                dialogueId,
-                definition,
-                resolved.presentation(),
-                theme,
-                content
-        );
-        return result;
     }
 
     private DialogueSessionUpdate update(
@@ -715,9 +660,9 @@ public final class DialogueSession {
             resultEffects = new ArrayList<>(effects);
             resultEffects.add(new DialogueSessionEffect
                     .CompleteRequiredDialogue(
-                            rootDialogueId,
-                            completionToken.orElseThrow()
-                    ));
+                    rootDialogueId,
+                    completionToken.orElseThrow()
+            ));
             completionReported = true;
         }
         return new DialogueSessionUpdate(
@@ -732,7 +677,7 @@ public final class DialogueSession {
                 && completionToken.isPresent()
                 && active.currentDialogueId.equals(rootDialogueId)
                 && active.stepIndex >= active.definition.steps().size()
-                && active.playbackPhase == PlaybackPhase.READY;
+                && active.playbackState.phase() == PlaybackPhase.READY;
     }
 
     private void recordOption(DialogueOption option) {
@@ -749,7 +694,7 @@ public final class DialogueSession {
         }
         if (option.target() instanceof DialogueTarget target
                 && content.dialogue(target.dialogue()).isEmpty()) {
-            active.errorMessage = I18n.get(
+            active.errorMessage = SessionMessage.translated(
                     "gui.maimai_dialogue.error.dialogue_not_found"
             );
             return update(
@@ -762,7 +707,7 @@ public final class DialogueSession {
         }
 
         long requestId = nextRequestId();
-        pendingOptionCommand = new PendingOptionCommand(
+        pendingAction = new PendingOptionCommand(
                 requestId,
                 active.generation,
                 active.currentDialogueId,
@@ -781,7 +726,7 @@ public final class DialogueSession {
     }
 
     private boolean hasPendingOptionAction() {
-        return pendingTargetRequest != null || pendingOptionCommand != null;
+        return pendingAction != null;
     }
 
     private long nextRequestId() {
@@ -790,12 +735,6 @@ public final class DialogueSession {
             nextRequestId = 1L;
         }
         return requestId;
-    }
-
-    private static void updatePlaybackPhase(ActiveDialogue current) {
-        current.playbackPhase = current.sceneComplete && current.textComplete
-                ? PlaybackPhase.READY
-                : PlaybackPhase.PLAYING;
     }
 
     private static DialogueSessionEffect.ReportError reportMissingServer(
@@ -815,33 +754,29 @@ public final class DialogueSession {
         );
     }
 
-    private static String requestFailureMessage(DialogueAccessDecision status) {
+    private static SessionMessage requestFailureMessage(DialogueAccessDecision status) {
         return switch (status) {
-            case REQUIREMENTS_NOT_MET -> I18n.get("gui.maimai_dialogue.error.requirements_not_met");
-            case PROGRESS_UNAVAILABLE -> I18n.get("gui.maimai_dialogue.error.progress_unavailable");
-            case INTERNAL_ERROR -> I18n.get("gui.maimai_dialogue.error.open_failed");
-            case DIALOGUE_NOT_FOUND -> I18n.get("gui.maimai_dialogue.error.dialogue_not_found");
-            default -> I18n.get("gui.maimai_dialogue.error.request_rejected");
+            case REQUIREMENTS_NOT_MET -> SessionMessage.translated("gui.maimai_dialogue.error.requirements_not_met");
+            case PROGRESS_UNAVAILABLE -> SessionMessage.translated("gui.maimai_dialogue.error.progress_unavailable");
+            case INTERNAL_ERROR -> SessionMessage.translated("gui.maimai_dialogue.error.open_failed");
+            case DIALOGUE_NOT_FOUND -> SessionMessage.translated("gui.maimai_dialogue.error.dialogue_not_found");
+            default -> SessionMessage.translated("gui.maimai_dialogue.error.request_rejected");
         };
     }
 
-    private static String commandFailureMessage(
+    private static SessionMessage commandFailureMessage(
             OptionCommandDecision decision
     ) {
         return switch (decision) {
             case SOURCE_REQUIREMENTS_NOT_MET, TARGET_REQUIREMENTS_NOT_MET ->
-                    I18n.get("gui.maimai_dialogue.error.requirements_not_met");
-            case PROGRESS_UNAVAILABLE ->
-                    I18n.get("gui.maimai_dialogue.error.progress_unavailable");
+                    SessionMessage.translated("gui.maimai_dialogue.error.requirements_not_met");
+            case PROGRESS_UNAVAILABLE -> SessionMessage.translated("gui.maimai_dialogue.error.progress_unavailable");
             case SOURCE_DIALOGUE_NOT_FOUND, TARGET_DIALOGUE_NOT_FOUND ->
-                    I18n.get("gui.maimai_dialogue.error.dialogue_not_found");
-            case INVALID_OPTION ->
-                    I18n.get("gui.maimai_dialogue.error.invalid_option_command");
-            case COMMAND_FAILED ->
-                    I18n.get("gui.maimai_dialogue.error.command_failed");
-            case INTERNAL_ERROR ->
-                    I18n.get("gui.maimai_dialogue.error.command_execution_failed");
-            case EXECUTED -> "";
+                    SessionMessage.translated("gui.maimai_dialogue.error.dialogue_not_found");
+            case INVALID_OPTION -> SessionMessage.translated("gui.maimai_dialogue.error.invalid_option_command");
+            case COMMAND_FAILED -> SessionMessage.translated("gui.maimai_dialogue.error.command_failed");
+            case INTERNAL_ERROR -> SessionMessage.translated("gui.maimai_dialogue.error.command_execution_failed");
+            case EXECUTED -> SessionMessage.translated("");
         };
     }
 
@@ -875,15 +810,12 @@ public final class DialogueSession {
         private boolean initialStep = true;
         private int stepIndex;
         private ScenePlayback playback;
-        private PlaybackPhase playbackPhase = PlaybackPhase.READY;
-        private boolean playbackSkipped;
-        private boolean sceneComplete = true;
-        private boolean textComplete = true;
+        private final StepPlaybackState playbackState = new StepPlaybackState();
         private Optional<String> resolvedText = Optional.empty();
         @Nullable
         private String speakerName;
         @Nullable
-        private String errorMessage;
+        private SessionMessage errorMessage;
         private List<DialogueOption> visibleOptions = List.of();
 
         private ActiveDialogue(
@@ -923,11 +855,7 @@ public final class DialogueSession {
                 DialogueEnd end = definition.end();
                 actions = end.actions();
             }
-            if (!initialStep) {
-                return actions;
-            }
-            initialStep = false;
-            return SceneTransitions.withDefaultFadeIn(actions);
+            return actions;
         }
 
         private Optional<DialogueText> currentStepText() {
@@ -946,18 +874,6 @@ public final class DialogueSession {
         }
     }
 
-    private enum DialogueTextNode {
-        STEP,
-        END
-    }
-
-    private record DialogueTextKey(
-            ResourceLocation dialogueId,
-            DialogueTextNode node,
-            int index
-    ) {
-    }
-
     private record PendingAccessQuery(
             long requestId,
             long generation,
@@ -968,12 +884,15 @@ public final class DialogueSession {
         }
     }
 
+    private sealed interface PendingAction permits PendingTargetRequest, PendingOptionCommand {
+    }
+
     private record PendingTargetRequest(
             long requestId,
             long generation,
             ResourceLocation target,
             @Nullable DialogueOption option
-    ) {
+    ) implements PendingAction {
         private PendingTargetRequest {
             Objects.requireNonNull(target, "target");
         }
@@ -985,6 +904,6 @@ public final class DialogueSession {
             ResourceLocation sourceDialogue,
             int optionIndex,
             DialogueOption option
-    ) {
+    ) implements PendingAction {
     }
 }
