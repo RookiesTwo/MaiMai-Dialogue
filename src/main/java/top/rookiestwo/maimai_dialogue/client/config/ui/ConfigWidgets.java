@@ -28,39 +28,61 @@ final class ConfigWidgets {
     static final int OVERLAY_COLOR = 0xB3000000;
     static final int ERROR_COLOR = 0xFFFF6B6B;
 
+    // 独立的 keyed tag 随 View 一起释放；动态字体列表不进入全局注册表。
+    private static final int METRICS_TAG = 0x6d640001;
+
+    static void bindMetrics(View view, Runnable apply) {
+        Runnable previous = (Runnable) view.getTag(METRICS_TAG);
+        view.setTag(METRICS_TAG, previous == null ? apply : (Runnable) () -> {
+            previous.run();
+            apply.run();
+        });
+        apply.run();
+    }
+
+    static void refreshMetrics(View view) {
+        if (view instanceof TextView text) {
+            // 当前页面使用 TextView(Context)，其默认字号为 16sp。
+            text.setTextSize(16);
+        }
+        if (view instanceof ViewGroup group) {
+            for (int i = 0; i < group.getChildCount(); i++) refreshMetrics(group.getChildAt(i));
+        }
+        Runnable apply = (Runnable) view.getTag(METRICS_TAG);
+        if (apply != null) apply.run();
+    }
+
+    static void padding(View view, int dp) {
+        bindMetrics(view, () -> view.setPadding(view.dp(dp), view.dp(dp), view.dp(dp), view.dp(dp)));
+    }
+
     static LinearLayout createCard(Context context, String category) {
         LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.VERTICAL);
-        int padding = card.dp(12);
-        card.setPadding(padding, padding, padding, padding);
+        padding(card, 12);
+        bindMetrics(card, () -> {
         ShapeDrawable background = new ShapeDrawable();
         background.setColor(CARD_COLOR);
         background.setCornerRadius(card.dp(5));
         background.setStroke(card.dp(1), CARD_STROKE_COLOR);
         card.setBackground(background);
+        });
 
         TextView title = new TextView(context);
         title.setText(I18n.get(
                 "gui.maimai_dialogue.config.category." + category
         ));
-        title.setTextSize(18);
-        int titlePadding = title.dp(8);
-        title.setPadding(
-                titlePadding,
-                titlePadding,
-                titlePadding,
-                titlePadding
-        );
+        bindMetrics(title, () -> title.setTextSize(18));
+        padding(title, 8);
         card.addView(title, matchWidthWrapHeight());
         return card;
     }
 
     static LinearLayout createOptionRow(Context context, String option) {
-        LinearLayout row = new LinearLayout(context);
+        LinearLayout row = new ConfigOptionRow(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        int padding = row.dp(6);
-        row.setPadding(padding, padding, padding, padding);
+        padding(row, 6);
         TextView label = new TextView(context);
         label.setText(I18n.get(
                 "gui.maimai_dialogue.config.option." + option
@@ -80,6 +102,7 @@ final class ConfigWidgets {
 
     static Button createOutlinedButton(Context context) {
         Button button = new Button(context);
+        bindMetrics(button, () -> {
         StateListDrawable background = new StateListDrawable();
         background.addState(
                 new int[]{R.attr.state_pressed},
@@ -102,6 +125,7 @@ final class ConfigWidgets {
                 createButtonShape(button, BUTTON_COLOR, CARD_STROKE_COLOR)
         );
         button.setBackground(background);
+        });
         return button;
     }
 

@@ -17,6 +17,7 @@ import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.FrameLayout;
+import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.ScrollView;
 import icyllis.modernui.widget.TextView;
@@ -50,8 +51,7 @@ public final class ClientConfigFragment extends Fragment
 
         LinearLayout page = new LinearLayout(context);
         page.setOrientation(LinearLayout.VERTICAL);
-        int pagePadding = page.dp(PAGE_PADDING_DP);
-        page.setPadding(pagePadding, pagePadding, pagePadding, pagePadding);
+        padding(page, PAGE_PADDING_DP);
 
         page.addView(createHeader(context), matchWidthWrapHeight());
 
@@ -64,6 +64,11 @@ public final class ClientConfigFragment extends Fragment
         content.addView(createPlaybackCard(context), cardParams(content));
         content.addView(createControlsCard(context), cardParams(content));
         content.addView(createAppearanceCard(context), cardParams(content));
+        bindMetrics(content, () -> {
+            for (int i = 0; i < content.getChildCount(); i++) {
+                content.getChildAt(i).setLayoutParams(cardParams(content));
+            }
+        });
         scroll.addView(content, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -104,7 +109,7 @@ public final class ClientConfigFragment extends Fragment
 
         TextView title = new TextView(context);
         title.setText(I18n.get("gui.maimai_dialogue.config.title"));
-        title.setTextSize(22);
+        bindMetrics(title, () -> title.setTextSize(22));
         title.setGravity(Gravity.CENTER);
         header.addView(title, new LinearLayout.LayoutParams(
                 0,
@@ -182,8 +187,7 @@ public final class ClientConfigFragment extends Fragment
         TextView error = new TextView(context);
         error.setTextColor(ERROR_COLOR);
         error.setVisibility(View.GONE);
-        int padding = error.dp(8);
-        error.setPadding(padding, padding, padding, padding);
+        padding(error, 8);
         card.addView(error, matchWidthWrapHeight());
         keys.setErrorView(error);
         return card;
@@ -200,13 +204,7 @@ public final class ClientConfigFragment extends Fragment
         TextView preview = new TextView(context);
         preview.setText(I18n.get("gui.maimai_dialogue.config.font_preview"));
         preview.setGravity(Gravity.CENTER);
-        int previewPadding = preview.dp(18);
-        preview.setPadding(
-                previewPadding,
-                previewPadding,
-                previewPadding,
-                previewPadding
-        );
+        padding(preview, 18);
         card.addView(preview, matchWidthWrapHeight());
         fonts.bind(chooseFont, preview);
 
@@ -266,9 +264,17 @@ public final class ClientConfigFragment extends Fragment
         return true;
     }
 
-    private final class ConfigRoot extends FrameLayout {
+    private final class ConfigRoot extends ResponsiveFrameLayout {
         private ConfigRoot(Context context) {
             super(context);
+        }
+
+        @Override
+        protected void onViewportChanged(boolean densityChanged) {
+            if (densityChanged) {
+                ConfigWidgets.refreshMetrics(this);
+                fonts.refreshFont();
+            }
         }
 
         @Override

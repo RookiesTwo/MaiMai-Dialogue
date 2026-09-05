@@ -102,7 +102,7 @@ final class DialogueOptionsView extends LinearLayout {
         for (DialogueOption option : options) {
             list.addView(
                     createOptionButton(option, requestingTarget),
-                    optionLayoutParams(option)
+                    optionLayoutParams()
             );
         }
         scroll.post(() -> updateExpandVisibility(false));
@@ -127,6 +127,14 @@ final class DialogueOptionsView extends LinearLayout {
     // 应用选项间距、文字和滚动条 Theme。
     void applyTheme(ThemeDefinition theme) {
         this.theme = theme;
+        divider.getLayoutParams().height = dp(1);
+        int loadingPadding = loading.dp(6);
+        loading.setPadding(loadingPadding, loadingPadding, loadingPadding, loadingPadding);
+        for (int index = 0; index < list.getChildCount(); index++) {
+            Button button = (Button) list.getChildAt(index);
+            applyOptionStyle(button);
+            button.setLayoutParams(optionLayoutParams());
+        }
         ShapeDrawable dividerBackground = new ShapeDrawable();
         dividerBackground.setColor(theme.box().divider().argb());
         divider.setBackground(dividerBackground);
@@ -171,6 +179,13 @@ final class DialogueOptionsView extends LinearLayout {
     ) {
         Button button = new Button(getContext());
         button.setText(optionLabel(option));
+        applyOptionStyle(button);
+        button.setEnabled(!requestingTarget);
+        button.setOnClickListener(view -> selectionConsumer.accept(option));
+        return button;
+    }
+
+    private void applyOptionStyle(Button button) {
         ThemeOption optionTheme = theme.option();
         button.setTextColor(theme.text().primary().argb());
         typography.apply(button, theme.text().optionSizeSp());
@@ -180,12 +195,9 @@ final class DialogueOptionsView extends LinearLayout {
         int vertical = button.dp(optionTheme.verticalPaddingDp());
         button.setPadding(horizontal, vertical, horizontal, vertical);
         button.setBackground(createOptionBackground(button, optionTheme));
-        button.setEnabled(!requestingTarget);
-        button.setOnClickListener(view -> selectionConsumer.accept(option));
-        return button;
     }
 
-    private LinearLayout.LayoutParams optionLayoutParams(DialogueOption option) {
+    private LinearLayout.LayoutParams optionLayoutParams() {
         LinearLayout.LayoutParams params = matchWidthWrapHeight();
         int margin = dp(theme.option().spacingDp());
         params.setMargins(0, margin, 0, margin);

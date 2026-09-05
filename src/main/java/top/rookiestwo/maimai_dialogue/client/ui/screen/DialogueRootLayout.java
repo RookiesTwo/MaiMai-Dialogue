@@ -8,7 +8,9 @@ import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.view.KeyEvent;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
-import icyllis.modernui.widget.FrameLayout;
+import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
+import top.rookiestwo.maimai_dialogue.client.ui.box.DialogueBoxView;
+import icyllis.modernui.widget.ImageView;
 import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor;
 import top.rookiestwo.maimai_dialogue.client.scene.DialogueBoxState;
@@ -17,7 +19,7 @@ import top.rookiestwo.maimai_dialogue.client.config.ClientPreferences;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-final class DialogueRootLayout extends FrameLayout {
+final class DialogueRootLayout extends ResponsiveFrameLayout {
     private static final int HEIGHT_ANIMATION_DURATION_MS = 220;
     private static final int CORNER_CONTROL_SIZE_DP = 40;
     private static final float DISABLED_CONTROL_ALPHA = 0.35F;
@@ -37,6 +39,7 @@ final class DialogueRootLayout extends FrameLayout {
     private int dialogueTargetHeight = -1;
     private float dialogueDisplayHeight = -1.0F;
     private boolean heightAnimationPosted;
+    private long heightAnimationRevision;
     private View confirmationView;
     private float controlsAlpha = 1.0F;
     private boolean optionsExpanded;
@@ -198,6 +201,7 @@ final class DialogueRootLayout extends FrameLayout {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        prepareViewport(widthMeasureSpec, heightMeasureSpec);
         int width = MeasureSpec.getSize(widthMeasureSpec);
         int height = MeasureSpec.getSize(heightMeasureSpec);
 
@@ -312,6 +316,7 @@ final class DialogueRootLayout extends FrameLayout {
         if (confirmationView != null) {
             confirmationView.layout(0, 0, width, height);
         }
+        restoreScrollPositions();
     }
 
     @Override
@@ -328,6 +333,29 @@ final class DialogueRootLayout extends FrameLayout {
         dismissConfirmation();
         cancelHeightAnimator();
         super.onDetachedFromWindow();
+    }
+
+    @Override
+    protected void onViewportChanged(boolean densityChanged) {
+        // 窗口变化直接采用新高度，不把外部缩放误当成正文增长动画。
+        cancelHeightAnimator();
+        heightAnimationRevision++;
+        heightAnimationPosted = false;
+        dialogueTargetHeight = -1;
+        dialogueDisplayHeight = -1;
+        animateNextHeightDecrease = false;
+        if (densityChanged) {
+            ((DialogueBoxView) dialogueBox).refreshMetrics();
+            if (historyEntry instanceof ImageView image) {
+                image.setMaxWidth(dp(40));
+                image.setMaxHeight(dp(40));
+                image.setPadding(dp(4), dp(4), dp(4), dp(4));
+            }
+            skipButton.refreshMetrics();
+            if (confirmationView instanceof DialogueConfirmationView confirmation) {
+                confirmation.refreshMetrics();
+            }
+        }
     }
 
     private void updateDialogueHeightTarget(int targetHeight) {
@@ -355,7 +383,9 @@ final class DialogueRootLayout extends FrameLayout {
             return;
         }
         heightAnimationPosted = true;
+        long revision = heightAnimationRevision;
         post(() -> {
+            if (revision != heightAnimationRevision || !isAttachedToWindow()) return;
             heightAnimationPosted = false;
             animateDialogueHeightTo(dialogueTargetHeight);
         });

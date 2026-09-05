@@ -162,6 +162,12 @@ public final class DialogueBoxView extends LinearLayout {
         );
     }
 
+    public void refreshMetrics() {
+        applyTheme(theme);
+        headerDivider.getLayoutParams().height = dp(1);
+        textPlayer.refreshMetrics();
+    }
+
     public void clear() {
         renderedTextToken = Long.MIN_VALUE;
         textViewport.resetForStep();

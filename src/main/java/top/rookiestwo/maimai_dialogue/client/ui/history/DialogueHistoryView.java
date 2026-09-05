@@ -20,6 +20,7 @@ import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.view.KeyEvent;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.FrameLayout;
+import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.ScrollView;
 import icyllis.modernui.widget.TextView;
@@ -31,7 +32,7 @@ import top.rookiestwo.maimai_dialogue.client.config.ClientControlAction;
 
 import java.util.List;
 
-final class DialogueHistoryView extends FrameLayout {
+final class DialogueHistoryView extends ResponsiveFrameLayout {
     private static final int ENTRY_VERTICAL_PADDING_DP = 20;
     private static final int COLUMN_GUTTER_DP = 12;
     private static final int QUOTE_CONTENT_INSET_DP = 18;
@@ -42,7 +43,8 @@ final class DialogueHistoryView extends FrameLayout {
     private final Button closeButton;
     private final ScrollView scroll;
     private final LinearLayout list;
-    private final Markflow markflow;
+    private Markflow markflow;
+    private List<DialogueHistoryEntry> entries = List.of();
     private final Runnable closedAction;
     private ThemeDefinition theme = ThemeDefinition.DEFAULT;
     private DialogueTypography typography = DialogueTypography.resolve(
@@ -108,6 +110,18 @@ final class DialogueHistoryView extends FrameLayout {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
+    @Override
+    protected void onViewportChanged(boolean densityChanged) {
+        if (!densityChanged) return;
+        markflow = DialogueMarkdown.create(getContext());
+        applyTheme(theme);
+        list.removeAllViews();
+        for (DialogueHistoryEntry entry : entries) {
+            list.addView(createEntry(entry), matchWidthWrapHeight());
+        }
+        renderedSize = entries.size();
+    }
+
     // 页面创建后聚焦，并滚动到最新一条记录。
     void showLatest() {
         requestFocus();
@@ -116,6 +130,7 @@ final class DialogueHistoryView extends FrameLayout {
 
     // 只在历史记录数量变化时重新构建列表。
     void render(List<DialogueHistoryEntry> entries) {
+        this.entries = List.copyOf(entries);
         if (entries.size() == renderedSize) {
             return;
         }

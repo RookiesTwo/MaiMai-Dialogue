@@ -8,6 +8,7 @@ import icyllis.modernui.graphics.drawable.ShapeDrawable;
 import icyllis.modernui.text.Editable;
 import icyllis.modernui.text.TextWatcher;
 import icyllis.modernui.view.Gravity;
+import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.Button;
@@ -73,7 +74,17 @@ final class FontPicker {
             return;
         }
         Context context = this.context.get();
-        FrameLayout overlay = new FrameLayout(context);
+        FrameLayout overlay = new FrameLayout(context) {
+            @Override
+            protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+                if (getChildCount() > 0) {
+                    ViewGroup.LayoutParams params = getChildAt(0).getLayoutParams();
+                    params.width = Math.max(1, Math.min(dp(620), MeasureSpec.getSize(widthMeasureSpec) - dp(24)));
+                    params.height = Math.max(1, Math.min(dp(560), MeasureSpec.getSize(heightMeasureSpec) - dp(24)));
+                }
+                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+            }
+        };
         ShapeDrawable overlayBackground = new ShapeDrawable();
         overlayBackground.setColor(OVERLAY_COLOR);
         overlay.setBackground(overlayBackground);

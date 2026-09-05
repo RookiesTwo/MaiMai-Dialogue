@@ -17,7 +17,9 @@ public final class DialogueTextPlayer {
     private static final int MAX_DURATION_MS = 10_000;
 
     private final TextView textView;
-    private final Markflow markflow;
+    private Markflow markflow;
+    private String markdown;
+    private int visibleEnd;
     private final Consumer<Boolean> textUpdated;
     private final PlaybackTimeline timeline = new PlaybackTimeline();
     private long playbackToken = Long.MIN_VALUE;
@@ -49,6 +51,8 @@ public final class DialogueTextPlayer {
         if (token != playbackToken) {
             cancelAnimator();
             playbackToken = token;
+            this.markdown = markdown;
+            visibleEnd = 0;
             renderedText = markflow.convert(markdown);
             plainText = renderedText.toString();
             if (skip || renderedText.isEmpty()) {
@@ -75,8 +79,18 @@ public final class DialogueTextPlayer {
         playbackToken = Long.MIN_VALUE;
         renderedText = null;
         plainText = null;
+        markdown = null;
+        visibleEnd = 0;
         textView.setText("");
         textUpdated.accept(false);
+    }
+
+    public void refreshMetrics() {
+        // Markflow 的段落间距也缓存了 density；替换 spans 时保留播放时钟和可见前缀。
+        markflow = DialogueMarkdown.create(textView.getContext());
+        if (markdown == null) return;
+        renderedText = markflow.convert(markdown);
+        textView.setText(RenderedTextPrefix.create(renderedText, visibleEnd), TextView.BufferType.SPANNABLE);
     }
 
     public void setPlaybackRate(float playbackRate) {
@@ -106,6 +120,7 @@ public final class DialogueTextPlayer {
                     0,
                     visibleCodePoints
             );
+            visibleEnd = end;
             SpannableString prefix = RenderedTextPrefix.create(
                     Objects.requireNonNull(renderedText),
                     end
@@ -136,6 +151,7 @@ public final class DialogueTextPlayer {
         if (text == null) {
             textView.setText("");
         } else {
+            visibleEnd = text.length();
             markflow.setRenderedMarkdown(textView, text);
         }
         textUpdated.accept(false);

@@ -40,7 +40,8 @@ final class DialogueConfirmationView extends FrameLayout {
     private final TextView body;
     private final Button cancelButton;
     private final Button confirmButton;
-    private final Markflow markflow;
+    private Markflow markflow;
+    private ThemeDefinition theme = ThemeDefinition.DEFAULT;
     private final String markdownBody;
     private final boolean expandedBody;
     private DialogueTypography typography = DialogueTypography.resolve(
@@ -144,7 +145,14 @@ final class DialogueConfirmationView extends FrameLayout {
         requestFocus();
     }
 
+    void refreshMetrics() {
+        markflow = DialogueMarkdown.create(getContext());
+        ((LinearLayout.LayoutParams) confirmButton.getLayoutParams()).leftMargin = dp(8);
+        applyTheme(theme);
+    }
+
     void applyTheme(ThemeDefinition theme) {
+        this.theme = theme;
         var box = theme.box();
         var text = theme.text();
         var spacing = theme.spacing();

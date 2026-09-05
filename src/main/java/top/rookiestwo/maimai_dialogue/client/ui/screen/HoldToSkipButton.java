@@ -53,6 +53,13 @@ final class HoldToSkipButton extends ImageButton {
         invalidate();
     }
 
+    void refreshMetrics() {
+        int padding = dp(ICON_PADDING_DP);
+        setPadding(padding, padding, padding, padding);
+        progressPaint.setStrokeWidth(dp(2));
+        invalidate();
+    }
+
     void setHoldDurationMs(int holdDurationMs) {
         this.holdDurationMs = Math.clamp(holdDurationMs, 200, 3_000);
     }

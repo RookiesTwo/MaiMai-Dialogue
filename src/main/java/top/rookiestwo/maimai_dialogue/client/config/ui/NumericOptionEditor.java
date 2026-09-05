@@ -105,7 +105,7 @@ final class NumericOptionEditor {
 
         EditText input = new EditText(context);
         input.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
-        input.setMinWidth(input.dp(76));
+        bindMetrics(input, () -> input.setMinWidth(input.dp(76)));
         row.addView(input, new LinearLayout.LayoutParams(
                 row.dp(88),
                 ViewGroup.LayoutParams.WRAP_CONTENT

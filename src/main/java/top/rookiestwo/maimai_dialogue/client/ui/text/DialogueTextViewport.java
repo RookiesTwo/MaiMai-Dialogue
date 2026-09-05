@@ -13,7 +13,7 @@ import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
 // 正文未溢出时保持自然高度，超过对话框剩余空间后才允许滚动。
 public final class DialogueTextViewport extends ScrollView {
-    private final int touchSlop;
+    private int touchSlop;
     private int heightLimit = Integer.MAX_VALUE;
     private float touchDownX;
     private float touchDownY;
@@ -60,6 +60,7 @@ public final class DialogueTextViewport extends ScrollView {
     }
 
     public void applyTheme(ThemeDefinition theme) {
+        touchSlop = ViewConfiguration.get(getContext()).getScaledTouchSlop();
         DialogueScrollbarStyle.apply(this, theme);
     }
 
