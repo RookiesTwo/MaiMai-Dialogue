@@ -58,6 +58,7 @@ export default defineConfig(withMermaid({
         items: [
           { text: "步骤与推进", link: "/dialogue/steps" },
           { text: "显示 Speaker", link: "/dialogue/speaker" },
+          { text: "BGM 与音效", link: "/dialogue/audio" },
           { text: "编写 Markdown 正文", link: "/dialogue/markdown" },
           { text: "选项与子对话", link: "/dialogue/choices" },
           { text: "Progress 条件", link: "/dialogue/progress" },
@@ -102,6 +103,7 @@ export default defineConfig(withMermaid({
             collapsed: true,
             items: [
               { text: "Dialogue JSON", link: "/reference/dialogue-json" },
+              { text: "音频 JSON", link: "/reference/audio-json" },
               { text: "Progress 表达式", link: "/reference/progress-expression" },
             ],
           },

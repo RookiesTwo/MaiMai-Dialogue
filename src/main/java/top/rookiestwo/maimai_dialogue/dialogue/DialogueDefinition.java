@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue.dialogue;
 
 import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import top.rookiestwo.maimai_dialogue.audio.BgmOperation;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -23,7 +24,8 @@ public record DialogueDefinition(
         boolean mustComplete,
         Presentation presentation,
         List<DialogueStep> steps,
-        DialogueEnd end
+        DialogueEnd end,
+        Optional<BgmOperation> bgm
 ) {
     private static final Codec<String> SKIP_SUMMARY_CODEC =
             Codec.STRING.validate(value -> value.isBlank()
@@ -47,7 +49,9 @@ public record DialogueDefinition(
                                     .optionalFieldOf("steps", List.of())
                                     .forGetter(DialogueDefinition::steps),
                             DialogueEnd.CODEC.fieldOf("end")
-                                    .forGetter(DialogueDefinition::end)
+                                    .forGetter(DialogueDefinition::end),
+                            BgmOperation.CODEC.optionalFieldOf("bgm")
+                                    .forGetter(DialogueDefinition::bgm)
                     ).apply(instance, DialogueDefinition::new)
             );
 
@@ -57,7 +61,15 @@ public record DialogueDefinition(
         Objects.requireNonNull(presentation, "presentation");
         Objects.requireNonNull(steps, "steps");
         Objects.requireNonNull(end, "end");
+        Objects.requireNonNull(bgm, "bgm");
         steps = List.copyOf(steps);
+    }
+
+    public DialogueDefinition(
+            Optional<ProgressExpression> requires, Optional<String> skipSummary,
+            boolean mustComplete, Presentation presentation, List<DialogueStep> steps, DialogueEnd end
+    ) {
+        this(requires, skipSummary, mustComplete, presentation, steps, end, Optional.empty());
     }
 
     public DialogueDefinition(

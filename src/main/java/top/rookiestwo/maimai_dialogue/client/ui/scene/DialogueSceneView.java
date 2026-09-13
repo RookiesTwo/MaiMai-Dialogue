@@ -38,6 +38,9 @@ public final class DialogueSceneView extends FrameLayout {
     private final SceneTransition transition = new SceneTransition(this);
     private final PlaybackTimeline sceneTimeline = new PlaybackTimeline();
     private long playbackToken = Long.MIN_VALUE;
+    private java.util.function.IntConsumer playbackProgress = ignored -> {};
+
+    public void setPlaybackProgress(java.util.function.IntConsumer listener) { playbackProgress = listener; }
     private float currentBackgroundOpacity;
     private Consumer<DialogueBoxState> dialogueBoxStateConsumer = ignored -> {
     };
@@ -246,6 +249,7 @@ public final class DialogueSceneView extends FrameLayout {
             ScenePlayback playback,
             int elapsedMs
     ) {
+        playbackProgress.accept(elapsedMs);
         SceneState state = playback.stateAt(elapsedMs);
         applyState(
                 state,

@@ -1,0 +1,9 @@
+{
+  "name": "音效演示员",
+  "typewriter_sound": {
+    "sound": "minecraft:block.note_block.pling",
+    "volume": 0.08,
+    "pitch": 1.5,
+    "min_interval_ms": 90
+  }
+}

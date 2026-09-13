@@ -9,6 +9,8 @@ import icyllis.modernui.widget.TextView;
 
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
+import top.rookiestwo.maimai_dialogue.client.audio.DialogueAudioManager;
 
 /**
  * Renders Dialogue body Markdown and reveals the rendered text progressively.
@@ -25,6 +27,11 @@ public final class DialogueTextPlayer {
     private long playbackToken = Long.MIN_VALUE;
     private Spanned renderedText;
     private String plainText;
+    private BiConsumer<Integer, Boolean> revealed = (end, audible) -> {};
+
+    public void setRevealListener(BiConsumer<Integer, Boolean> listener) {
+        revealed = Objects.requireNonNull(listener, "listener");
+    }
 
     public DialogueTextPlayer(
             TextView textView,
@@ -120,6 +127,9 @@ public final class DialogueTextPlayer {
                     0,
                     visibleCodePoints
             );
+            if (end > visibleEnd) {
+                revealed.accept(end, DialogueAudioManager.hasAudibleCharacter(text, visibleEnd, end));
+            }
             visibleEnd = end;
             SpannableString prefix = RenderedTextPrefix.create(
                     Objects.requireNonNull(renderedText),

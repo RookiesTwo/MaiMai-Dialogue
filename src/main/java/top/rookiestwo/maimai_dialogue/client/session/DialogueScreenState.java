@@ -10,6 +10,7 @@ import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import top.rookiestwo.maimai_dialogue.audio.TypewriterSound;
 
 public record DialogueScreenState(
         long generation,
@@ -28,7 +29,8 @@ public record DialogueScreenState(
         List<DialogueHistoryEntry> history,
         List<DialogueOption> options,
         boolean loadingOptions,
-        boolean requestingTarget
+        boolean requestingTarget,
+        TypewriterSound typewriterSound
 ) {
     public static DialogueScreenState empty(long generation) {
         return new DialogueScreenState(
@@ -41,6 +43,7 @@ public record DialogueScreenState(
     }
 
     public DialogueScreenState {
+        Objects.requireNonNull(typewriterSound, "typewriterSound");
         Objects.requireNonNull(presentation, "presentation");
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(scenePlayback, "scenePlayback");
@@ -51,5 +54,15 @@ public record DialogueScreenState(
         Objects.requireNonNull(error, "error");
         history = List.copyOf(history);
         options = List.copyOf(options);
+    }
+
+    public DialogueScreenState(long generation, Optional<Presentation> presentation, Optional<ThemeDefinition> theme,
+            Optional<ScenePlayback> scenePlayback, PlaybackPhase playbackPhase, boolean playbackSkipped,
+            Optional<String> skipSummary, boolean canSkipToEnd, boolean mustComplete, int typewriterIntervalMs,
+            Optional<String> speaker, Optional<String> text, Optional<SessionMessage> error, List<DialogueHistoryEntry> history,
+            List<DialogueOption> options, boolean loadingOptions, boolean requestingTarget) {
+        this(generation, presentation, theme, scenePlayback, playbackPhase, playbackSkipped, skipSummary,
+                canSkipToEnd, mustComplete, typewriterIntervalMs, speaker, text, error, history, options,
+                loadingOptions, requestingTarget, TypewriterSound.DEFAULT);
     }
 }

@@ -95,6 +95,10 @@ public final class SceneRuntime {
                 continue;
             }
 
+            if (call.target().isEmpty() && !action.audioOnly()) {
+                errors.add("Visual SceneAction requires a target.");
+                continue;
+            }
             EnumSet<ActionProperty> targetWrites = writes.computeIfAbsent(
                     call.target(),
                     ignored -> EnumSet.noneOf(ActionProperty.class)
@@ -119,7 +123,9 @@ public final class SceneRuntime {
             }
 
             boolean validTarget;
-            if (call.target().equals("dialogue")) {
+            if (action.audioOnly()) {
+                validTarget = true;
+            } else if (call.target().equals("dialogue")) {
                 validTarget = validateDialogue(
                         start.dialogueBox(),
                         action,
@@ -166,7 +172,7 @@ public final class SceneRuntime {
                     totalDuration,
                     resolvedCall.endTimeMs()
             );
-            if (action.blocking()) {
+            if (action.blocking() && !action.audioOnly()) {
                 blockingDuration = Math.max(
                         blockingDuration,
                         resolvedCall.endTimeMs()

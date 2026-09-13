@@ -183,6 +183,11 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                             state.canSkipToEnd() && !root.hasConfirmation()
                     );
 
+                    long audioToken = state.scenePlayback().map(ScenePlayback::token).orElse(Long.MIN_VALUE);
+                    scene.setPlaybackProgress(elapsed -> DialogueUiDispatch.toClient(
+                            () -> controller.audioFrame(state.generation(), audioToken, elapsed)));
+                    box.setTextRevealListener((end, audible) -> DialogueUiDispatch.toClient(
+                            () -> controller.textRevealed(state.generation(), audioToken, end, audible)));
                     state.scenePlayback().ifPresent(playback ->
                             scene.renderPlayback(
                                     playback,
@@ -240,6 +245,8 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
             fastForwarding = false;
         }
         fastForward.setEnabled(fastForwarding);
+        boolean audioFastForward = fastForwarding;
+        DialogueUiDispatch.toClient(() -> controller.setAudioFastForward(this, audioFastForward));
         float playbackRate = fastForwarding
                 ? (float) ClientConfig.get().fastForwardMultiplier()
                 : NORMAL_PLAYBACK_RATE;
@@ -266,6 +273,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
             root.cancelTransientInput();
         }
         entry.setEnabled(false);
+        DialogueUiDispatch.toClient(() -> controller.setAudioHistoryOpen(this, true));
         getParentFragmentManager()
                 .beginTransaction()
                 .add(
@@ -281,6 +289,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
     }
 
     void onHistoryClosed() {
+        DialogueUiDispatch.toClient(() -> controller.setAudioHistoryOpen(this, false));
         ImageButton entry = historyButton;
         if (entry != null) {
             entry.setEnabled(true);
@@ -410,6 +419,10 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
         latestState = null;
         confirmations.reset();
         fastForward.setEnabled(false);
+        DialogueUiDispatch.toClient(() -> {
+            controller.setAudioFastForward(this, false);
+            controller.setAudioHistoryOpen(this, false);
+        });
         renderedGeneration = Long.MIN_VALUE;
         super.onDestroyView();
     }

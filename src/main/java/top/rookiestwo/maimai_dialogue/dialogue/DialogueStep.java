@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue.dialogue;
 
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerOperation;
+import top.rookiestwo.maimai_dialogue.audio.TypewriterSound;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
@@ -16,7 +17,8 @@ public record DialogueStep(
         int typewriterIntervalMs,
         Optional<SpeakerOperation> speaker,
         List<SceneActionCall> actions,
-        boolean usesDefaultTypewriterInterval
+        boolean usesDefaultTypewriterInterval,
+        Optional<TypewriterSound> typewriterSound
 ) {
     public static final int DEFAULT_TYPEWRITER_INTERVAL_MS = 30;
     public static final int MAX_TYPEWRITER_INTERVAL_MS = 1_000;
@@ -45,14 +47,16 @@ public record DialogueStep(
                             .forGetter(DialogueStep::speaker),
                     SceneActionCall.CODEC.listOf()
                             .optionalFieldOf("actions", List.of())
-                            .forGetter(DialogueStep::actions)
-            ).apply(instance, (text, interval, speaker, actions) ->
+                            .forGetter(DialogueStep::actions),
+                    TypewriterSound.CODEC.optionalFieldOf("typewriter_sound")
+                            .forGetter(DialogueStep::typewriterSound)
+            ).apply(instance, (text, interval, speaker, actions, sound) ->
                     new DialogueStep(
                             text,
                             interval.orElse(DEFAULT_TYPEWRITER_INTERVAL_MS),
                             speaker,
                             actions,
-                            interval.isEmpty()
+                            interval.isEmpty(), sound
                     )
             )
     );
@@ -61,12 +65,21 @@ public record DialogueStep(
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(speaker, "speaker");
         Objects.requireNonNull(actions, "actions");
+        Objects.requireNonNull(typewriterSound, "typewriterSound");
         if (!isValidTypewriterInterval(typewriterIntervalMs)) {
             throw new IllegalArgumentException(
                     "typewriterIntervalMs must be between 0 and 1000."
             );
         }
         actions = List.copyOf(actions);
+    }
+
+    public DialogueStep(
+            Optional<DialogueText> text, int typewriterIntervalMs,
+            Optional<SpeakerOperation> speaker, List<SceneActionCall> actions,
+            boolean usesDefaultTypewriterInterval
+    ) {
+        this(text, typewriterIntervalMs, speaker, actions, usesDefaultTypewriterInterval, Optional.empty());
     }
 
     public DialogueStep(

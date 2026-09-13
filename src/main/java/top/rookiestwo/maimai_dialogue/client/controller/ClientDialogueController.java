@@ -33,8 +33,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.function.Supplier;
+import top.rookiestwo.maimai_dialogue.client.audio.DialogueAudioManager;
+import top.rookiestwo.maimai_dialogue.client.audio.MinecraftAudioBackend;
 
 public final class ClientDialogueController implements DialogueUiActions {
+    private final DialogueAudioManager audio;
     private final Supplier<ClientContentSnapshot> content;
     private long nextRootRequestId = Long.MIN_VALUE;
     private long nextGeneration = 1L;
@@ -50,6 +53,14 @@ public final class ClientDialogueController implements DialogueUiActions {
             Supplier<ClientContentSnapshot> content,
             DialogueScreenHost screenHost
     ) {
+        this(content, screenHost, new DialogueAudioManager(
+                new MinecraftAudioBackend(), ClientConfig::audio,
+                () -> System.nanoTime() / 1_000_000L, ClientDialogueController::reportDevelopmentError));
+    }
+
+    public ClientDialogueController(Supplier<ClientContentSnapshot> content, DialogueScreenHost screenHost,
+            DialogueAudioManager audio) {
+        this.audio = Objects.requireNonNull(audio, "audio");
         this.screenHost = Objects.requireNonNull(screenHost, "screenHost");
         this.content = Objects.requireNonNull(content, "content");
     }
@@ -203,6 +214,7 @@ public final class ClientDialogueController implements DialogueUiActions {
     // 玩家确认退出时关闭 Screen，session 仍由 Fragment 销毁流程统一清理。
     public void closeFromUi() {
         requireClientThread();
+        audio.close();
         if (screen != null) {
             screen.close();
         }
@@ -214,6 +226,7 @@ public final class ClientDialogueController implements DialogueUiActions {
         if (screen != destroyedScreen) {
             return;
         }
+        audio.close();
         screen = null;
         session = null;
         pendingRootRequest = null;
@@ -254,6 +267,7 @@ public final class ClientDialogueController implements DialogueUiActions {
             DialogueDefinition definition,
             Optional<UUID> completionToken
     ) {
+        audio.open();
         DialogueSession next = new DialogueSession(
                 contentLookup(),
                 rootDialogueId,
@@ -284,6 +298,8 @@ public final class ClientDialogueController implements DialogueUiActions {
 
     // 执行 session 产生的网络、关闭和错误报告 effect。
     private void applyUpdate(DialogueSessionUpdate update) {
+        // 子 Dialogue 也消耗 generation，下一次 session 不得复用旧界面的回调标识。
+        nextGeneration = Math.max(nextGeneration, update.state().generation() + 1);
         for (DialogueSessionEffect effect : update.effects()) {
             if (effect instanceof DialogueSessionEffect.QueryAccess query) {
                 PacketDistributor.sendToServer(new QueryDialogueAccessC2S(
@@ -304,9 +320,12 @@ public final class ClientDialogueController implements DialogueUiActions {
                         command.optionIndex()
                 ));
             } else if (effect instanceof DialogueSessionEffect.Close) {
+                audio.close();
                 if (screen != null) {
                     screen.close();
                 }
+            } else if (effect instanceof DialogueSessionEffect.ApplyBgm bgm) {
+                audio.applyBgm(bgm.operation(), bgm.key());
             } else if (effect instanceof DialogueSessionEffect
                     .CompleteRequiredDialogue completion) {
                 PacketDistributor.sendToServer(
@@ -320,6 +339,7 @@ public final class ClientDialogueController implements DialogueUiActions {
                 reportDevelopmentError(error.message());
             }
         }
+        audio.render(update.state());
         DialogueScreenHandle currentScreen = screen;
         if (currentScreen != null) {
             currentScreen.render(update.state());
@@ -375,6 +395,30 @@ public final class ClientDialogueController implements DialogueUiActions {
                 return snapshot().actions().find(id);
             }
         };
+    }
+
+    @Override
+    public void audioFrame(long generation, long token, int elapsedMs) {
+        requireClientThread();
+        audio.frame(generation, token, elapsedMs);
+    }
+
+    @Override
+    public void textRevealed(long generation, long token, int end, boolean audible) {
+        requireClientThread();
+        audio.reveal(generation, token, end, audible);
+    }
+
+    @Override
+    public void setAudioFastForward(DialogueScreenHandle source, boolean enabled) {
+        requireClientThread();
+        if (screen == source) audio.setFastForward(enabled);
+    }
+
+    @Override
+    public void setAudioHistoryOpen(DialogueScreenHandle source, boolean open) {
+        requireClientThread();
+        if (screen == source) audio.setHistoryOpen(open);
     }
 
     @Nullable

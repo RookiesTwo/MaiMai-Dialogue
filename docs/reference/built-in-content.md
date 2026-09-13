@@ -26,6 +26,8 @@ MOD 自带两套演示内容，不用装任何额外文件就能打开。它们�
 | `maimai_dialogue:debug/fast_forward` | 长对话快进（按住 Ctrl） |
 | `maimai_dialogue:debug/actions` | 逐条播放全部预设动画，并标注当前调用名称 |
 
+音频演示可直接执行 `/maimai_dialogue open @s maimai_dialogue:debug/audio`：包含 BGM 换曲、延迟提示音、Speaker 音色及步骤静音，并可进入 `debug/audio_child` 检查音乐延续与停止。详见 [BGM 与音效](../dialogue/audio.md)。
+
 ## 成品演示（showcase）
 
 一段完整的中文演示对话"小麦娘"，从基本操作讲到正文排版、选项与条件：

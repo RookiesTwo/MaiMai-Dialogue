@@ -26,7 +26,7 @@ description: SceneActionCall、关键帧、差分切换、target 和播放规则
 
 | 字段 | 必填 | 默认值/约束 |
 |---|---:|---|
-| `target` | 是 | VisualObject ID，或 `background`、`dialogue` |
+| `target` | 动画必填 | VisualObject ID，或 `background`、`dialogue`；纯音频调用可省略 |
 | `delay_ms` | 否 | `0`，范围 `0..60000` |
 | `action` | 是 | `reference` 或 `inline` |
 
@@ -57,6 +57,10 @@ description: SceneActionCall、关键帧、差分切换、target 和播放规则
 | `x`、`y`、`scale`、`opacity` | 数值关键帧轨道 |
 | `variant` | 单次差分切换 |
 | `visible` | 单次可见性切换 |
+| `sound` | 可选一次性音效，见 [音频 JSON](./audio-json.md) |
+| `bgm` | 可选 BGM 播放／停止操作，见 [音频 JSON](./audio-json.md) |
+
+纯音频 action 默认 `duration_ms: 0`、`blocking: false`，音频时长不参与播放锁定；带视觉轨道时保持上述动画默认值。音频在调用的 `delay_ms` 时刻触发，支持与视觉轨道组合。
 
 ## 数值关键帧
 

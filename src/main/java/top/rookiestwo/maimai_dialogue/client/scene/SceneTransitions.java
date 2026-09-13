@@ -10,6 +10,8 @@ import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
+import net.minecraft.resources.ResourceLocation;
 
 public final class SceneTransitions {
     private static final SceneActionCall DEFAULT_FADE_IN = new SceneActionCall(
@@ -36,8 +38,13 @@ public final class SceneTransitions {
     public static List<SceneActionCall> withDefaultFadeIn(
             List<SceneActionCall> actions
     ) {
+        return withDefaultFadeIn(actions, ignored -> Optional.empty());
+    }
+
+    public static List<SceneActionCall> withDefaultFadeIn(List<SceneActionCall> actions,
+            Function<ResourceLocation, Optional<SceneAction>> lookup) {
         if (actions.stream().anyMatch(
-                call -> call.target().equals("dialogue")
+                call -> controlsDialogue(call, lookup)
         )) {
             return actions;
         }
@@ -46,5 +53,15 @@ public final class SceneTransitions {
         withFade.add(DEFAULT_FADE_IN);
         withFade.addAll(actions);
         return List.copyOf(withFade);
+    }
+
+    private static boolean controlsDialogue(SceneActionCall call,
+            Function<ResourceLocation, Optional<SceneAction>> lookup) {
+        if (!call.target().equals("dialogue")) return false;
+        if (call.action() instanceof ActionSpec.Inline inline) return !inline.action().audioOnly();
+        if (call.action() instanceof ActionSpec.Reference reference) {
+            return lookup.apply(reference.id()).map(action -> !action.audioOnly()).orElse(true);
+        }
+        return true;
     }
 }

@@ -38,6 +38,8 @@ public final class ClientConfigFragment extends Fragment
     @Nullable
     private ConfigRoot root;
     private boolean resetArmed;
+    @Nullable
+    private Button typewriterToggle;
 
     @Override
     public View onCreateView(
@@ -62,6 +64,7 @@ public final class ClientConfigFragment extends Fragment
         content.setOrientation(LinearLayout.VERTICAL);
         content.setGravity(Gravity.CENTER_HORIZONTAL);
         content.addView(createPlaybackCard(context), cardParams(content));
+        content.addView(createAudioCard(context), cardParams(content));
         content.addView(createControlsCard(context), cardParams(content));
         content.addView(createAppearanceCard(context), cardParams(content));
         bindMetrics(content, () -> {
@@ -193,6 +196,32 @@ public final class ClientConfigFragment extends Fragment
         return card;
     }
 
+    private View createAudioCard(Context context) {
+        LinearLayout card = createCard(context, "audio");
+        numeric.addIntegerOption(card, "bgm_volume", 0, 100, 5, 100,
+                () -> ClientConfig.VALUES.bgmVolume.get() * 100, value -> ClientConfig.VALUES.bgmVolume.set(value / 100));
+        numeric.addIntegerOption(card, "sound_volume", 0, 100, 5, 100,
+                () -> ClientConfig.VALUES.soundVolume.get() * 100, value -> ClientConfig.VALUES.soundVolume.set(value / 100));
+        numeric.addIntegerOption(card, "typewriter_volume", 0, 100, 5, 100,
+                () -> ClientConfig.VALUES.typewriterVolume.get() * 100, value -> ClientConfig.VALUES.typewriterVolume.set(value / 100));
+        LinearLayout row = createOptionRow(context, "typewriter_enabled");
+        Button toggle = createOutlinedButton(context);
+        typewriterToggle = toggle;
+        toggle.setOnClickListener(view -> {
+            ClientConfig.VALUES.typewriterEnabled.set(!ClientConfig.VALUES.typewriterEnabled.get());
+            ClientConfig.changed();
+            refreshAudioToggle();
+        });
+        row.addView(toggle, controlParams(row));
+        card.addView(row, matchWidthWrapHeight());
+        return card;
+    }
+
+    private void refreshAudioToggle() {
+        if (typewriterToggle != null) typewriterToggle.setText(I18n.get(ClientConfig.VALUES.typewriterEnabled.get()
+                ? "gui.maimai_dialogue.config.enabled" : "gui.maimai_dialogue.config.disabled"));
+    }
+
     private View createAppearanceCard(Context context) {
         LinearLayout card = createCard(context, "appearance");
         LinearLayout fontRow = createOptionRow(context, "font_family");
@@ -222,6 +251,7 @@ public final class ClientConfigFragment extends Fragment
     }
 
     private void refreshAll() {
+        refreshAudioToggle();
         numeric.refreshAll();
         keys.refreshKeys();
         fonts.refreshFont();
@@ -238,6 +268,7 @@ public final class ClientConfigFragment extends Fragment
         fonts.clear();
         keys.clear();
         numeric.clear();
+        typewriterToggle = null;
         super.onDestroyView();
     }
 

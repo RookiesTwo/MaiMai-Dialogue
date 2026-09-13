@@ -1,0 +1,7 @@
+{
+  "ui.typewriter": {
+    "sounds": [
+      { "name": "minecraft:block.note_block.hat", "type": "event" }
+    ]
+  }
+}

@@ -33,10 +33,11 @@ public final class ClientContentReloadListener
             Executor gameExecutor
     ) {
         return CompletableFuture
-                .supplyAsync(
+                .runAsync(() -> ClientServices.get().audio().beginReload(), gameExecutor)
+                .thenCompose(ignored -> CompletableFuture.supplyAsync(
                         () -> loadAll(resourceManager),
                         backgroundExecutor
-                )
+                ))
                 .thenCompose(barrier::wait)
                 .thenAcceptAsync(loaded -> {
                     loaded.logIssues();
@@ -54,7 +55,8 @@ public final class ClientContentReloadListener
                     );
                     ClientServices.get().content().replace(snapshot);
                     logSummary(snapshot, loaded.issueCount(), validationErrors);
-                }, gameExecutor);
+                }, gameExecutor)
+                .whenCompleteAsync((ignored, failure) -> ClientServices.get().audio().finishReload(), gameExecutor);
     }
 
     private static LoadedClientContent loadAll(ResourceManager manager) {

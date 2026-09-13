@@ -224,7 +224,7 @@ public final class ClientResourceValidator {
                     errors
             );
             List<SceneActionCall> stepActions = initialStep
-                    ? SceneTransitions.withDefaultFadeIn(step.actions())
+                    ? SceneTransitions.withDefaultFadeIn(step.actions(), actions::find)
                     : step.actions();
             initialStep = false;
             validateActions(
@@ -245,7 +245,7 @@ public final class ClientResourceValidator {
                 errors
         );
         List<SceneActionCall> endActions = initialStep
-                ? SceneTransitions.withDefaultFadeIn(end.actions())
+                ? SceneTransitions.withDefaultFadeIn(end.actions(), actions::find)
                 : end.actions();
         validateActions(
                 dialogueId,

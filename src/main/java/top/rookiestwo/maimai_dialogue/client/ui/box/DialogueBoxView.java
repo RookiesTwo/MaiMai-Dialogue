@@ -181,6 +181,10 @@ public final class DialogueBoxView extends LinearLayout {
         applyTheme(theme);
     }
 
+    public void setTextRevealListener(java.util.function.BiConsumer<Integer, Boolean> listener) {
+        textPlayer.setRevealListener(listener);
+    }
+
     public void setPlaybackRate(float playbackRate) {
         textPlayer.setPlaybackRate(playbackRate);
     }

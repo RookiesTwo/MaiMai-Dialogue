@@ -13,4 +13,8 @@ public interface DialogueUiActions {
     void completeTextPlayback(long generation, long playbackToken);
     void closeFromUi();
     void onScreenDestroyed(DialogueScreenHandle screen);
+    default void audioFrame(long generation, long token, int elapsedMs) {}
+    default void textRevealed(long generation, long token, int end, boolean audible) {}
+    default void setAudioFastForward(DialogueScreenHandle source, boolean enabled) {}
+    default void setAudioHistoryOpen(DialogueScreenHandle source, boolean open) {}
 }

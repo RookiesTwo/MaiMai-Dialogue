@@ -1,0 +1,80 @@
+{
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:debug/root"
+  },
+  "bgm": {
+    "type": "play",
+    "sound": "minecraft:music.creative",
+    "volume": 0.4,
+    "loop": true,
+    "fade_ms": 500
+  },
+  "steps": [
+    {
+      "text": "这是音频演示：背景音乐淡入，文字使用默认的轻声打字音效。空白、标点不发声。",
+      "typewriter_interval_ms": 80
+    },
+    {
+      "text": "现在换成 Speaker 的音色。按住快进键时，打字机将静音，背景音乐保持原速。",
+      "speaker": {
+        "type": "set",
+        "id": "maimai_dialogue:debug/audio"
+      },
+      "typewriter_interval_ms": 100
+    },
+    {
+      "text": "这一步临时静音打字机。半秒后响起提示音，同时 BGM 开始切换。",
+      "typewriter_sound": false,
+      "actions": [
+        {
+          "delay_ms": 500,
+          "action": {
+            "type": "reference",
+            "id": "maimai_dialogue:debug/chime"
+          }
+        },
+        {
+          "delay_ms": 500,
+          "action": {
+            "type": "inline",
+            "action": {
+              "bgm": {
+                "type": "play",
+                "sound": "minecraft:music.menu",
+                "volume": 0.4,
+                "fade_ms": 1000
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "text": "步骤覆盖已经结束，Speaker 音色恢复。打开历史记录或调整界面大小，BGM 不应从头播放。",
+      "typewriter_interval_ms": 100
+    }
+  ],
+  "end": {
+    "text": "进入子对话检查 BGM 延续与停止，或关闭对话检查声音清理。",
+    "exit": {
+      "type": "options",
+      "options": [
+        {
+          "text": "进入子对话",
+          "target": {
+            "type": "dialogue",
+            "dialogue": "maimai_dialogue:debug/audio_child"
+          }
+        },
+        {
+          "text": "关闭演示",
+          "target": {
+            "type": "close"
+          }
+        }
+      ]
+    }
+  },
+  "skip_summary": "跳过音频演示，保留最终 BGM 并直接进入选项。"
+}

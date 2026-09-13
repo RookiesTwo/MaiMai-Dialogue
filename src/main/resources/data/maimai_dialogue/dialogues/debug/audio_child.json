@@ -1,0 +1,34 @@
+{
+  "presentation": {
+    "type": "reference",
+    "id": "maimai_dialogue:debug/root"
+  },
+  "steps": [
+    {
+      "text": "这个 Dialogue 没有 bgm 字段，刚才的音乐应继续播放。",
+      "typewriter_interval_ms": 100
+    },
+    {
+      "text": "现在通过 action 用一秒淡出 BGM，随后恢复 Minecraft 原版音乐调度。",
+      "actions": [
+        {
+          "action": {
+            "type": "inline",
+            "action": {
+              "bgm": {
+                "type": "stop",
+                "fade_ms": 1000
+              }
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "end": {
+    "text": "返回根对话会再次应用根对话的初始 BGM。",
+    "exit": {
+      "type": "return"
+    }
+  }
+}

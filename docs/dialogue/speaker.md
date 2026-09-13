@@ -5,6 +5,8 @@ description: 创建可复用的 Speaker，并在步骤中显示或隐藏名称�
 
 # 显示 Speaker
 
+Speaker 也可用 `typewriter_sound` 配置专属打字音色或静音，具体示例见 [BGM 与音效](./audio.md)。
+
 ## 本章要实现什么
 
 玩家会看到说话者（Speaker）“村庄向导”。后续步骤会继承这位 Speaker，最后一页则作为旁白隐藏名称。

@@ -32,6 +32,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 | `skip_summary` | 否 | 无确认摘要 | 长按跳过成功后显示的 Markdown 摘要 |
 | `must_complete` | 否 | `false` | 中断后登录时必须从根节点重新播放 |
 | `presentation` | 是 | — | Theme、场景和对话框布局 |
+| `bgm` | 否 | 保留当前音乐 | 初始 BGM 播放或停止指令，见 [音频 JSON](./audio-json.md) |
 | `steps` | 否 | `[]` | 按顺序播放的普通步骤 |
 | `end` | 是 | — | 最后一步，必须提供 `exit` |
 
@@ -50,6 +51,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 | `text` | 否 | 无正文 | 字符串为固定正文；非空字符串数组为随机正文；仅此字段解析 Markdown |
 | `typewriter_interval_ms` | 否 | 玩家客户端默认值（初始 `30`） | 每个 Unicode code point 的显示间隔，范围 `0..1000`；`0` 表示立即显示。显式值始终优先于玩家默认值 |
 | `speaker` | 否 | 继承当前状态 | 设置、隐藏或继续沿用 Speaker |
+| `typewriter_sound` | 否 | Speaker 或 MOD 默认 | `false` 静音，或填写本步音色对象，见 [音频 JSON](./audio-json.md) |
 | `actions` | 否 | `[]` | 同时调度的 SceneActionCall |
 
 `end` 额外要求 `exit`。省略 `text` 可制作纯动画步骤。

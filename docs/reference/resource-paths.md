@@ -45,6 +45,8 @@ description: 查询 Dialogue、Speaker、Theme、Presentation、Scene、VisualAs
 <资源包>/assets/example/textures/dialogue/guide.png
 ```
 
+声音 ID 指向 `assets/<namespace>/sounds.json` 中的事件定义，音频文件放在 `assets/<namespace>/sounds/<path>.ogg`。例如事件 `example:music.room` 可以指向文件 `assets/example/sounds/music/room.ogg`；事件 ID 不等同于文件路径。配置示例见 [BGM 与音效](../dialogue/audio.md)。
+
 ## 双端职责
 
 - 服务端从启用的 Data Pack 读取 `data` Dialogue，检查 ID、`requires` 和访问权限。

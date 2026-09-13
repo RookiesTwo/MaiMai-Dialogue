@@ -5,8 +5,12 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import top.rookiestwo.maimai_dialogue.audio.BgmOperation;
+import top.rookiestwo.maimai_dialogue.client.scene.AudioCue;
 
 public sealed interface DialogueSessionEffect {
+    record ApplyBgm(BgmOperation operation, AudioCue.Key key) implements DialogueSessionEffect {}
+
     record QueryAccess(long requestId, List<ResourceLocation> targets)
             implements DialogueSessionEffect {
         public QueryAccess {

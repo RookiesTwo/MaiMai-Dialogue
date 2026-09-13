@@ -5,8 +5,10 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import java.util.Objects;
+import java.util.Optional;
+import top.rookiestwo.maimai_dialogue.audio.TypewriterSound;
 
-public record SpeakerDefinition(String name) {
+public record SpeakerDefinition(String name, Optional<TypewriterSound> typewriterSound) {
     private static final Codec<String> NAME_CODEC = Codec.STRING.validate(
             value -> value.isBlank()
                     ? DataResult.error(() -> "Speaker name must not be blank.")
@@ -17,11 +19,13 @@ public record SpeakerDefinition(String name) {
             RecordCodecBuilder.create(instance ->
                     instance.group(
                             NAME_CODEC.fieldOf("name")
-                                    .forGetter(SpeakerDefinition::name)
+                                    .forGetter(SpeakerDefinition::name),
+                            TypewriterSound.CODEC.optionalFieldOf("typewriter_sound").forGetter(SpeakerDefinition::typewriterSound)
                     ).apply(instance, SpeakerDefinition::new)
             );
 
     public SpeakerDefinition {
+        Objects.requireNonNull(typewriterSound, "typewriterSound");
         Objects.requireNonNull(name, "name");
         if (name.isBlank()) {
             throw new IllegalArgumentException(
@@ -29,4 +33,6 @@ public record SpeakerDefinition(String name) {
             );
         }
     }
+
+    public SpeakerDefinition(String name) { this(name, Optional.empty()); }
 }

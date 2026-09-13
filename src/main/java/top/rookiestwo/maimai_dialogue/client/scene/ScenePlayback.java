@@ -6,6 +6,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Optional;
 
 public record ScenePlayback(
         long token,
@@ -22,10 +25,28 @@ public record ScenePlayback(
         calls = List.copyOf(calls);
     }
 
+    // 声音按触发时间排序，同一时刻保持 JSON 调用顺序。
+    public List<AudioCue> audioCues() {
+        List<AudioCue> cues = new ArrayList<>();
+        for (int index = 0; index < calls.size(); index++) {
+            ResolvedActionCall call = calls.get(index);
+            if (call.action().sound().isPresent() || call.action().bgm().isPresent()) {
+                cues.add(new AudioCue(token, index, call.delayMs(), call.action().sound(), call.action().bgm()));
+            }
+        }
+        cues.sort(Comparator.comparingInt(AudioCue::delayMs).thenComparingInt(AudioCue::index));
+        return List.copyOf(cues);
+    }
+
+    public Optional<AudioCue> finalBgmCue() {
+        return audioCues().stream().filter(cue -> cue.bgm().isPresent()).reduce((first, last) -> last);
+    }
+
     // 计算指定播放时间点的完整场景状态。
     public SceneState stateAt(int elapsedMs) {
         SceneState state = start;
         for (ResolvedActionCall call : calls) {
+            if (call.action().audioOnly()) continue;
             if (call.target().equals("dialogue")) {
                 state = applyDialogue(state, call, elapsedMs);
                 continue;

@@ -5,6 +5,7 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public record SceneActionCall(
         String target,
@@ -29,13 +30,13 @@ public record SceneActionCall(
 
     public static final Codec<SceneActionCall> CODEC =
             RecordCodecBuilder.create(instance -> instance.group(
-                    TARGET_CODEC.fieldOf("target")
-                            .forGetter(SceneActionCall::target),
+                    TARGET_CODEC.optionalFieldOf("target")
+                            .forGetter(call -> call.target().isEmpty() ? Optional.empty() : Optional.of(call.target())),
                     DELAY_CODEC.optionalFieldOf("delay_ms", 0)
                             .forGetter(SceneActionCall::delayMs),
                     ActionSpec.CODEC.fieldOf("action")
                             .forGetter(SceneActionCall::action)
-            ).apply(instance, SceneActionCall::new));
+            ).apply(instance, (target, delay, action) -> new SceneActionCall(target.orElse(""), delay, action)));
 
     public SceneActionCall {
         Objects.requireNonNull(target, "target");

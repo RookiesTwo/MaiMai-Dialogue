@@ -28,6 +28,10 @@ public final class ClientConfig {
         return preferences;
     }
 
+    private static volatile AudioPreferences audioPreferences = AudioPreferences.DEFAULT;
+
+    public static AudioPreferences audio() { return audioPreferences; }
+
     public static void onConfigEvent(ModConfigEvent event) {
         if (event.getConfig().getSpec() != SPEC) {
             return;
@@ -59,6 +63,10 @@ public final class ClientConfig {
     }
 
     public static void resetAll() {
+        VALUES.bgmVolume.set(1.0);
+        VALUES.soundVolume.set(1.0);
+        VALUES.typewriterVolume.set(1.0);
+        VALUES.typewriterEnabled.set(true);
         VALUES.fastForwardMultiplier.set(
                 ClientPreferences.DEFAULT_FAST_FORWARD_MULTIPLIER
         );
@@ -80,6 +88,8 @@ public final class ClientConfig {
     }
 
     private static void reloadSnapshot() {
+        audioPreferences = new AudioPreferences(VALUES.bgmVolume.get(), VALUES.soundVolume.get(),
+                VALUES.typewriterVolume.get(), VALUES.typewriterEnabled.get());
         preferences = ClientPreferences.create(
                 VALUES.fastForwardMultiplier.get(),
                 VALUES.defaultTypewriterIntervalMs.get(),
@@ -100,6 +110,10 @@ public final class ClientConfig {
     }
 
     public static final class Values {
+        public final ModConfigSpec.DoubleValue bgmVolume;
+        public final ModConfigSpec.DoubleValue soundVolume;
+        public final ModConfigSpec.DoubleValue typewriterVolume;
+        public final ModConfigSpec.BooleanValue typewriterEnabled;
         public final ModConfigSpec.DoubleValue fastForwardMultiplier;
         public final ModConfigSpec.IntValue defaultTypewriterIntervalMs;
         public final ModConfigSpec.IntValue skipHoldDurationMs;
@@ -111,6 +125,12 @@ public final class ClientConfig {
         public final ModConfigSpec.ConfigValue<String> historyKey;
 
         private Values(ModConfigSpec.Builder builder) {
+            builder.comment("Dialogue audio preferences").push("audio");
+            bgmVolume = builder.defineInRange("bgmVolume", 1.0, 0.0, 1.0);
+            soundVolume = builder.defineInRange("soundVolume", 1.0, 0.0, 1.0);
+            typewriterVolume = builder.defineInRange("typewriterVolume", 1.0, 0.0, 1.0);
+            typewriterEnabled = builder.define("typewriterEnabled", true);
+            builder.pop();
             builder.comment("Dialogue playback preferences").push("playback");
             fastForwardMultiplier = builder.comment(
                             "Playback multiplier while the fast-forward key is held."

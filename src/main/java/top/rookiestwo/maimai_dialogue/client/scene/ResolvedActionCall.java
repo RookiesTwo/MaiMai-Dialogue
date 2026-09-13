@@ -15,6 +15,6 @@ public record ResolvedActionCall(
     }
 
     public int endTimeMs() {
-        return delayMs + action.durationMs();
+        return delayMs + (action.audioOnly() ? 0 : action.durationMs());
     }
 }

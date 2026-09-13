@@ -5,6 +5,8 @@ import top.rookiestwo.maimai_dialogue.content.resolve.DialoguePresentationResolv
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
+import top.rookiestwo.maimai_dialogue.client.scene.AudioCue;
+import top.rookiestwo.maimai_dialogue.audio.TypewriterSound;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePreparation;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneRuntime;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneTransitions;
@@ -315,11 +317,14 @@ public final class DialogueSession {
         }
         if (active.playbackState.phase() == PlaybackPhase.PLAYING) {
             active.playbackState.skip();
-            return update(List.of(), true);
+            List<DialogueSessionEffect> effects = new ArrayList<>();
+            settleBgm(active.playback.finalBgmCue(), effects);
+            return update(effects, true);
         }
         if (active.stepIndex < active.definition.steps().size()) {
             active.stepIndex++;
             List<DialogueSessionEffect> effects = new ArrayList<>();
+            settleBgm(active.playback.finalBgmCue(), effects);
             enterCurrentStep(active, effects);
             return update(effects, true);
         }
@@ -351,20 +356,22 @@ public final class DialogueSession {
                 return update(List.of(), false);
             }
             active.playbackState.skip();
-            return update(List.of(), true);
+            List<DialogueSessionEffect> effects = new ArrayList<>();
+            settleBgm(active.playback.finalBgmCue(), effects);
+            return update(effects, true);
         }
 
         List<DialogueSessionEffect> effects = new ArrayList<>();
+        Optional<AudioCue> finalBgm = active.playback.finalBgmCue();
         for (int index = active.stepIndex + 1;
              index < endIndex;
              index++) {
             active.stepIndex = index;
             DialogueStep step = active.definition.steps().get(index);
             applySpeaker(active, step.speaker(), effects);
-            reportPreparationErrors(
-                    active.sceneRuntime.prepare(step.actions()),
-                    effects
-            );
+            ScenePreparation skipped = active.sceneRuntime.prepare(step.actions());
+            reportPreparationErrors(skipped, effects);
+            if (skipped.playback().finalBgmCue().isPresent()) finalBgm = skipped.playback().finalBgmCue();
         }
 
         active.stepIndex = endIndex;
@@ -374,6 +381,8 @@ public final class DialogueSession {
                 active.definition.end().actions()
         );
         active.playback = endPreparation.playback();
+        if (active.playback.finalBgmCue().isPresent()) finalBgm = active.playback.finalBgmCue();
+        settleBgm(finalBgm, effects);
         active.playbackState.skip();
         reportPreparationErrors(endPreparation, effects);
         active.resolvedText
@@ -459,7 +468,8 @@ public final class DialogueSession {
                 history,
                 atEnd && ready ? active.visibleOptions : List.of(),
                 atEnd && ready && pendingAccessQuery != null,
-                hasPendingOptionAction()
+                hasPendingOptionAction(),
+                active.currentTypewriterSound()
         );
     }
 
@@ -468,6 +478,7 @@ public final class DialogueSession {
             DialogueDefinition definition,
             List<DialogueSessionEffect> effects
     ) {
+        settleBgm(active.playback.finalBgmCue(), effects);
         pendingAccessQuery = null;
         pendingAction = null;
         active = createActive(dialogueId, definition, effects);
@@ -531,6 +542,11 @@ public final class DialogueSession {
         return update(List.of(new DialogueSessionEffect.Close()), true);
     }
 
+    // 跳过时只提交最后一条 BGM 指令，不补播中间的一次性声音。
+    private static void settleBgm(Optional<AudioCue> cue, List<DialogueSessionEffect> effects) {
+        cue.ifPresent(value -> effects.add(new DialogueSessionEffect.ApplyBgm(value.bgm().orElseThrow(), value.key())));
+    }
+
     // 应用当前步骤的 Speaker 变更并准备对应的场景播放。
     private void enterCurrentStep(
             ActiveDialogue current,
@@ -540,7 +556,7 @@ public final class DialogueSession {
         applySpeaker(current, current.currentStepSpeaker(), effects);
         List<SceneActionCall> actions = current.currentStepActions();
         if (current.initialStep) {
-            actions = SceneTransitions.withDefaultFadeIn(actions);
+            actions = SceneTransitions.withDefaultFadeIn(actions, content::action);
             current.initialStep = false;
         }
         ScenePreparation preparation = current.sceneRuntime.prepare(actions);
@@ -605,6 +621,8 @@ public final class DialogueSession {
             return;
         }
         if (operation.orElseThrow() instanceof SetSpeaker setSpeaker) {
+            current.speakerSound = content.speaker(setSpeaker.id())
+                    .flatMap(SpeakerDefinition::typewriterSound).orElse(TypewriterSound.DEFAULT);
             current.speakerName = content.speaker(setSpeaker.id())
                     .map(SpeakerDefinition::name)
                     .orElseGet(() -> {
@@ -616,6 +634,7 @@ public final class DialogueSession {
                     });
         } else if (operation.orElseThrow() instanceof HideSpeaker) {
             current.speakerName = null;
+            current.speakerSound = TypewriterSound.DEFAULT;
         }
     }
 
@@ -625,6 +644,8 @@ public final class DialogueSession {
             List<DialogueSessionEffect> effects
     ) {
         generation++;
+        definition.bgm().ifPresent(bgm -> effects.add(new DialogueSessionEffect.ApplyBgm(
+                bgm, new AudioCue.Key(generation << 32, -1))));
         var resolved = DialoguePresentationResolver.resolve(
                 definition.presentation(), content::presentation, content::theme,
                 content::scene, content::visualAsset
@@ -814,6 +835,7 @@ public final class DialogueSession {
         private Optional<String> resolvedText = Optional.empty();
         @Nullable
         private String speakerName;
+        private TypewriterSound speakerSound = TypewriterSound.DEFAULT;
         @Nullable
         private SessionMessage errorMessage;
         private List<DialogueOption> visibleOptions = List.of();
@@ -863,6 +885,12 @@ public final class DialogueSession {
                 return definition.steps().get(stepIndex).text();
             }
             return definition.end().text();
+        }
+
+        private TypewriterSound currentTypewriterSound() {
+            return (stepIndex < definition.steps().size()
+                    ? definition.steps().get(stepIndex).typewriterSound()
+                    : definition.end().typewriterSound()).orElse(speakerSound);
         }
 
         private int currentTypewriterIntervalMs(int clientDefault) {

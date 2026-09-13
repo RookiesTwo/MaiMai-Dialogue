@@ -2,6 +2,7 @@ package top.rookiestwo.maimai_dialogue.dialogue;
 
 import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueExit;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerOperation;
+import top.rookiestwo.maimai_dialogue.audio.TypewriterSound;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -17,7 +18,8 @@ public record DialogueEnd(
         Optional<SpeakerOperation> speaker,
         List<SceneActionCall> actions,
         DialogueExit exit,
-        boolean usesDefaultTypewriterInterval
+        boolean usesDefaultTypewriterInterval,
+        Optional<TypewriterSound> typewriterSound
 ) {
     public static final Codec<DialogueEnd> CODEC = RecordCodecBuilder.create(instance ->
             instance.group(
@@ -35,8 +37,9 @@ public record DialogueEnd(
                     SceneActionCall.CODEC.listOf()
                             .optionalFieldOf("actions", List.of())
                             .forGetter(DialogueEnd::actions),
-                    DialogueExit.CODEC.fieldOf("exit").forGetter(DialogueEnd::exit)
-            ).apply(instance, (text, interval, speaker, actions, exit) ->
+                    DialogueExit.CODEC.fieldOf("exit").forGetter(DialogueEnd::exit),
+                    TypewriterSound.CODEC.optionalFieldOf("typewriter_sound").forGetter(DialogueEnd::typewriterSound)
+            ).apply(instance, (text, interval, speaker, actions, exit, sound) ->
                     new DialogueEnd(
                             text,
                             interval.orElse(
@@ -45,7 +48,7 @@ public record DialogueEnd(
                             speaker,
                             actions,
                             exit,
-                            interval.isEmpty()
+                            interval.isEmpty(), sound
                     )
             )
     );
@@ -55,6 +58,7 @@ public record DialogueEnd(
         Objects.requireNonNull(speaker, "speaker");
         Objects.requireNonNull(actions, "actions");
         Objects.requireNonNull(exit, "exit");
+        Objects.requireNonNull(typewriterSound, "typewriterSound");
         if (typewriterIntervalMs < 0
                 || typewriterIntervalMs
                 > DialogueStep.MAX_TYPEWRITER_INTERVAL_MS) {
@@ -63,6 +67,14 @@ public record DialogueEnd(
             );
         }
         actions = List.copyOf(actions);
+    }
+
+    public DialogueEnd(
+            Optional<DialogueText> text, int typewriterIntervalMs,
+            Optional<SpeakerOperation> speaker, List<SceneActionCall> actions,
+            DialogueExit exit, boolean usesDefaultTypewriterInterval
+    ) {
+        this(text, typewriterIntervalMs, speaker, actions, exit, usesDefaultTypewriterInterval, Optional.empty());
     }
 
     public DialogueEnd(
