@@ -9,3 +9,6 @@ pluginManagement {
 plugins {
     id 'org.gradle.toolchains.foojay-resolver-convention' version '0.8.0'
 }
+
+// 根项目保留主 MOD，编辑器独立编译和打包。
+include('editor')

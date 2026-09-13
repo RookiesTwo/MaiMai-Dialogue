@@ -32,6 +32,12 @@ MOD 下载：**https://github.com/RookiesTwo/MaiMai-Dialogue/releases**
 > [!WARNING]
 > **AI 生成声明：本项目的大多数代码由 AI 生成。** 项目维护者负责需求定义、架构决策、代码审查与测试。
 
+## 开发与附属编辑器
+
+根项目继续构建主 MOD；`editor/` 为独立的客户端编辑器附属 MOD，目前处于项目骨架阶段。
+
+在 IDEA 重新加载 Gradle 后，可通过 `Build Main`、`Build Editor`、`Build All` 分别构建；双 MOD 开发启动使用 `Editor Client`。具体任务、产物和依赖边界见 [编辑器构建说明](editor/README.md)。
+
 ## License
 
 MIT License
