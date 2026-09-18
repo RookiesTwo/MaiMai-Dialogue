@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 
 /** Per-open editor state. Mutations and completion callbacks run on the owning UI thread. */
 public final class ProjectWorkspace {
@@ -31,6 +32,8 @@ public final class ProjectWorkspace {
     private String formNamespace = "my_project";
     private boolean suggestNamespace = true;
     private List<ProjectStore.Entry> projects = List.of();
+    private final ResourceWorkspace resources = new ResourceWorkspace(this::draft, this::editResources,
+            () -> !busy && !disposed && page == Page.NONE, () -> changed.run());
 
     public ProjectWorkspace(ProjectStore store, Executor io, Executor ui,
                             Runnable closeEditor) {
@@ -57,6 +60,14 @@ public final class ProjectWorkspace {
     public String formName() { return formName; }
     public String formNamespace() { return formNamespace; }
     public List<ProjectStore.Entry> projects() { return projects; }
+    public ResourceWorkspace resources() { return resources; }
+
+    private void editResources(ProjectDraft next) {
+        if (history == null || busy || disposed) return;
+        history.edit(next, null);
+        clearError();
+        message = "project.ready";
+    }
 
     // Forms also belong to the workspace, so rebuilding a View cannot discard typed input.
     public void setFormName(String value) {
@@ -113,7 +124,8 @@ public final class ProjectWorkspace {
     }
 
     public void escape() {
-        if (page == Page.NONE) request(Action.CLOSE_EDITOR);
+        if (resources.form() != ResourceWorkspace.Form.NONE) resources.cancel();
+        else if (page == Page.NONE) request(Action.CLOSE_EDITOR);
         else cancel();
     }
 
@@ -154,6 +166,7 @@ public final class ProjectWorkspace {
             }
             case CLOSE_PROJECT -> {
                 history = null;
+                resources.reset();
                 directory = null;
                 fingerprint = null;
                 page = Page.NONE;
@@ -172,6 +185,7 @@ public final class ProjectWorkspace {
         ProjectDraft draft = ProjectDraft.create(formName, formNamespace);
         runIo("project.creating", () -> store.allocateDirectory(draft.namespace()), target -> {
             history = new ProjectHistory(draft, false);
+            resources.reset();
             directory = target;
             fingerprint = null;
             page = Page.NONE;
@@ -192,6 +206,7 @@ public final class ProjectWorkspace {
         Path target = entry.directory();
         runIo("project.opening", () -> store.open(target), result -> {
             history = new ProjectHistory(result.draft(), true);
+            resources.reset();
             directory = target;
             fingerprint = result.fingerprint();
             page = Page.NONE;

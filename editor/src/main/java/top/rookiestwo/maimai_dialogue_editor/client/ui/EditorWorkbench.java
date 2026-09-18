@@ -8,12 +8,15 @@ import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 
 final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplitter.DragListener {
     private final EditorLayoutState state;
     private final EditorToolbar toolbar;
     private final TextView status;
-    private final TextView projectLabel;
+    private final ResourceBrowserView browser;
+    private final ResourcePropertiesView resourceProperties;
+    private final ResourceDocumentView document;
     private final ProjectWorkspace workspace;
     private final EditorPanel resources;
     private final EditorPanel properties;
@@ -45,18 +48,20 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             state.reset();
             requestLayout();
         }, workspace);
-        projectLabel = EditorWidgets.label(context, "no_project", 13, EditorWidgets.ACCENT);
-        resources = new EditorPanel(context, "resources", EditorWidgets.resourceList(context, projectLabel), () -> {
+        browser = new ResourceBrowserView(context, workspace);
+        resources = new EditorPanel(context, "resources", browser, () -> {
             cancelDrags();
             state.leftCollapsed = true;
             requestLayout();
         }, true);
-        properties = new EditorPanel(context, "properties", EditorWidgets.placeholder(context, "no_selection"), () -> {
+        resourceProperties = new ResourcePropertiesView(context, workspace);
+        properties = new EditorPanel(context, "properties", EditorWidgets.formScroll(context, resourceProperties), () -> {
             cancelDrags();
             state.rightCollapsed = true;
             requestLayout();
         }, false);
-        steps = new EditorPanel(context, "steps", EditorWidgets.placeholder(context, "no_dialogue"), null, true);
+        document = new ResourceDocumentView(context, workspace);
+        steps = new EditorPanel(context, "steps", document, null, true);
         TextView previewContent = EditorWidgets.placeholder(context, "preview_placeholder");
         previewContent.setBackground(EditorWidgets.shape(EditorWidgets.PREVIEW, 0));
         preview = new EditorPanel(context, "scene_preview", previewContent, null, true);
@@ -89,7 +94,12 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         String name = workspace.draft() == null ? EditorWidgets.tr("no_project")
                 : workspace.draft().name().isBlank() ? EditorWidgets.tr("project.untitled") : workspace.draft().name();
         String label = name + (workspace.dirty() ? " *" : "");
-        projectLabel.setText(label);
+        browser.refresh();
+        resourceProperties.refresh();
+        document.refresh();
+        steps.setTitle(EditorWidgets.tr(workspace.resources().opened() != null
+                && workspace.resources().opened().kind() == ResourceKind.SPEAKER
+                ? "resource.speaker" : "steps"));
         String message = workspace.errorReason() == null ? EditorWidgets.tr(workspace.message())
                 : EditorWidgets.tr("project.error." + workspace.errorReason()) + " " + workspace.errorDetail();
         String saveState = workspace.draft() == null ? "" : " · "

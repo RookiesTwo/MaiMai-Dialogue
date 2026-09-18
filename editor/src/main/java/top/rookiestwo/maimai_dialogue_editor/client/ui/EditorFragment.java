@@ -13,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorScreens;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectStore;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 import net.minecraft.client.Minecraft;
 
 import java.util.concurrent.ExecutorService;
@@ -42,7 +43,9 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
         }
         root = new EditorWorkspaceView(requireContext(), layoutState, workspace);
         workspace.setListener(root::refresh);
-        if (workspace.page() == ProjectWorkspace.Page.NONE) root.requestFocus();
+        if (workspace.page() == ProjectWorkspace.Page.NONE && workspace.resources().form() == ResourceWorkspace.Form.NONE) {
+            root.requestFocus();
+        }
         return root;
     }
 

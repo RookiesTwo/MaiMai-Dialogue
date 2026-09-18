@@ -5,6 +5,7 @@ import icyllis.modernui.core.Context;
 import icyllis.modernui.view.KeyEvent;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 
 /** View binding only. The Fragment owns the document, forms and IO lifecycle. */
 final class EditorWorkspaceView extends ResponsiveFrameLayout {
@@ -14,6 +15,8 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     private ProjectDialog dialog;
     private EditorDropdownMenu dropdown;
     private ProjectMenu projectMenu;
+    private ResourceWorkspace.Form shownResourceForm = ResourceWorkspace.Form.NONE;
+    private ResourceDialog resourceDialog;
 
     EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace) {
         super(context);
@@ -53,6 +56,23 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         if (dialog != null) dialog.refresh();
         if (projectMenu != null) projectMenu.refresh();
         if (dropdown != null) dropdown.requestLayout();
+        ResourceWorkspace.Form resourceForm = workspace.resources().form();
+        if (shownResourceForm != resourceForm) {
+            workbench.cancelDrags();
+            if (resourceDialog != null) removeView(resourceDialog);
+            resourceDialog = null;
+            shownResourceForm = resourceForm;
+            if (resourceForm != ResourceWorkspace.Form.NONE) {
+                resourceDialog = new ResourceDialog(getContext(), workspace);
+                addView(resourceDialog, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+                resourceDialog.focusFirst();
+            } else if (page == ProjectWorkspace.Page.NONE) {
+                requestFocus();
+            }
+        }
+        workbench.setDescendantFocusability(page == ProjectWorkspace.Page.NONE && resourceForm == ResourceWorkspace.Form.NONE
+                ? FOCUS_AFTER_DESCENDANTS : FOCUS_BLOCK_DESCENDANTS);
+        if (resourceDialog != null) resourceDialog.refresh();
     }
 
     void escape() {
@@ -101,6 +121,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         cancelDrags();
         if (densityChanged && dialog != null) EditorWidgets.refreshMetrics(dialog);
         if (densityChanged && dropdown != null) EditorWidgets.refreshMetrics(dropdown);
+        if (densityChanged && resourceDialog != null) EditorWidgets.refreshMetrics(resourceDialog);
     }
 
     @Override

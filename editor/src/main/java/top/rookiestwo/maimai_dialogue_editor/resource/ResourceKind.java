@@ -1,0 +1,28 @@
+package top.rookiestwo.maimai_dialogue_editor.resource;
+
+/** Authoring categories. Availability is independent of the runtime definition registry. */
+public enum ResourceKind {
+    DIALOGUE("dialogues", "dialogue", true),
+    SPEAKER("speakers", "speaker", true),
+    PRESENTATION("presentations", "presentation", false),
+    SCENE("scenes", "scene", false),
+    VISUAL_ASSET("visual_assets", "visual_asset", false),
+    ACTION("actions", "action", false),
+    THEME("themes", "theme", false),
+    IMAGE("images", "image", false),
+    SOUND("sounds", "sound", false);
+
+    private final String directory;
+    private final String key;
+    private final boolean available;
+
+    ResourceKind(String directory, String key, boolean available) {
+        this.directory = directory;
+        this.key = key;
+        this.available = available;
+    }
+
+    public String directory() { return directory; }
+    public String key() { return key; }
+    public boolean available() { return available; }
+}

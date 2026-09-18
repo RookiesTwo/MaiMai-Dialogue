@@ -9,6 +9,9 @@ import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.concurrent.atomic.AtomicInteger;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -319,5 +322,59 @@ class ProjectWorkspaceTest {
         workspace.cancel();
         assertNotNull(workspace.draft());
         assertEquals(0, closed.get());
+    }
+
+    @Test
+    void resourceDraftsRoundTripAndNavigationResetsOnlyWhenTheProjectIsReplaced() {
+        create();
+        ResourceWorkspace resources = workspace.resources();
+        ResourceKey intro = new ResourceKey(ResourceKind.DIALOGUE, "chapter/intro");
+        resources.beginCreate();
+        resources.setFormPath(intro.path());
+        resources.submit();
+        workspace.setListener(() -> {});
+        assertEquals(intro, resources.opened());
+        assertEquals(intro, resources.selection().resource());
+        workspace.save();
+        resources.beginDelete();
+        assertEquals(ResourceWorkspace.Form.NONE, resources.form());
+        completeIo();
+        ProjectDraft saved = workspace.draft();
+        resources.setQuery("chapter");
+        workspace.request(ProjectWorkspace.Action.CLOSE_PROJECT);
+        assertNull(resources.opened());
+        assertEquals("", resources.query());
+        assertTrue(resources.catalog().keys().isEmpty());
+        workspace.request(ProjectWorkspace.Action.OPEN);
+        completeIo();
+        workspace.openProject(workspace.projects().getFirst());
+        completeIo();
+        assertEquals(saved, workspace.draft());
+        assertNull(resources.opened());
+        assertTrue(resources.catalog().contains(intro));
+        assertFalse(workspace.dirty());
+    }
+
+    @Test
+    void escapeCancelsResourceFormAndHistoryReconcilesDeletedDocument() {
+        create();
+        ResourceWorkspace resources = workspace.resources();
+        resources.beginCreate();
+        resources.setFormPath("intro");
+        resources.submit();
+        ResourceKey intro = resources.opened();
+        resources.beginCopy();
+        workspace.setListener(() -> {});
+        assertEquals(ResourceWorkspace.Form.COPY, resources.form());
+        workspace.escape();
+        assertEquals(ResourceWorkspace.Form.NONE, resources.form());
+        assertEquals(ProjectWorkspace.Page.NONE, workspace.page());
+        assertEquals(intro, resources.opened());
+        assertEquals(0, closed.get());
+        workspace.undo();
+        assertNull(resources.opened());
+        assertNull(resources.selection().resource());
+        workspace.redo();
+        assertTrue(resources.catalog().contains(intro));
     }
 }

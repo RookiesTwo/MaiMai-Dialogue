@@ -101,31 +101,6 @@ final class EditorWidgets {
         return button;
     }
 
-    static ScrollView resourceList(Context context, TextView projectLabel) {
-        LinearLayout items = new LinearLayout(context);
-        items.setOrientation(LinearLayout.VERTICAL);
-        bindMetrics(items, () -> items.setPadding(items.dp(12), items.dp(8), items.dp(12), items.dp(8)));
-        items.addView(projectLabel);
-        bindMetrics(projectLabel, () -> projectLabel.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, projectLabel.dp(32))));
-        String[] keys = {"resource.dialogue", "resource.speaker", "resource.presentation",
-                "resource.scene", "resource.visual_asset", "resource.action", "resource.theme",
-                "resource.image", "resource.sound"};
-        for (int index = 0; index < keys.length; index++) {
-            TextView item = label(context, keys[index], 13, TEXT);
-            items.addView(item);
-            bindMetrics(item, () -> item.setLayoutParams(new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT, item.dp(28))));
-        }
-        ScrollView scroll = new ScrollView(context);
-        scroll.setVerticalScrollBarEnabled(true);
-        scroll.setVerticalScrollbarThumbDrawable(shape(SCROLLBAR_THUMB, 0));
-        scroll.setVerticalScrollbarTrackDrawable(shape(HEADER, 0));
-        scroll.addView(items, new ScrollView.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        return scroll;
-    }
-
     static void enabled(Button button, boolean enabled) {
         button.setEnabled(enabled);
         button.setTextColor(enabled ? TEXT : DISABLED_TEXT);
@@ -203,6 +178,7 @@ final class EditorWidgets {
         StateListDrawable background = new StateListDrawable();
         background.addState(new int[]{-R.attr.state_enabled}, shape(HEADER, 0));
         background.addState(new int[]{R.attr.state_pressed}, shape(BUTTON_PRESSED, 0));
+        background.addState(new int[]{R.attr.state_selected}, shape(BUTTON_PRESSED, 0));
         background.addState(new int[]{R.attr.state_hovered}, shape(BUTTON_HOVER, 0));
         background.addState(StateSet.WILD_CARD, shape(PANEL, 0));
         return background;

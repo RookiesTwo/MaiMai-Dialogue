@@ -4,6 +4,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.util.Objects;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 
 /** Immutable authoring data. Runtime validation must not prevent saving an unfinished draft. */
 public final class ProjectDraft {
@@ -73,6 +75,39 @@ public final class ProjectDraft {
 
     public boolean hasValidMetadata() {
         return !name().isBlank() && namespace().matches("[a-z0-9_.-]+");
+    }
+
+    public JsonObject resources() {
+        return data.getAsJsonObject("resources").deepCopy();
+    }
+
+    public boolean hasResourceGroup(ResourceKind kind) {
+        JsonElement group = data.getAsJsonObject("resources").get(kind.directory());
+        return group == null || group.isJsonObject();
+    }
+
+    /** A missing resource is null; an explicit JSON null remains a JsonNull draft. */
+    public JsonElement resource(ResourceKey key) {
+        JsonElement group = data.getAsJsonObject("resources").get(key.kind().directory());
+        JsonElement value = group != null && group.isJsonObject() ? group.getAsJsonObject().get(key.path()) : null;
+        return value == null ? null : value.deepCopy();
+    }
+
+    public ProjectDraft withResource(ResourceKey key, JsonElement value) {
+        if (!hasResourceGroup(key.kind())) throw new IllegalStateException("Invalid resource group");
+        JsonObject copy = toJson();
+        JsonObject resources = copy.getAsJsonObject("resources");
+        if (!resources.has(key.kind().directory())) resources.add(key.kind().directory(), new JsonObject());
+        resources.getAsJsonObject(key.kind().directory()).add(key.path(), Objects.requireNonNull(value).deepCopy());
+        return new ProjectDraft(copy);
+    }
+
+    public ProjectDraft withoutResource(ResourceKey key) {
+        if (!hasResourceGroup(key.kind())) throw new IllegalStateException("Invalid resource group");
+        JsonObject copy = toJson();
+        JsonObject group = copy.getAsJsonObject("resources").getAsJsonObject(key.kind().directory());
+        if (group != null) group.remove(key.path());
+        return new ProjectDraft(copy);
     }
 
     public JsonObject toJson() {
