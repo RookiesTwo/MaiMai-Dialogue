@@ -1,11 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Prepare Editor Client" type="GradleRunConfiguration" factoryName="Gradle">
+  <configuration default="false" name="Prepare Client" type="GradleRunConfiguration" factoryName="Gradle">
     <ExternalSystemSettings>
       <option name="externalProjectPath" value="$PROJECT_DIR$" />
       <option name="externalSystemIdString" value="GRADLE" />
       <option name="taskNames">
         <list>
-          <option value=":editor:prepareClientRun" />
+          <option value=":prepareClientRun" />
         </list>
       </option>
     </ExternalSystemSettings>

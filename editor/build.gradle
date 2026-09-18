@@ -25,23 +25,10 @@ repositories {
 neoForge {
     version = project.neo_version
 
-    // 开发客户端同时加载两个 MOD，各自保留独立的 source set 和资源。
+    // 编辑器保留独立 MOD 定义，开发启动统一由根项目 Client 管理。
     mods {
-        "${rootProject.mod_id}" {
-            sourceSet(rootProject.sourceSets.main)
-        }
         "${mod_id}" {
             sourceSet(sourceSets.main)
-        }
-    }
-
-    runs {
-        client {
-            client()
-            ideName = 'Editor Client'
-            gameDirectory = project.file('run')
-            systemProperty 'forge.logging.markers', 'REGISTRIES'
-            logLevel = org.slf4j.event.Level.DEBUG
         }
     }
 }

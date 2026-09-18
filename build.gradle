@@ -193,3 +193,24 @@ idea {
         downloadJavadoc = true
     }
 }
+
+// 只在开发 Client 中加载编辑器，不把它变成主 MOD 的编译或发布依赖。
+evaluationDependsOn(':editor')
+def editorProject = project(':editor')
+def mainMod = neoForge.mods.getByName(mod_id)
+def editorMod = neoForge.mods.create(editorProject.mod_id) {
+    sourceSet(editorProject.sourceSets.main)
+}
+neoForge.runs.configureEach {
+    loadedMods = [mainMod]
+}
+neoForge.unitTest.loadedMods = [mainMod]
+
+// IDEA 的 Client 仍使用主模块；准备任务保证编辑器的 classes/resources 也已更新。
+def prepareClient = tasks.named('prepareClientRun') {
+    dependsOn(tasks.named('classes'), editorProject.tasks.named('classes'))
+}
+neoForge.runs.named('client') {
+    loadedMods = [mainMod, editorMod]
+    taskBefore(prepareClient)
+}
