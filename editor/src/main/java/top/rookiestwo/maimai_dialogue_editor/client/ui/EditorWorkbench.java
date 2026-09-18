@@ -7,11 +7,14 @@ import icyllis.modernui.view.ViewTreeObserver;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
+import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 
 final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplitter.DragListener {
     private final EditorLayoutState state;
     private final EditorToolbar toolbar;
     private final TextView status;
+    private final TextView projectLabel;
+    private final ProjectWorkspace workspace;
     private final EditorPanel resources;
     private final EditorPanel properties;
     private final EditorPanel steps;
@@ -29,9 +32,10 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     private final ViewTreeObserver.OnGlobalLayoutListener tooltipLayoutListener =
             () -> EditorWidgets.styleTooltips(this);
 
-    EditorWorkbench(Context context, EditorLayoutState state, Runnable closeAction) {
+    EditorWorkbench(Context context, EditorLayoutState state, ProjectWorkspace workspace, Runnable closeAction) {
         super(context);
         this.state = state;
+        this.workspace = workspace;
         setBackground(EditorWidgets.shape(EditorWidgets.BACKGROUND, 0));
         setFocusable(true);
         setFocusableInTouchMode(true);
@@ -40,8 +44,9 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             cancelDrags();
             state.reset();
             requestLayout();
-        });
-        resources = new EditorPanel(context, "resources", EditorWidgets.resourceList(context), () -> {
+        }, workspace);
+        projectLabel = EditorWidgets.label(context, "no_project", 13, EditorWidgets.ACCENT);
+        resources = new EditorPanel(context, "resources", EditorWidgets.resourceList(context, projectLabel), () -> {
             cancelDrags();
             state.leftCollapsed = true;
             requestLayout();
@@ -76,6 +81,25 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
                 leftRail, rightRail, leftSplitter, rightSplitter, stepsSplitter, actionsSplitter, status}) {
             addView(view);
         }
+        refreshProject();
+    }
+
+    void refreshProject() {
+        toolbar.refresh(workspace);
+        String name = workspace.draft() == null ? EditorWidgets.tr("no_project")
+                : workspace.draft().name().isBlank() ? EditorWidgets.tr("project.untitled") : workspace.draft().name();
+        String label = name + (workspace.dirty() ? " *" : "");
+        projectLabel.setText(label);
+        String message = workspace.errorReason() == null ? EditorWidgets.tr(workspace.message())
+                : EditorWidgets.tr("project.error." + workspace.errorReason()) + " " + workspace.errorDetail();
+        String saveState = workspace.draft() == null ? "" : " · "
+                + EditorWidgets.tr(workspace.dirty() ? "project.unsaved" : "project.saved_state");
+        status.setText(label + saveState + " · " + message);
+        status.setTooltipText(status.getText());
+    }
+
+    View projectMenuAnchor() {
+        return toolbar.projectMenuAnchor();
     }
 
     @Override

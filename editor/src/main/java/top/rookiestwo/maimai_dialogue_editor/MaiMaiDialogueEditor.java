@@ -19,6 +19,7 @@ public final class MaiMaiDialogueEditor {
         modContainer.registerExtensionPoint(IConfigScreenFactory.class,
                 (minecraft, parent) -> EditorScreens.create(parent));
         NeoForge.EVENT_BUS.addListener(EditorScreens::registerCommands);
+        NeoForge.EVENT_BUS.addListener(EditorScreens::clientTick);
         LOGGER.info("MaiMai Dialogue Editor workbench registered.");
     }
 }

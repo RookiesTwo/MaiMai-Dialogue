@@ -3,12 +3,17 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.MeasureSpec;
+import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.HorizontalScrollView;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
+import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+
+import java.util.HashMap;
+import java.util.Map;
 
 // 关闭与恢复按钮固定在两端，业务占位按钮在窄窗口中可以横向滚动。
 final class EditorToolbar extends FrameLayout {
@@ -17,8 +22,9 @@ final class EditorToolbar extends FrameLayout {
     private final HorizontalScrollView scroll;
     private int closeWidth;
     private int resetWidth;
+    private final Map<String, Button> businessButtons = new HashMap<>();
 
-    EditorToolbar(Context context, Runnable closeAction, Runnable resetAction) {
+    EditorToolbar(Context context, Runnable closeAction, Runnable resetAction, ProjectWorkspace workspace) {
         super(context);
         setBackground(EditorWidgets.shape(EditorWidgets.HEADER, 0));
         close = EditorWidgets.icon(context, "×", "close", closeAction);
@@ -32,7 +38,15 @@ final class EditorToolbar extends FrameLayout {
         items.addView(title, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
         for (String key : new String[]{"project", "save", "undo", "redo", "preview", "export"}) {
-            Button button = EditorWidgets.button(context, key, null);
+            Runnable action = switch (key) {
+                case "project" -> workspace::showMenu;
+                case "save" -> workspace::save;
+                case "undo" -> workspace::undo;
+                case "redo" -> workspace::redo;
+                default -> null;
+            };
+            Button button = EditorWidgets.button(context, key, action);
+            businessButtons.put(key, button);
             items.addView(button);
             EditorWidgets.bindMetrics(button, () -> {
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
@@ -48,6 +62,19 @@ final class EditorToolbar extends FrameLayout {
         addView(scroll);
         addView(close);
         addView(reset);
+        refresh(workspace);
+    }
+
+    void refresh(ProjectWorkspace workspace) {
+        EditorWidgets.enabled(businessButtons.get("project"), !workspace.busy());
+        EditorWidgets.enabled(businessButtons.get("save"), !workspace.busy() && workspace.dirty());
+        EditorWidgets.enabled(businessButtons.get("undo"), workspace.canUndo());
+        EditorWidgets.enabled(businessButtons.get("redo"), workspace.canRedo());
+        EditorWidgets.enabled(close, !workspace.busy());
+    }
+
+    View projectMenuAnchor() {
+        return businessButtons.get("project");
     }
 
     @Override

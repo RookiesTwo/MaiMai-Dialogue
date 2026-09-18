@@ -34,9 +34,9 @@ MOD 下载：**https://github.com/RookiesTwo/MaiMai-Dialogue/releases**
 
 ## 开发与附属编辑器
 
-根项目继续构建主 MOD；`editor/` 为独立的客户端编辑器附属 MOD，目前提供可调整分区的工作台，分区内部功能尚未接入。
+根项目继续构建主 MOD；`editor/` 为独立的客户端编辑器附属 MOD，目前提供可调整分区的工作台和本地项目管理，内容编辑、预览和导出分阶段实现。
 
-在 IDEA 重新加载 Gradle 后，可通过 `Build Main`、`Build Editor`、`Build All` 分别构建；开发启动统一使用 `Client`，同时加载主 MOD 和编辑器。具体任务、产物和依赖边界见 [编辑器构建说明](editor/README.md)。
+在 IDEA 重新加载 Gradle 后，可通过 `Build Main`、`Build Editor`、`Build All` 分别构建；开发启动统一使用 `Client`，同时加载主 MOD 和编辑器。主 MOD 与编辑器分别生成独立 JAR，服务器与普通玩家无需安装编辑器。
 
 ## License
 

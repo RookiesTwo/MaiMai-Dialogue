@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.commands.Commands;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import org.jetbrains.annotations.Nullable;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.EditorFragment;
 
@@ -24,6 +25,14 @@ public final class EditorScreens {
                     openAfterChat();
                     return 1;
                 }));
+    }
+
+    // ModernUI 的 View 焦点回调不等同于 Minecraft 窗口焦点，显式同步当前编辑器。
+    public static void clientTick(ClientTickEvent.Pre event) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof MuiScreen screen && screen.getFragment() instanceof EditorFragment editor) {
+            editor.updateWindowFocus(minecraft.isWindowActive());
+        }
     }
 
     // tell 始终排队，避免新界面被同一次输入里的聊天关闭操作清掉。
@@ -44,7 +53,7 @@ public final class EditorScreens {
         Minecraft minecraft = Minecraft.getInstance();
         minecraft.execute(() -> {
             if (minecraft.screen instanceof MuiScreen screen && screen.getFragment() == owner) {
-                minecraft.screen.onClose();
+                minecraft.setScreen(screen.getPreviousScreen());
             }
         });
     }

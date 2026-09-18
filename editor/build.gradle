@@ -38,6 +38,17 @@ apply from: rootProject.file('gradle/modernui.gradle')
 dependencies {
     // 只建立编译／运行依赖，不将主 MOD 嵌入编辑器 JAR。
     implementation project(':')
+    // Pure project storage/history tests; no UI/layout tests or Minecraft test bootstrap.
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    // Same Gson version as Minecraft 1.21.1, exposed explicitly to the plain JVM tests.
+    testImplementation 'com.google.code.gson:gson:2.10.1'
+    // Namespace suggestions reuse ICU already shipped by Minecraft 1.21.1.
+    testImplementation 'com.ibm.icu:icu4j:73.2'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
 }
 
 // 编辑器元数据独立生成；当前预览接口尚未稳定，运行时精确匹配主 MOD 版本。

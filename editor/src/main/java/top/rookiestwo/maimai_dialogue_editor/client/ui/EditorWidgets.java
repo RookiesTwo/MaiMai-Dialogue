@@ -10,10 +10,15 @@ import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
 import icyllis.modernui.widget.Button;
+import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.ScrollView;
 import icyllis.modernui.widget.TextView;
 import net.minecraft.client.resources.language.I18n;
+import icyllis.modernui.text.Editable;
+import icyllis.modernui.text.TextWatcher;
+
+import java.util.function.Consumer;
 
 final class EditorWidgets {
     // 白色内容区、浅灰框架和亮蓝交互反馈；文字使用深灰以保持可读性。
@@ -96,15 +101,18 @@ final class EditorWidgets {
         return button;
     }
 
-    static ScrollView resourceList(Context context) {
+    static ScrollView resourceList(Context context, TextView projectLabel) {
         LinearLayout items = new LinearLayout(context);
         items.setOrientation(LinearLayout.VERTICAL);
         bindMetrics(items, () -> items.setPadding(items.dp(12), items.dp(8), items.dp(12), items.dp(8)));
-        String[] keys = {"no_project", "resource.dialogue", "resource.speaker", "resource.presentation",
+        items.addView(projectLabel);
+        bindMetrics(projectLabel, () -> projectLabel.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, projectLabel.dp(32))));
+        String[] keys = {"resource.dialogue", "resource.speaker", "resource.presentation",
                 "resource.scene", "resource.visual_asset", "resource.action", "resource.theme",
                 "resource.image", "resource.sound"};
         for (int index = 0; index < keys.length; index++) {
-            TextView item = label(context, keys[index], 13, index == 0 ? MUTED : TEXT);
+            TextView item = label(context, keys[index], 13, TEXT);
             items.addView(item);
             bindMetrics(item, () -> item.setLayoutParams(new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, item.dp(28))));
@@ -114,6 +122,68 @@ final class EditorWidgets {
         scroll.setVerticalScrollbarThumbDrawable(shape(SCROLLBAR_THUMB, 0));
         scroll.setVerticalScrollbarTrackDrawable(shape(HEADER, 0));
         scroll.addView(items, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return scroll;
+    }
+
+    static void enabled(Button button, boolean enabled) {
+        button.setEnabled(enabled);
+        button.setTextColor(enabled ? TEXT : DISABLED_TEXT);
+    }
+
+    static EditText input(Context context, String value, Consumer<String> changed, Runnable endEdit) {
+        EditText input = new EditText(context);
+        input.setSingleLine(true);
+        input.setTextColor(TEXT);
+        input.setText(value);
+        bindMetrics(input, () -> {
+            input.setTextSize(14);
+            input.setPadding(input.dp(8), input.dp(6), input.dp(8), input.dp(6));
+            input.setBackground(shape(PANEL, input.dp(1)));
+            input.setMinimumHeight(input.dp(34));
+        });
+        input.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence text, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence text, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable text) {
+                changed.accept(text.toString());
+            }
+        });
+        input.setOnFocusChangeListener((view, focused) -> {
+            if (!focused) endEdit.run();
+        });
+        return input;
+    }
+
+    static void formLabel(LinearLayout container, String key) {
+        TextView label = label(container.getContext(), key, 13, MUTED);
+        container.addView(label);
+        bindMetrics(label, () -> {
+            label.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, label.dp(30)));
+        });
+    }
+
+    static TextView paragraph(Context context, String key) {
+        TextView text = label(context, key, 13, MUTED);
+        text.setSingleLine(false);
+        text.setEllipsize(null);
+        bindMetrics(text, () -> text.setPadding(0, text.dp(6), 0, text.dp(6)));
+        return text;
+    }
+
+    static ScrollView formScroll(Context context, View content) {
+        ScrollView scroll = new ScrollView(context);
+        scroll.setVerticalScrollbarThumbDrawable(shape(SCROLLBAR_THUMB, 0));
+        scroll.setVerticalScrollbarTrackDrawable(shape(HEADER, 0));
+        scroll.addView(content, new ScrollView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         return scroll;
     }

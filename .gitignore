@@ -30,6 +30,10 @@ run
 # Local project notes
 /.project-notes/
 
+# Local editor documentation
+/editor/README.md
+/editor/IMPLEMENTATION_PLAN.md
+
 # Node.js and VitePress
 /node_modules/
 /docs/.vitepress/cache/
