@@ -22,12 +22,14 @@ public final class ResourceWorkspace {
     private ResourceTree.Node selection = ResourceTree.Node.project();
     private ResourceKey opened;
     private final Set<ResourceTree.Node> collapsed = new HashSet<>();
+    private final Set<ResourceKey> expandedDialogues = new HashSet<>();
     private String query = "";
     private Form form = Form.NONE;
     private ResourceKind formKind = ResourceKind.DIALOGUE;
     private String formPath = "";
     private ResourceKey source;
     private String error;
+    private long revealRevision;
 
     public ResourceWorkspace(Supplier<ProjectDraft> current, Consumer<ProjectDraft> edit,
                              BooleanSupplier enabled, Runnable changed) {
@@ -46,8 +48,9 @@ public final class ResourceWorkspace {
     public String formPath() { return formPath; }
     public String error() { return error; }
     public ResourceKey source() { return source; }
+    public long revealRevision() { return revealRevision; }
     public boolean active() { return current.get() != null && enabled.getAsBoolean(); }
-    public List<ResourceTree.Row> rows() { return ResourceTree.rows(catalog(), query, collapsed); }
+    public List<ResourceTree.Row> rows() { return ResourceTree.rows(catalog(), query, collapsed, expandedDialogues); }
     public List<ResourceCatalog.Use> blockers() {
         return source == null ? List.of() : catalog().deletionBlockers(source);
     }
@@ -58,10 +61,12 @@ public final class ResourceWorkspace {
         selection = ResourceTree.Node.project();
         opened = null;
         collapsed.clear();
+        expandedDialogues.clear();
         query = "";
         form = Form.NONE;
         source = null;
         error = null;
+        revealRevision++;
     }
 
     private void synchronize() {
@@ -70,7 +75,7 @@ public final class ResourceWorkspace {
         indexed = draft;
         catalog = new ResourceCatalog(draft);
         if (opened != null && !catalog.contains(opened)) opened = null;
-        ResourceKey selected = selection.resource();
+        ResourceKey selected = selection.owner();
         if (selected != null && !catalog.contains(selected)) selection = ResourceTree.Node.category(selected.kind());
         if (selection.type() == ResourceTree.Type.FOLDER && catalog.keys().stream().noneMatch(key ->
                 key.kind() == selection.kind() && key.path().startsWith(selection.path() + "/"))) {
@@ -82,12 +87,26 @@ public final class ResourceWorkspace {
         if (!active() || form != Form.NONE) return;
         if (!rows().stream().anyMatch(row -> row.node().equals(node))) return;
         selection = node;
+        if (node.isStep()) {
+            opened = node.owner();
+            revealRevision++;
+        } else if (node.resource() != null && node.kind().available()) {
+            opened = node.resource();
+            if (node.kind() == ResourceKind.DIALOGUE) expandedDialogues.add(opened);
+            revealRevision++;
+        }
         changed.run();
     }
 
     public void toggle(ResourceTree.Node node) {
-        if (!active() || form != Form.NONE || node.type() == ResourceTree.Type.RESOURCE || !query.isBlank()) return;
-        if (!collapsed.remove(node)) collapsed.add(node);
+        if (!active() || form != Form.NONE || node.isStep()) return;
+        if (node.type() == ResourceTree.Type.RESOURCE) {
+            if (node.kind() != ResourceKind.DIALOGUE || !catalog().contains(node.resource())) return;
+            if (!expandedDialogues.remove(node.resource())) expandedDialogues.add(node.resource());
+        } else {
+            if (!query.isBlank()) return;
+            if (!collapsed.remove(node)) collapsed.add(node);
+        }
         changed.run();
     }
 
@@ -111,7 +130,8 @@ public final class ResourceWorkspace {
     }
 
     public boolean canCreate() {
-        return active() && form == Form.NONE && (selection().kind() == null || selection.kind().available());
+        return active() && form == Form.NONE && !selection().isStep()
+                && (selection.kind() == null || selection.kind().available());
     }
 
     public boolean canModifySelected() {
@@ -197,11 +217,30 @@ public final class ResourceWorkspace {
     private void fail(String reason) { error = reason; changed.run(); }
 
     private void reveal(ResourceKey key) {
+        revealRevision++;
         query = "";
         collapsed.remove(ResourceTree.Node.project());
         collapsed.remove(ResourceTree.Node.category(key.kind()));
         collapsed.removeIf(node -> node.type() == ResourceTree.Type.FOLDER && node.kind() == key.kind()
                 && key.path().startsWith(node.path() + "/"));
         selection = ResourceTree.Node.resource(key);
+        if (key.kind() == ResourceKind.DIALOGUE) expandedDialogues.add(key);
+    }
+
+    /** Content edits publish one notification after updating both document cursor and browser selection. */
+    public void focusStep(ResourceKey key, int index, boolean reveal) {
+        if (key.kind() != ResourceKind.DIALOGUE || !catalog().contains(key)) return;
+        if (index < -1 || index >= catalog.stepCount(key)) return;
+        ResourceTree.Node target = ResourceTree.Node.step(key, index);
+        if (reveal || !target.equals(selection)) reveal(key);
+        opened = key;
+        selection = target;
+    }
+
+    /** A changed history cursor reveals its new node; ordinary field edits leave navigation alone. */
+    public void reconcileStep(ResourceKey key, int index) {
+        if (selection.isStep() && key.equals(selection.owner()) && selection.stepIndex() != index) {
+            focusStep(key, index, true);
+        }
     }
 }

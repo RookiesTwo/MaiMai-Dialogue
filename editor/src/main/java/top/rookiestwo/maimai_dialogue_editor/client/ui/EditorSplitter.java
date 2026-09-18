@@ -10,7 +10,7 @@ import icyllis.modernui.view.View;
 import org.jetbrains.annotations.Nullable;
 
 final class EditorSplitter extends View {
-    enum Axis { LEFT, RIGHT, STEPS, ACTIONS }
+    enum Axis { LEFT, RIGHT, ACTIONS }
 
     interface DragListener {
         void begin(Axis axis);

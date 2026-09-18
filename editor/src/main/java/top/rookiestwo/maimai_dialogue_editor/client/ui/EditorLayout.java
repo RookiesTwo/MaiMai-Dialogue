@@ -4,7 +4,7 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 record EditorLayout(
         int width, int height, int toolbar, int status,
         int left, int center, int right, int horizontalGap,
-        int steps, int preview, int actions, int verticalGap,
+        int document, int preview, int actions, int verticalGap,
         boolean leftCollapsed, boolean rightCollapsed
 ) {
     static final int HEADER_DP = 28;
@@ -52,15 +52,15 @@ record EditorLayout(
         }
 
         int workHeight = height - toolbar - status;
-        int verticalGap = Math.min(px(6, density), workHeight / 4);
-        int rowSpace = workHeight - verticalGap * 2;
-        int header = Math.min(px(HEADER_DP, density), rowSpace / 3);
-        int previewMin = Math.min(px(PREVIEW_MIN_DP, density), rowSpace - header * 2);
-        int[] rows = fitPair(px(state.stepsDp, density), px(state.actionsDp, density),
-                header, header, rowSpace - previewMin);
+        int document = Math.min(px(28, density), workHeight / 3);
+        int verticalGap = Math.min(px(6, density), (workHeight - document) / 3);
+        int rowSpace = workHeight - document - verticalGap;
+        int header = Math.min(px(HEADER_DP, density), rowSpace / 2);
+        int previewMin = Math.min(px(PREVIEW_MIN_DP, density), rowSpace - header);
+        int actions = Math.clamp(px(state.actionsDp, density), header, rowSpace - previewMin);
         return new EditorLayout(width, height, toolbar, status,
                 left, columnSpace - left - right, right, horizontalGap,
-                rows[0], rowSpace - rows[0] - rows[1], rows[1], verticalGap,
+                document, rowSpace - actions, actions, verticalGap,
                 leftCollapsed, rightCollapsed);
     }
 
@@ -90,7 +90,7 @@ record EditorLayout(
     }
 
     int previewY() {
-        return toolbar + steps + verticalGap;
+        return toolbar + document;
     }
 
     int actionsY() {

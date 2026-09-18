@@ -8,17 +8,20 @@ import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.ScrollView;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
-import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceCatalog;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.nio.file.Path;
 
 /** Search and tree bindings. Resource data and navigation survive outside this View. */
 final class ResourceBrowserView extends LinearLayout {
-    private record Controls(ResourceTree.Row row, Button label, Button toggle) {}
+    private static final int INDENT_DP = 12;
+    private static final int TOGGLE_WIDTH_DP = 22;
+    private record Controls(ResourceTree.Row row, LinearLayout line, Button label, Button toggle) {}
     private final ProjectWorkspace workspace;
     private final ResourceWorkspace resources;
     private final EditText search;
@@ -32,8 +35,11 @@ final class ResourceBrowserView extends LinearLayout {
     private List<ResourceTree.Row> displayed = List.of();
     private ResourceCatalog displayedCatalog;
     private boolean refreshing;
-    private ResourceKey lastClick;
-    private long lastClickNanos;
+    private ResourceTree.Node lastSelection;
+    private ResourceTree.Node revealAfterLayout;
+    private Path displayedDirectory;
+    private int restoreOffset = -1;
+    private long displayedRevealRevision = -1;
 
     ResourceBrowserView(Context context, ProjectWorkspace workspace) {
         super(context);
@@ -46,9 +52,18 @@ final class ResourceBrowserView extends LinearLayout {
         search.setHint(EditorWidgets.tr("browser.search"));
         addView(search, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         LinearLayout actions = new LinearLayout(context);
-        create = EditorWidgets.button(context, "browser.new", resources::beginCreate);
-        copy = EditorWidgets.button(context, "browser.copy", resources::beginCopy);
-        delete = EditorWidgets.button(context, "browser.delete", resources::beginDelete);
+        create = EditorWidgets.button(context, "browser.new", () -> {
+            if (resources.selection().isStep()) workspace.content().addStep();
+            else resources.beginCreate();
+        });
+        copy = EditorWidgets.button(context, "browser.copy", () -> {
+            if (resources.selection().isStep()) workspace.content().copyStep();
+            else resources.beginCopy();
+        });
+        delete = EditorWidgets.button(context, "browser.delete", () -> {
+            if (resources.selection().isStep()) workspace.content().deleteStep();
+            else resources.beginDelete();
+        });
         for (Button button : new Button[]{create, copy, delete}) {
             actions.addView(button);
             EditorWidgets.bindMetrics(button, () -> button.setLayoutParams(new LayoutParams(0, dp(30), 1)));
@@ -57,6 +72,7 @@ final class ResourceBrowserView extends LinearLayout {
         rows = new LinearLayout(context);
         rows.setOrientation(VERTICAL);
         scroll = EditorWidgets.formScroll(context, rows);
+        scroll.setVerticalScrollBarEnabled(true);
         addView(scroll, new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1));
         empty = EditorWidgets.paragraph(context, "browser.no_results");
         addView(empty);
@@ -64,6 +80,9 @@ final class ResourceBrowserView extends LinearLayout {
     }
 
     void refresh() {
+        workspace.content().snapshot();
+        ResourceTree.Node selection = resources.selection();
+        boolean step = selection.isStep();
         refreshing = true;
         try {
             if (!search.getText().toString().equals(resources.query())) search.setText(resources.query());
@@ -71,19 +90,28 @@ final class ResourceBrowserView extends LinearLayout {
         } finally {
             refreshing = false;
         }
-        EditorWidgets.enabled(create, resources.canCreate());
-        EditorWidgets.enabled(copy, resources.canModifySelected());
-        EditorWidgets.enabled(delete, resources.canModifySelected());
+        create.setText(EditorWidgets.tr(step ? "edit.add_step" : "browser.new"));
+        create.setTooltipText(EditorWidgets.tr(step ? "edit.add_step" : "browser.create_title"));
+        copy.setTooltipText(EditorWidgets.tr(step ? "edit.copy_step" : "browser.copy_title"));
+        delete.setTooltipText(EditorWidgets.tr(step ? "edit.delete_step" : "browser.delete_title"));
+        EditorWidgets.enabled(create, step ? workspace.content().canAddStep() : resources.canCreate());
+        EditorWidgets.enabled(copy, step ? workspace.content().canModifyStep() : resources.canModifySelected());
+        EditorWidgets.enabled(delete, step ? workspace.content().canModifyStep() : resources.canModifySelected());
         List<ResourceTree.Row> visible = workspace.draft() == null ? List.of() : resources.rows();
         if (!displayed.equals(visible) || displayedCatalog != resources.catalog()) {
             displayed = visible;
             displayedCatalog = resources.catalog();
-            int offset = scroll.getScrollY();
+            restoreOffset = Objects.equals(displayedDirectory, workspace.directory()) ? scroll.getScrollY() : 0;
+            displayedDirectory = workspace.directory();
             rows.removeAllViews();
             controls.clear();
             for (ResourceTree.Row row : visible) addRow(row);
-            scroll.post(() -> { if (scroll.isAttachedToWindow()) scroll.scrollTo(0, offset); });
         }
+        if (!Objects.equals(lastSelection, selection) || displayedRevealRevision != resources.revealRevision()) {
+            revealAfterLayout = selection;
+        }
+        displayedRevealRevision = resources.revealRevision();
+        lastSelection = selection;
         for (Controls control : controls) {
             ResourceTree.Node node = control.row().node();
             String text = switch (node.type()) {
@@ -91,18 +119,26 @@ final class ResourceBrowserView extends LinearLayout {
                         ? EditorWidgets.tr("project.untitled") : workspace.draft().name();
                 case CATEGORY -> EditorWidgets.tr("resource." + node.kind().key());
                 case FOLDER, RESOURCE -> node.name();
+                case STEP, END -> {
+                    String body = resources.catalog().stepText(node.owner(), node.stepIndex());
+                    String number = node.type() == ResourceTree.Type.END ? "End" : Integer.toString(node.stepIndex() + 1);
+                    yield number + "  " + (body.isBlank() ? EditorWidgets.tr("edit.text.absent") : body);
+                }
             };
             if (node.type() == ResourceTree.Type.PROJECT && workspace.dirty()) text += " *";
             if (node.resource() != null && node.resource().equals(resources.opened())) text += " •";
-            control.label().setText(text);
+            control.label().setText(text.replace('\n', ' ').replace('\r', ' '));
             control.label().setSelected(node.equals(resources.selection()));
             EditorWidgets.enabled(control.label(), resources.active());
             if (node.kind() != null && !node.kind().available()) control.label().setTextColor(EditorWidgets.MUTED);
-            control.label().setTooltipText(node.resource() == null ? text : node.resource().id(workspace.draft().namespace()));
-            if (control.toggle() != null) EditorWidgets.enabled(control.toggle(), resources.active() && resources.query().isBlank());
+            control.label().setTooltipText(node.isStep() ? node.owner().id(workspace.draft().namespace()) + "\n" + text
+                    : node.resource() == null ? text : node.resource().id(workspace.draft().namespace()));
+            if (control.toggle() != null) EditorWidgets.enabled(control.toggle(), resources.active()
+                    && (resources.query().isBlank() || node.type() == ResourceTree.Type.RESOURCE));
         }
         empty.setText(EditorWidgets.tr(workspace.draft() == null ? "no_project" : "browser.no_results"));
         empty.setVisibility(workspace.draft() == null || (!resources.query().isBlank() && visible.size() == 1) ? VISIBLE : GONE);
+        if (revealAfterLayout != null) requestLayout();
     }
 
     private void addRow(ResourceTree.Row row) {
@@ -110,23 +146,24 @@ final class ResourceBrowserView extends LinearLayout {
         line.setGravity(Gravity.CENTER_VERTICAL);
         rows.addView(line);
         EditorWidgets.bindMetrics(line, () -> {
-            line.setPadding(dp(Math.min(row.depth(), 6) * 12), 0, dp(4), 0);
-            line.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(30)));
+            int indent = Math.min(row.depth(), 6) * INDENT_DP + (row.branch() ? 0 : TOGGLE_WIDTH_DP);
+            line.setPadding(dp(indent), 0, dp(4), 0);
+            line.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP)));
         });
         Button toggle = null;
         if (row.branch()) {
-            toggle = EditorWidgets.icon(getContext(), row.expanded() ? "▾" : "▸", "browser.toggle", () -> {
-                lastClick = null;
-                resources.toggle(row.node());
-            });
+            toggle = EditorWidgets.icon(getContext(), row.expanded() ? "▾" : "▸", "browser.toggle",
+                    () -> resources.toggle(row.node()));
             line.addView(toggle);
             Button arrow = toggle;
-            EditorWidgets.bindMetrics(arrow, () -> arrow.setLayoutParams(new LayoutParams(dp(22), LayoutParams.MATCH_PARENT)));
+            EditorWidgets.bindMetrics(arrow, () -> arrow.setLayoutParams(new LayoutParams(dp(TOGGLE_WIDTH_DP), LayoutParams.MATCH_PARENT)));
         }
-        Button label = EditorWidgets.button(getContext(), "", () -> click(row.node()));
+        Button label = EditorWidgets.button(getContext(), "", () -> resources.select(row.node()));
         label.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        EditorWidgets.bindMetrics(label, () -> label.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP),
+                0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0));
         line.addView(label, new LayoutParams(0, LayoutParams.MATCH_PARENT, 1));
-        controls.add(new Controls(row, label, toggle));
+        controls.add(new Controls(row, line, label, toggle));
         if (row.node().type() == ResourceTree.Type.CATEGORY && row.expanded()
                 && resources.catalog().keys().stream().noneMatch(key -> key.kind() == row.node().kind())) {
             boolean validGroup = workspace.draft().hasResourceGroup(row.node().kind());
@@ -134,25 +171,35 @@ final class ResourceBrowserView extends LinearLayout {
                     : row.node().kind().available() ? "browser.empty" : "unavailable", 12, EditorWidgets.MUTED);
             rows.addView(hint);
             EditorWidgets.bindMetrics(hint, () -> {
-                hint.setPadding(dp(36), 0, dp(6), 0);
-                hint.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(26)));
+                int indent = Math.min(row.depth() + 1, 6) * INDENT_DP + TOGGLE_WIDTH_DP + EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP;
+                hint.setPadding(dp(indent), 0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
+                hint.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP)));
             });
         }
     }
 
-    private void click(ResourceTree.Node node) {
-        long now = System.nanoTime();
-        ResourceKey key = node.resource();
-        boolean doubleClick = key != null && key.equals(lastClick) && now - lastClickNanos < 350_000_000L;
-        lastClick = doubleClick ? null : key;
-        lastClickNanos = now;
-        resources.select(node);
-        if (doubleClick) resources.open(key);
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        if (restoreOffset >= 0) {
+            scroll.scrollTo(0, restoreOffset);
+            restoreOffset = -1;
+        }
+        ResourceTree.Node target = revealAfterLayout;
+        revealAfterLayout = null;
+        if (target != null) post(() -> {
+            if (!isAttachedToWindow() || !target.equals(resources.selection())) return;
+            for (Controls control : controls) {
+                if (!control.row().node().equals(target)) continue;
+                int start = control.line().getTop();
+                int end = control.line().getBottom();
+                int visibleTop = scroll.getScrollY();
+                int visibleBottom = visibleTop + scroll.getHeight();
+                if (start < visibleTop) scroll.scrollTo(0, start);
+                else if (end > visibleBottom) scroll.scrollTo(0, Math.max(0, end - scroll.getHeight()));
+                break;
+            }
+        });
     }
 
-    @Override
-    public void onWindowFocusChanged(boolean hasWindowFocus) {
-        super.onWindowFocusChanged(hasWindowFocus);
-        if (!hasWindowFocus) lastClick = null;
-    }
 }

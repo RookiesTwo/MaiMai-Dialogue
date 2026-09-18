@@ -13,6 +13,7 @@ final class EditorDropdownMenu extends FrameLayout {
     private final ScrollView scroll;
     private final View anchor;
     private final Runnable onDismiss;
+    private final boolean matchAnchorWidth;
     private final Rect panelBounds = new Rect();
     private final int[] anchorLocation = new int[2];
     private final int[] ownLocation = new int[2];
@@ -20,9 +21,18 @@ final class EditorDropdownMenu extends FrameLayout {
     private boolean dismissQueued;
 
     EditorDropdownMenu(View content, View anchor, Runnable onDismiss) {
+        this(content, anchor, onDismiss, false);
+    }
+
+    static EditorDropdownMenu forField(View content, View anchor, Runnable onDismiss) {
+        return new EditorDropdownMenu(content, anchor, onDismiss, true);
+    }
+
+    private EditorDropdownMenu(View content, View anchor, Runnable onDismiss, boolean matchAnchorWidth) {
         super(content.getContext());
         this.anchor = anchor;
         this.onDismiss = onDismiss;
+        this.matchAnchorWidth = matchAnchorWidth;
         setClickable(true);
         setFocusable(true);
         setFocusableInTouchMode(true);
@@ -43,11 +53,14 @@ final class EditorDropdownMenu extends FrameLayout {
     private void measurePanel(int width, int height) {
         anchor.getLocationInWindow(anchorLocation);
         getLocationInWindow(ownLocation);
-        int panelWidth = Math.min(dp(380), width);
+        int panelWidth = Math.min(matchAnchorWidth ? anchor.getWidth() : dp(380), width);
         int left = Math.clamp(anchorLocation[0] - ownLocation[0], 0, width - panelWidth);
-        int top = Math.clamp(anchorLocation[1] - ownLocation[1] + anchor.getHeight(), 0, height);
+        int anchorTop = Math.clamp(anchorLocation[1] - ownLocation[1], 0, height);
+        int top = Math.clamp(anchorTop + anchor.getHeight(), 0, height);
+        boolean above = height - top < dp(180) && anchorTop > height - top;
         scroll.measure(MeasureSpec.makeMeasureSpec(panelWidth, MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(height - top, MeasureSpec.AT_MOST));
+                MeasureSpec.makeMeasureSpec(above ? anchorTop : height - top, MeasureSpec.AT_MOST));
+        if (above) top = anchorTop - scroll.getMeasuredHeight();
         panelBounds.set(left, top, left + panelWidth, top + scroll.getMeasuredHeight());
     }
 

@@ -55,7 +55,10 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
         gameWindowFocused = focused;
         Core.getUiHandler().post(() -> {
             if (workspace != null) workspace.windowFocusChanged(focused);
-            if (!focused && root != null) root.cancelDrags();
+            if (!focused && root != null) {
+                root.cancelDrags();
+                root.dismissChoices();
+            }
         });
     }
 

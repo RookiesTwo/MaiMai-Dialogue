@@ -4,7 +4,6 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 final class EditorLayoutState {
     double leftFraction = 0.20;
     double rightFraction = 0.24;
-    double stepsDp = 96;
     double actionsDp = 160;
     boolean leftCollapsed;
     boolean rightCollapsed;
@@ -12,7 +11,6 @@ final class EditorLayoutState {
     void reset() {
         leftFraction = 0.20;
         rightFraction = 0.24;
-        stepsDp = 96;
         actionsDp = 160;
         leftCollapsed = false;
         rightCollapsed = false;

@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
 
 /** Per-open editor state. Mutations and completion callbacks run on the owning UI thread. */
 public final class ProjectWorkspace {
@@ -33,7 +34,9 @@ public final class ProjectWorkspace {
     private boolean suggestNamespace = true;
     private List<ProjectStore.Entry> projects = List.of();
     private final ResourceWorkspace resources = new ResourceWorkspace(this::draft, this::editResources,
-            () -> !busy && !disposed && page == Page.NONE, () -> changed.run());
+            () -> !busy && !disposed && page == Page.NONE, this::resourceNavigationChanged);
+    private final ContentWorkspace content = new ContentWorkspace(this::draft, resources,
+            this::editContent, this::endEdit, () -> changed.run());
 
     public ProjectWorkspace(ProjectStore store, Executor io, Executor ui,
                             Runnable closeEditor) {
@@ -51,6 +54,7 @@ public final class ProjectWorkspace {
     public Path directory() { return directory; }
     public Page page() { return page; }
     public boolean busy() { return busy; }
+    public boolean windowFocused() { return windowFocused; }
     public boolean dirty() { return history != null && history.dirty(); }
     public boolean canUndo() { return !busy && history != null && history.canUndo(); }
     public boolean canRedo() { return !busy && history != null && history.canRedo(); }
@@ -61,10 +65,21 @@ public final class ProjectWorkspace {
     public String formNamespace() { return formNamespace; }
     public List<ProjectStore.Entry> projects() { return projects; }
     public ResourceWorkspace resources() { return resources; }
+    public ContentWorkspace content() { return content; }
+
+    private void resourceNavigationChanged() {
+        endEdit();
+        content.acceptBrowserSelection();
+        changed.run();
+    }
 
     private void editResources(ProjectDraft next) {
+        editContent(next, null);
+    }
+
+    private void editContent(ProjectDraft next, String group) {
         if (history == null || busy || disposed) return;
-        history.edit(next, null);
+        history.edit(next, group);
         clearError();
         message = "project.ready";
     }
@@ -167,6 +182,7 @@ public final class ProjectWorkspace {
             case CLOSE_PROJECT -> {
                 history = null;
                 resources.reset();
+                content.reset();
                 directory = null;
                 fingerprint = null;
                 page = Page.NONE;
@@ -186,6 +202,7 @@ public final class ProjectWorkspace {
         runIo("project.creating", () -> store.allocateDirectory(draft.namespace()), target -> {
             history = new ProjectHistory(draft, false);
             resources.reset();
+            content.reset();
             directory = target;
             fingerprint = null;
             page = Page.NONE;
@@ -207,6 +224,7 @@ public final class ProjectWorkspace {
         runIo("project.opening", () -> store.open(target), result -> {
             history = new ProjectHistory(result.draft(), true);
             resources.reset();
+            content.reset();
             directory = target;
             fingerprint = result.fingerprint();
             page = Page.NONE;

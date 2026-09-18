@@ -7,12 +7,18 @@ import java.util.TreeMap;
 
 /** Navigation hierarchy only; does not depend on a View or its dimensions. */
 public final class ResourceTree {
-    public enum Type { PROJECT, CATEGORY, FOLDER, RESOURCE }
-    public record Node(Type type, ResourceKind kind, String path) {
+    public enum Type { PROJECT, CATEGORY, FOLDER, RESOURCE, STEP, END }
+    public record Node(Type type, ResourceKind kind, String path, int stepIndex) {
+        public Node(Type type, ResourceKind kind, String path) { this(type, kind, path, -1); }
         public static Node project() { return new Node(Type.PROJECT, null, ""); }
         public static Node category(ResourceKind kind) { return new Node(Type.CATEGORY, kind, ""); }
         public static Node resource(ResourceKey key) { return new Node(Type.RESOURCE, key.kind(), key.path()); }
+        public static Node step(ResourceKey key, int index) {
+            return new Node(index < 0 ? Type.END : Type.STEP, key.kind(), key.path(), index);
+        }
         public ResourceKey resource() { return type == Type.RESOURCE ? new ResourceKey(kind, path) : null; }
+        public boolean isStep() { return type == Type.STEP || type == Type.END; }
+        public ResourceKey owner() { return isStep() ? new ResourceKey(kind, path) : resource(); }
         public String name() { return path.substring(path.lastIndexOf('/') + 1); }
     }
     public record Row(Node node, int depth, boolean branch, boolean expanded) {}
@@ -20,6 +26,11 @@ public final class ResourceTree {
     private ResourceTree() {}
 
     public static List<Row> rows(ResourceCatalog catalog, String query, Set<Node> collapsed) {
+        return rows(catalog, query, collapsed, Set.of());
+    }
+
+    public static List<Row> rows(ResourceCatalog catalog, String query, Set<Node> collapsed,
+                                 Set<ResourceKey> expandedDialogues) {
         List<Row> rows = new ArrayList<>();
         boolean searching = !query.isBlank();
         Node root = Node.project();
@@ -45,21 +56,32 @@ public final class ResourceTree {
                 }
                 parent.resources.add(resource);
             }
-            append(rows, folder, kind, "", 2, searching, collapsed);
+            append(rows, folder, kind, "", 2, searching, collapsed, catalog, expandedDialogues);
         }
         return List.copyOf(rows);
     }
 
     private static void append(List<Row> rows, Folder parent, ResourceKind kind, String path,
-                               int depth, boolean searching, Set<Node> collapsed) {
+                               int depth, boolean searching, Set<Node> collapsed, ResourceCatalog catalog,
+                               Set<ResourceKey> expandedDialogues) {
         parent.folders.forEach((name, folder) -> {
             String nested = path.isEmpty() ? name : path + "/" + name;
             Node node = new Node(Type.FOLDER, kind, nested);
             boolean expanded = searching || !collapsed.contains(node);
             rows.add(new Row(node, depth, true, expanded));
-            if (expanded) append(rows, folder, kind, nested, depth + 1, searching, collapsed);
+            if (expanded) append(rows, folder, kind, nested, depth + 1, searching, collapsed, catalog, expandedDialogues);
         });
-        for (ResourceKey resource : parent.resources) rows.add(new Row(Node.resource(resource), depth, false, false));
+        for (ResourceKey resource : parent.resources) {
+            boolean dialogue = resource.kind() == ResourceKind.DIALOGUE;
+            boolean expanded = dialogue && expandedDialogues.contains(resource);
+            rows.add(new Row(Node.resource(resource), depth, dialogue, expanded));
+            if (expanded) {
+                for (int index = 0; index < catalog.stepCount(resource); index++) {
+                    rows.add(new Row(Node.step(resource, index), depth + 1, false, false));
+                }
+                rows.add(new Row(Node.step(resource, -1), depth + 1, false, false));
+            }
+        }
     }
 
     private static final class Folder {

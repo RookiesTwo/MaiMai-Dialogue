@@ -3,9 +3,16 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.KeyEvent;
+import icyllis.modernui.view.Gravity;
+import icyllis.modernui.view.View;
+import icyllis.modernui.widget.Button;
+import icyllis.modernui.widget.LinearLayout;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
+
+import java.util.List;
+import java.util.function.Consumer;
 
 /** View binding only. The Fragment owns the document, forms and IO lifecycle. */
 final class EditorWorkspaceView extends ResponsiveFrameLayout {
@@ -17,6 +24,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     private ProjectMenu projectMenu;
     private ResourceWorkspace.Form shownResourceForm = ResourceWorkspace.Form.NONE;
     private ResourceDialog resourceDialog;
+    private EditorDropdownMenu choices;
 
     EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace) {
         super(context);
@@ -24,7 +32,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         setFocusable(true);
         setFocusableInTouchMode(true);
         workbench = new EditorWorkbench(context, layout, workspace,
-                () -> workspace.request(ProjectWorkspace.Action.CLOSE_EDITOR));
+                () -> workspace.request(ProjectWorkspace.Action.CLOSE_EDITOR), this::showChoices);
         addView(workbench, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         refresh();
     }
@@ -32,6 +40,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     void refresh() {
         workbench.refreshProject();
         ProjectWorkspace.Page page = workspace.page();
+        if (page != ProjectWorkspace.Page.NONE || workspace.resources().form() != ResourceWorkspace.Form.NONE) dismissChoices();
         if (shown != page) {
             workbench.cancelDrags();
             if (dialog != null) removeView(dialog);
@@ -70,13 +79,57 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
                 requestFocus();
             }
         }
-        workbench.setDescendantFocusability(page == ProjectWorkspace.Page.NONE && resourceForm == ResourceWorkspace.Form.NONE
+        workbench.setDescendantFocusability(page == ProjectWorkspace.Page.NONE && resourceForm == ResourceWorkspace.Form.NONE && choices == null
                 ? FOCUS_AFTER_DESCENDANTS : FOCUS_BLOCK_DESCENDANTS);
         if (resourceDialog != null) resourceDialog.refresh();
     }
 
     void escape() {
-        workspace.escape();
+        if (choices != null) dismissChoices();
+        else workspace.escape();
+    }
+
+    private void showChoices(View anchor, List<ChoicePresenter.Item> items, String selected, Consumer<String> chosen) {
+        if (!workspace.content().active() || !workspace.windowFocused() || !anchor.isAttachedToWindow()) return;
+        dismissChoices();
+        workspace.endEdit();
+        LinearLayout list = new LinearLayout(getContext());
+        list.setOrientation(LinearLayout.VERTICAL);
+        EditorDropdownMenu menu = EditorDropdownMenu.forField(list, anchor, this::dismissChoices);
+        for (ChoicePresenter.Item item : items) {
+            Button button = EditorWidgets.button(getContext(), "", () -> {
+                if (choices != menu) return;
+                dismissChoices();
+                if (anchor.isAttachedToWindow() && workspace.content().active()) chosen.accept(item.value());
+            });
+            button.setText(item.label());
+            button.setTooltipText(item.label());
+            button.setSelected(item.value().equals(selected));
+            button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            list.addView(button);
+            EditorWidgets.bindMetrics(button, () -> {
+                button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP),
+                        0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
+                button.setLayoutParams(new LinearLayout.LayoutParams(
+                        LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP)));
+            });
+        }
+        if (items.isEmpty()) list.addView(EditorWidgets.paragraph(getContext(), "browser.empty"));
+        choices = menu;
+        workbench.setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
+        addView(menu, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        menu.requestFocus();
+    }
+
+    void dismissChoices() {
+        if (choices == null) return;
+        choices.dispose();
+        removeView(choices);
+        choices = null;
+        if (workspace.page() == ProjectWorkspace.Page.NONE && workspace.resources().form() == ResourceWorkspace.Form.NONE) {
+            workbench.setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
+            requestFocus();
+        }
     }
 
     void cancelDrags() {
@@ -84,6 +137,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     }
 
     void releaseDropdown() {
+        dismissChoices();
         if (dropdown != null) {
             dropdown.dispose();
             removeView(dropdown);
@@ -122,6 +176,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         if (densityChanged && dialog != null) EditorWidgets.refreshMetrics(dialog);
         if (densityChanged && dropdown != null) EditorWidgets.refreshMetrics(dropdown);
         if (densityChanged && resourceDialog != null) EditorWidgets.refreshMetrics(resourceDialog);
+        if (densityChanged && choices != null) EditorWidgets.refreshMetrics(choices);
     }
 
     @Override
@@ -130,6 +185,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         if (!hasWindowFocus) {
             cancelDrags();
             workspace.dismissMenu();
+            dismissChoices();
         }
     }
 }

@@ -8,7 +8,6 @@ import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
-import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 
 final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplitter.DragListener {
     private final EditorLayoutState state;
@@ -20,14 +19,12 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     private final ProjectWorkspace workspace;
     private final EditorPanel resources;
     private final EditorPanel properties;
-    private final EditorPanel steps;
     private final EditorPanel preview;
     private final EditorPanel actions;
     private final Button leftRail;
     private final Button rightRail;
     private final EditorSplitter leftSplitter;
     private final EditorSplitter rightSplitter;
-    private final EditorSplitter stepsSplitter;
     private final EditorSplitter actionsSplitter;
     private EditorLayout layout;
     private EditorLayout dragStart;
@@ -35,7 +32,8 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     private final ViewTreeObserver.OnGlobalLayoutListener tooltipLayoutListener =
             () -> EditorWidgets.styleTooltips(this);
 
-    EditorWorkbench(Context context, EditorLayoutState state, ProjectWorkspace workspace, Runnable closeAction) {
+    EditorWorkbench(Context context, EditorLayoutState state, ProjectWorkspace workspace, Runnable closeAction,
+                    ChoicePresenter choices) {
         super(context);
         this.state = state;
         this.workspace = workspace;
@@ -54,14 +52,13 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             state.leftCollapsed = true;
             requestLayout();
         }, true);
-        resourceProperties = new ResourcePropertiesView(context, workspace);
+        resourceProperties = new ResourcePropertiesView(context, workspace, choices);
         properties = new EditorPanel(context, "properties", EditorWidgets.formScroll(context, resourceProperties), () -> {
             cancelDrags();
             state.rightCollapsed = true;
             requestLayout();
         }, false);
         document = new ResourceDocumentView(context, workspace);
-        steps = new EditorPanel(context, "steps", document, null, true);
         TextView previewContent = EditorWidgets.placeholder(context, "preview_placeholder");
         previewContent.setBackground(EditorWidgets.shape(EditorWidgets.PREVIEW, 0));
         preview = new EditorPanel(context, "scene_preview", previewContent, null, true);
@@ -76,14 +73,13 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         });
         leftSplitter = new EditorSplitter(context, EditorSplitter.Axis.LEFT, this);
         rightSplitter = new EditorSplitter(context, EditorSplitter.Axis.RIGHT, this);
-        stepsSplitter = new EditorSplitter(context, EditorSplitter.Axis.STEPS, this);
         actionsSplitter = new EditorSplitter(context, EditorSplitter.Axis.ACTIONS, this);
         status = EditorWidgets.label(context, "status", 12, EditorWidgets.MUTED);
         status.setBackground(EditorWidgets.shape(EditorWidgets.HEADER, 0));
         EditorWidgets.bindMetrics(status, () -> status.setPadding(status.dp(10), 0, status.dp(10), 0));
 
-        for (View view : new View[]{toolbar, resources, properties, steps, preview, actions,
-                leftRail, rightRail, leftSplitter, rightSplitter, stepsSplitter, actionsSplitter, status}) {
+        for (View view : new View[]{toolbar, resources, properties, document, preview, actions,
+                leftRail, rightRail, leftSplitter, rightSplitter, actionsSplitter, status}) {
             addView(view);
         }
         refreshProject();
@@ -97,9 +93,6 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         browser.refresh();
         resourceProperties.refresh();
         document.refresh();
-        steps.setTitle(EditorWidgets.tr(workspace.resources().opened() != null
-                && workspace.resources().opened().kind() == ResourceKind.SPEAKER
-                ? "resource.speaker" : "steps"));
         String message = workspace.errorReason() == null ? EditorWidgets.tr(workspace.message())
                 : EditorWidgets.tr("project.error." + workspace.errorReason()) + " " + workspace.errorDetail();
         String saveState = workspace.draft() == null ? "" : " · "
@@ -128,19 +121,17 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         leftSplitter.setEnabled(!layout.leftCollapsed());
         rightSplitter.setEnabled(!layout.rightCollapsed());
         boolean verticalResizable = layout.preview() >= dp(EditorLayout.PREVIEW_MIN_DP);
-        stepsSplitter.setEnabled(verticalResizable);
         actionsSplitter.setEnabled(verticalResizable);
 
         EditorPanel.measureExact(toolbar, layout.width(), layout.toolbar());
         EditorPanel.measureExact(status, layout.width(), layout.status());
         EditorPanel.measureExact(layout.leftCollapsed() ? leftRail : resources, layout.left(), layout.workHeight());
         EditorPanel.measureExact(layout.rightCollapsed() ? rightRail : properties, layout.right(), layout.workHeight());
-        EditorPanel.measureExact(steps, layout.center(), layout.steps());
+        EditorPanel.measureExact(document, layout.center(), layout.document());
         EditorPanel.measureExact(preview, layout.center(), layout.preview());
         EditorPanel.measureExact(actions, layout.center(), layout.actions());
         EditorPanel.measureExact(leftSplitter, layout.horizontalGap(), layout.workHeight());
         EditorPanel.measureExact(rightSplitter, layout.horizontalGap(), layout.workHeight());
-        EditorPanel.measureExact(stepsSplitter, layout.center(), layout.verticalGap());
         EditorPanel.measureExact(actionsSplitter, layout.center(), layout.verticalGap());
         setMeasuredDimension(layout.width(), layout.height());
     }
@@ -157,8 +148,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
                 centerEnd + layout.horizontalGap(), layout.toolbar(), layout.width(), workBottom);
         leftSplitter.layout(layout.left(), layout.toolbar(), centerX, workBottom);
         rightSplitter.layout(centerEnd, layout.toolbar(), centerEnd + layout.horizontalGap(), workBottom);
-        steps.layout(centerX, layout.toolbar(), centerEnd, layout.toolbar() + layout.steps());
-        stepsSplitter.layout(centerX, layout.toolbar() + layout.steps(), centerEnd, layout.previewY());
+        document.layout(centerX, layout.toolbar(), centerEnd, layout.previewY());
         preview.layout(centerX, layout.previewY(), centerEnd, layout.previewY() + layout.preview());
         actionsSplitter.layout(centerX, layout.previewY() + layout.preview(), centerEnd, layout.actionsY());
         actions.layout(centerX, layout.actionsY(), centerEnd, workBottom);
@@ -202,15 +192,9 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
                     state.leftFraction = (double) start.left() / Math.max(1, start.columnSpace());
                 }
             }
-            case STEPS -> {
-                int max = start.workHeight() - start.verticalGap() * 2 - start.actions() - dp(EditorLayout.PREVIEW_MIN_DP);
-                state.stepsDp = clamp(start.steps() + delta, dp(EditorLayout.HEADER_DP), max) / density();
-                state.actionsDp = start.actions() / density();
-            }
             case ACTIONS -> {
-                int max = start.workHeight() - start.verticalGap() * 2 - start.steps() - dp(EditorLayout.PREVIEW_MIN_DP);
+                int max = start.workHeight() - start.verticalGap() - start.document() - dp(EditorLayout.PREVIEW_MIN_DP);
                 state.actionsDp = clamp(start.actions() - delta, dp(EditorLayout.HEADER_DP), max) / density();
-                state.stepsDp = start.steps() / density();
             }
         }
         requestLayout();
@@ -225,7 +209,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     }
 
     void cancelDrags() {
-        for (EditorSplitter splitter : new EditorSplitter[]{leftSplitter, rightSplitter, stepsSplitter, actionsSplitter}) {
+        for (EditorSplitter splitter : new EditorSplitter[]{leftSplitter, rightSplitter, actionsSplitter}) {
             if (splitter != null) {
                 splitter.cancelDrag();
             }

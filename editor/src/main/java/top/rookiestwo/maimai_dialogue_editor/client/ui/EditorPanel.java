@@ -52,10 +52,6 @@ final class EditorPanel extends FrameLayout {
         setMeasuredDimension(width, height);
     }
 
-    void setTitle(String text) {
-        title.setText(text);
-    }
-
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         int width = right - left;

@@ -21,6 +21,10 @@ import icyllis.modernui.text.TextWatcher;
 import java.util.function.Consumer;
 
 final class EditorWidgets {
+    // 单行资源列表与属性下拉菜单共用的紧凑密度。
+    static final int COMPACT_ROW_DP = 24;
+    static final int COMPACT_HORIZONTAL_PADDING_DP = 6;
+
     // 白色内容区、浅灰框架和亮蓝交互反馈；文字使用深灰以保持可读性。
     static final int BACKGROUND = 0xFFF2F4F7;
     static final int PANEL = 0xFFFFFFFF;

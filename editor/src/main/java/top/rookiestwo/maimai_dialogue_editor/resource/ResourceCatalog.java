@@ -51,6 +51,18 @@ public final class ResourceCatalog {
         return key.kind() == ResourceKind.SPEAKER
                 ? ResourceReferences.string(ResourceReferences.get(entries.get(key), "name")) : "";
     }
+    public int stepCount(ResourceKey key) {
+        JsonElement steps = ResourceReferences.get(entries.get(key), "steps");
+        return steps != null && steps.isJsonArray() ? steps.getAsJsonArray().size() : 0;
+    }
+    public String stepText(ResourceKey key, int index) {
+        JsonElement dialogue = entries.get(key);
+        JsonElement steps = ResourceReferences.get(dialogue, "steps");
+        JsonElement node = index < 0 ? ResourceReferences.get(dialogue, "end")
+                : steps != null && steps.isJsonArray() && index < steps.getAsJsonArray().size()
+                ? steps.getAsJsonArray().get(index) : null;
+        return ResourceReferences.string(ResourceReferences.get(node, "text"));
+    }
     public List<ResourceKey> search(String query) {
         String needle = query.strip().toLowerCase(Locale.ROOT);
         return keys().stream().filter(key -> needle.isEmpty() || key.id(draft.namespace()).toLowerCase(Locale.ROOT).contains(needle)
