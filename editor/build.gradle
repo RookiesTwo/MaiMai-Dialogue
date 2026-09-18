@@ -31,6 +31,13 @@ neoForge {
             sourceSet(sourceSets.main)
         }
     }
+
+    // Preview data tests use the same runtime Codec/Session classes as the main MOD tests.
+    unitTest {
+        enable()
+        testedMod = mods."${mod_id}"
+        loadedMods = [mods."${mod_id}", rootProject.neoForge.mods.getByName(rootProject.mod_id)]
+    }
 }
 
 apply from: rootProject.file('gradle/modernui.gradle')
@@ -38,7 +45,7 @@ apply from: rootProject.file('gradle/modernui.gradle')
 dependencies {
     // 只建立编译／运行依赖，不将主 MOD 嵌入编辑器 JAR。
     implementation project(':')
-    // Pure project storage/history tests; no UI/layout tests or Minecraft test bootstrap.
+    // Data, history and preview isolation tests only; no UI/layout tests.
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     // Same Gson version as Minecraft 1.21.1, exposed explicitly to the plain JVM tests.
     testImplementation 'com.google.code.gson:gson:2.10.1'

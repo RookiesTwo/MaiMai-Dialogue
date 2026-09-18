@@ -16,6 +16,8 @@ final class EditorSplitter extends View {
         void begin(Axis axis);
 
         void move(Axis axis, float delta);
+
+        void end(Axis axis);
     }
 
     private final Axis axis;
@@ -69,7 +71,13 @@ final class EditorSplitter extends View {
                 listener.move(axis, coordinate(event) - origin);
                 return true;
             }
-            case MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+            case MotionEvent.ACTION_UP -> {
+                if (!dragging) return false;
+                listener.move(axis, coordinate(event) - origin);
+                cancelDrag();
+                return true;
+            }
+            case MotionEvent.ACTION_CANCEL -> {
                 boolean handled = dragging;
                 cancelDrag();
                 return handled;
@@ -86,11 +94,14 @@ final class EditorSplitter extends View {
     }
 
     void cancelDrag() {
-        if (dragging && getParent() != null) {
-            getParent().requestDisallowInterceptTouchEvent(false);
-        }
+        boolean wasDragging = dragging;
         dragging = false;
         setPressed(false);
+        if (wasDragging && getParent() != null) {
+            getParent().requestDisallowInterceptTouchEvent(false);
+        }
+        // Clear the gesture before notifying; release/focus/cancel may arrive together.
+        if (wasDragging) listener.end(axis);
     }
 
     @Override

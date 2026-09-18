@@ -7,6 +7,9 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;
 
 /** Per-open editor state. Mutations and completion callbacks run on the owning UI thread. */
 public final class ProjectWorkspace {
@@ -17,6 +20,7 @@ public final class ProjectWorkspace {
     private final Executor io;
     private final Executor ui;
     private final Runnable closeEditor;
+    private long previewSelectionRevision;
     private Runnable changed = () -> {};
     private ProjectHistory history;
     private Path directory;
@@ -66,6 +70,19 @@ public final class ProjectWorkspace {
     public List<ProjectStore.Entry> projects() { return projects; }
     public ResourceWorkspace resources() { return resources; }
     public ContentWorkspace content() { return content; }
+    public long previewSelectionRevision() { return previewSelectionRevision; }
+
+    /** Preview navigation updates the browser/properties together, without an edit or a user click event. */
+    public void followPreviewStep(ResourceKey key, int step) {
+        if (disposed || draft() == null || key.kind() != ResourceKind.DIALOGUE
+                || !resources.catalog().contains(key) || step < -1 || step >= resources.catalog().stepCount(key)) return;
+        if (key.equals(resources.opened()) && ResourceTree.Node.step(key, step).equals(resources.selection())) return;
+        endEdit();
+        resources.focusStep(key, step, true);
+        content.acceptBrowserSelection();
+        previewSelectionRevision++;
+        changed.run();
+    }
 
     private void resourceNavigationChanged() {
         endEdit();

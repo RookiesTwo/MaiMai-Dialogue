@@ -30,6 +30,7 @@ public final class ResourceWorkspace {
     private ResourceKey source;
     private String error;
     private long revealRevision;
+    private long selectionRevision;
 
     public ResourceWorkspace(Supplier<ProjectDraft> current, Consumer<ProjectDraft> edit,
                              BooleanSupplier enabled, Runnable changed) {
@@ -49,6 +50,8 @@ public final class ResourceWorkspace {
     public String error() { return error; }
     public ResourceKey source() { return source; }
     public long revealRevision() { return revealRevision; }
+    /** Explicit browser navigation, including a second click on the same node. */
+    public long selectionRevision() { return selectionRevision; }
     public boolean active() { return current.get() != null && enabled.getAsBoolean(); }
     public List<ResourceTree.Row> rows() { return ResourceTree.rows(catalog(), query, collapsed, expandedDialogues); }
     public List<ResourceCatalog.Use> blockers() {
@@ -67,6 +70,7 @@ public final class ResourceWorkspace {
         source = null;
         error = null;
         revealRevision++;
+        selectionRevision++;
     }
 
     private void synchronize() {
@@ -87,6 +91,7 @@ public final class ResourceWorkspace {
         if (!active() || form != Form.NONE) return;
         if (!rows().stream().anyMatch(row -> row.node().equals(node))) return;
         selection = node;
+        selectionRevision++;
         if (node.isStep()) {
             opened = node.owner();
             revealRevision++;
@@ -120,12 +125,14 @@ public final class ResourceWorkspace {
         if (!active() || form != Form.NONE || !key.kind().available() || !catalog().contains(key)) return;
         reveal(key);
         opened = key;
+        selectionRevision++;
         changed.run();
     }
 
     public void closeDocument() {
         if (!active() || form != Form.NONE) return;
         opened = null;
+        selectionRevision++;
         changed.run();
     }
 

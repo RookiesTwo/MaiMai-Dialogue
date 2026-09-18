@@ -23,9 +23,12 @@ final class EditorToolbar extends FrameLayout {
     private int closeWidth;
     private int resetWidth;
     private final Map<String, Button> businessButtons = new HashMap<>();
+    private final EditorPreviewHost preview;
 
-    EditorToolbar(Context context, Runnable closeAction, Runnable resetAction, ProjectWorkspace workspace) {
+    EditorToolbar(Context context, Runnable closeAction, Runnable resetAction, ProjectWorkspace workspace,
+                  EditorPreviewHost preview) {
         super(context);
+        this.preview = preview;
         setBackground(EditorWidgets.shape(EditorWidgets.HEADER, 0));
         close = EditorWidgets.icon(context, "×", "close", closeAction);
         reset = EditorWidgets.button(context, "reset_layout", resetAction);
@@ -43,6 +46,7 @@ final class EditorToolbar extends FrameLayout {
                 case "save" -> workspace::save;
                 case "undo" -> workspace::undo;
                 case "redo" -> workspace::redo;
+                case "preview" -> preview::advance;
                 default -> null;
             };
             Button button = EditorWidgets.button(context, key, action);
@@ -70,6 +74,7 @@ final class EditorToolbar extends FrameLayout {
         EditorWidgets.enabled(businessButtons.get("save"), !workspace.busy() && workspace.dirty());
         EditorWidgets.enabled(businessButtons.get("undo"), workspace.canUndo());
         EditorWidgets.enabled(businessButtons.get("redo"), workspace.canRedo());
+        EditorWidgets.enabled(businessButtons.get("preview"), preview.canStart());
         EditorWidgets.enabled(close, !workspace.busy());
     }
 

@@ -42,6 +42,9 @@ import java.util.function.IntSupplier;
 import java.util.stream.Collectors;
 
 public final class DialogueSession {
+    /** Current runtime location; an End uses steps().size() as its index. */
+    public record Position(ResourceLocation dialogueId, int stepIndex, boolean end) {}
+
     private final DialogueContentLookup content;
     private final ResourceLocation rootDialogueId;
     private final List<DialogueHistoryEntry> history = new ArrayList<>();
@@ -444,6 +447,11 @@ public final class DialogueSession {
             return update(effects, true);
         }
         return update(List.of(), false);
+    }
+
+    public Position position() {
+        return new Position(active.currentDialogueId, active.stepIndex,
+                active.stepIndex >= active.definition.steps().size());
     }
 
     public DialogueScreenState screenState() {

@@ -24,6 +24,7 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
     @Nullable
     private EditorWorkspaceView root;
     private ProjectWorkspace workspace;
+    private EditorPreviewHost preview;
     private ExecutorService io;
     private volatile boolean gameWindowFocused = true;
 
@@ -40,13 +41,20 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
                     .resolve("maimai-dialogue-projects")), io,
                     task -> Core.getUiHandler().post(task), () -> EditorScreens.close(this));
             workspace.windowFocusChanged(gameWindowFocused);
+            preview = new EditorPreviewHost(this, workspace);
         }
-        root = new EditorWorkspaceView(requireContext(), layoutState, workspace);
+        root = new EditorWorkspaceView(requireContext(), layoutState, workspace, preview);
         workspace.setListener(root::refresh);
         if (workspace.page() == ProjectWorkspace.Page.NONE && workspace.resources().form() == ResourceWorkspace.Form.NONE) {
             root.requestFocus();
         }
         return root;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable DataSet savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        preview.onViewReady();
     }
 
     // 由 Minecraft 客户端线程调用，只在焦点变化时跨线程投递；失焦不依赖 PopupWindow。
@@ -65,6 +73,7 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
     // View 可重建，但当前打开期间的布局偏好由 Fragment 保留。
     @Override
     public void onDestroyView() {
+        if (preview != null) preview.releaseView();
         if (workspace != null) {
             workspace.endEdit();
             workspace.setListener(() -> {});
@@ -94,6 +103,7 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
 
     @Override
     public void onDestroy() {
+        if (preview != null) preview.dispose();
         if (workspace != null) workspace.dispose();
         if (io != null) io.shutdown();
         super.onDestroy();

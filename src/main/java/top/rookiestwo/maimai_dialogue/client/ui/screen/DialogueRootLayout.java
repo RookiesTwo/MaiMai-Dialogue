@@ -42,6 +42,7 @@ final class DialogueRootLayout extends ResponsiveFrameLayout {
     private long heightAnimationRevision;
     private View confirmationView;
     private float controlsAlpha = 1.0F;
+    private boolean cornerControlsInteractive = true;
     private boolean optionsExpanded;
     private boolean animateNextHeightDecrease;
 
@@ -134,13 +135,22 @@ final class DialogueRootLayout extends ResponsiveFrameLayout {
     }
 
     void setSkipAvailable(boolean available) {
-        skipButton.setEnabled(available);
+        skipButton.setEnabled(cornerControlsInteractive && available);
         skipButton.setAlpha(
-                controlsAlpha * (available ? 1.0F : DISABLED_CONTROL_ALPHA)
+                cornerControlsInteractive ? controlsAlpha * (available ? 1.0F : DISABLED_CONTROL_ALPHA) : 1.0F
         );
-        if (!available) {
+        if (!skipButton.isEnabled()) {
             skipButton.cancelHold();
         }
+    }
+
+    void setCornerControlsInteractive(boolean interactive) {
+        cornerControlsInteractive = interactive;
+        historyEntry.setEnabled(interactive);
+        historyEntry.setFocusable(interactive);
+        skipButton.setFocusable(interactive);
+        historyEntry.setAlpha(interactive ? controlsAlpha : 1.0F);
+        setSkipAvailable(false);
     }
 
     void showConfirmation(View view, Runnable escapeAction) {
@@ -184,12 +194,12 @@ final class DialogueRootLayout extends ResponsiveFrameLayout {
         dialogueBoxState = Objects.requireNonNull(state, "state");
         float clamped = Math.clamp(state.opacity(), 0.0F, 1.0F);
         dialogueBox.setAlpha(clamped);
-        historyEntry.setAlpha(clamped);
+        historyEntry.setAlpha(cornerControlsInteractive ? clamped : 1.0F);
         controlsAlpha = clamped;
         skipButton.setAlpha(
-                clamped * (skipButton.isEnabled()
+                cornerControlsInteractive ? clamped * (skipButton.isEnabled()
                         ? 1.0F
-                        : DISABLED_CONTROL_ALPHA)
+                        : DISABLED_CONTROL_ALPHA) : 1.0F
         );
         requestLayout();
     }

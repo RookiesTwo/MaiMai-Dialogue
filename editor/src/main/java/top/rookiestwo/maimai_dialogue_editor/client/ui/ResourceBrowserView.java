@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
+import icyllis.modernui.graphics.Rect;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.EditText;
@@ -28,7 +29,7 @@ final class ResourceBrowserView extends LinearLayout {
     private final Button create;
     private final Button copy;
     private final Button delete;
-    private final LinearLayout rows;
+    private final ResourceSelectionLayout rows;
     private final ScrollView scroll;
     private final TextView empty;
     private final List<Controls> controls = new ArrayList<>();
@@ -40,6 +41,11 @@ final class ResourceBrowserView extends LinearLayout {
     private Path displayedDirectory;
     private int restoreOffset = -1;
     private long displayedRevealRevision = -1;
+    private long displayedPreviewRevision = -1;
+    private long displayedSelectionRevision = -1;
+    private boolean selectionUpdatePending;
+    private boolean animateSelectionPending;
+    private long selectionLayoutRevision;
 
     ResourceBrowserView(Context context, ProjectWorkspace workspace) {
         super(context);
@@ -69,8 +75,7 @@ final class ResourceBrowserView extends LinearLayout {
             EditorWidgets.bindMetrics(button, () -> button.setLayoutParams(new LayoutParams(0, dp(30), 1)));
         }
         addView(actions);
-        rows = new LinearLayout(context);
-        rows.setOrientation(VERTICAL);
+        rows = new ResourceSelectionLayout(context);
         scroll = EditorWidgets.formScroll(context, rows);
         scroll.setVerticalScrollBarEnabled(true);
         addView(scroll, new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1));
@@ -98,7 +103,19 @@ final class ResourceBrowserView extends LinearLayout {
         EditorWidgets.enabled(copy, step ? workspace.content().canModifyStep() : resources.canModifySelected());
         EditorWidgets.enabled(delete, step ? workspace.content().canModifyStep() : resources.canModifySelected());
         List<ResourceTree.Row> visible = workspace.draft() == null ? List.of() : resources.rows();
-        if (!displayed.equals(visible) || displayedCatalog != resources.catalog()) {
+        boolean rebuild = !displayed.equals(visible) || displayedCatalog != resources.catalog();
+        boolean sameProject = Objects.equals(displayedDirectory, workspace.directory());
+        boolean selectionChanged = !Objects.equals(lastSelection, selection);
+        boolean explicitSelection = displayedSelectionRevision != resources.selectionRevision();
+        if (selectionChanged || explicitSelection || rebuild) {
+            selectionUpdatePending = true;
+            animateSelectionPending = lastSelection != null && sameProject
+                    && (explicitSelection || (selectionChanged
+                    && displayedPreviewRevision != workspace.previewSelectionRevision()));
+        }
+        displayedPreviewRevision = workspace.previewSelectionRevision();
+        displayedSelectionRevision = resources.selectionRevision();
+        if (rebuild) {
             displayed = visible;
             displayedCatalog = resources.catalog();
             restoreOffset = Objects.equals(displayedDirectory, workspace.directory()) ? scroll.getScrollY() : 0;
@@ -138,7 +155,7 @@ final class ResourceBrowserView extends LinearLayout {
         }
         empty.setText(EditorWidgets.tr(workspace.draft() == null ? "no_project" : "browser.no_results"));
         empty.setVisibility(workspace.draft() == null || (!resources.query().isBlank() && visible.size() == 1) ? VISIBLE : GONE);
-        if (revealAfterLayout != null) requestLayout();
+        if (revealAfterLayout != null || selectionUpdatePending) requestLayout();
     }
 
     private void addRow(ResourceTree.Row row) {
@@ -160,8 +177,11 @@ final class ResourceBrowserView extends LinearLayout {
         }
         Button label = EditorWidgets.button(getContext(), "", () -> resources.select(row.node()));
         label.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        EditorWidgets.bindMetrics(label, () -> label.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP),
-                0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0));
+        EditorWidgets.bindMetrics(label, () -> {
+            label.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP),
+                    0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
+            label.setBackground(EditorWidgets.treeRowBackground());
+        });
         line.addView(label, new LayoutParams(0, LayoutParams.MATCH_PARENT, 1));
         controls.add(new Controls(row, line, label, toggle));
         if (row.node().type() == ResourceTree.Type.CATEGORY && row.expanded()
@@ -185,21 +205,43 @@ final class ResourceBrowserView extends LinearLayout {
             scroll.scrollTo(0, restoreOffset);
             restoreOffset = -1;
         }
-        ResourceTree.Node target = revealAfterLayout;
-        revealAfterLayout = null;
-        if (target != null) post(() -> {
-            if (!isAttachedToWindow() || !target.equals(resources.selection())) return;
+        // Keep pending selection/reveal intent until the latest layout callback consumes it.
+        ResourceTree.Node target = resources.selection();
+        long revision = ++selectionLayoutRevision;
+        post(() -> {
+            if (!isAttachedToWindow() || revision != selectionLayoutRevision || !target.equals(resources.selection())) return;
+            boolean reveal = target.equals(revealAfterLayout);
+            revealAfterLayout = null;
+            boolean updateSelection = selectionUpdatePending;
+            boolean animate = animateSelectionPending;
+            selectionUpdatePending = false;
+            animateSelectionPending = false;
             for (Controls control : controls) {
                 if (!control.row().node().equals(target)) continue;
                 int start = control.line().getTop();
                 int end = control.line().getBottom();
                 int visibleTop = scroll.getScrollY();
                 int visibleBottom = visibleTop + scroll.getHeight();
-                if (start < visibleTop) scroll.scrollTo(0, start);
-                else if (end > visibleBottom) scroll.scrollTo(0, Math.max(0, end - scroll.getHeight()));
-                break;
+                if (reveal) {
+                    if (start < visibleTop) scroll.scrollTo(0, start);
+                    else if (end > visibleBottom) scroll.scrollTo(0, Math.max(0, end - scroll.getHeight()));
+                }
+                Rect bounds = new Rect(control.line().getLeft() + control.label().getLeft(),
+                        start + control.label().getTop(), control.line().getLeft() + control.label().getRight(),
+                        start + control.label().getBottom());
+                if (updateSelection) rows.select(bounds, animate, scroll.getScrollY() - visibleTop);
+                else rows.syncBounds(bounds);
+                return;
             }
+            rows.clearSelection();
         });
     }
 
+    @Override protected void onDetachedFromWindow() {
+        selectionLayoutRevision++;
+        selectionUpdatePending = false;
+        animateSelectionPending = false;
+        revealAfterLayout = null;
+        super.onDetachedFromWindow();
+    }
 }

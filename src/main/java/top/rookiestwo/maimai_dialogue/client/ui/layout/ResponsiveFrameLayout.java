@@ -17,6 +17,7 @@ public abstract class ResponsiveFrameLayout extends FrameLayout {
     private float scaledDensity;
     private MuiModApi.OnWindowResizeListener resizeListener;
     private long attachment;
+    private boolean viewportRefreshRequested;
     private java.util.List<ScrollPosition> scrollPositions = java.util.List.of();
 
     protected ResponsiveFrameLayout(Context context) {
@@ -55,19 +56,27 @@ public abstract class ResponsiveFrameLayout extends FrameLayout {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
+    /** UI thread: refresh cached child metrics on the next measure, retaining scroll anchors. */
+    public final void requestViewportRefresh() {
+        viewportRefreshRequested = true;
+        requestLayout();
+    }
+
     protected final void prepareViewport(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
         int height = MeasureSpec.getSize(heightMeasureSpec);
         var metrics = getContext().getResources().getDisplayMetrics();
-        boolean densityChanged = density != metrics.density || scaledDensity != metrics.scaledDensity;
-        if (width != viewportWidth || height != viewportHeight || densityChanged) {
+        boolean refreshMetrics = viewportRefreshRequested
+                || density != metrics.density || scaledDensity != metrics.scaledDensity;
+        if (width != viewportWidth || height != viewportHeight || refreshMetrics) {
+            viewportRefreshRequested = false;
             scrollPositions = ScrollPosition.capture(this);
             viewportWidth = width;
             viewportHeight = height;
             density = metrics.density;
             scaledDensity = metrics.scaledDensity;
-            onViewportChanged(densityChanged);
-            refreshChildren(this, densityChanged, metrics.densityDpi);
+            onViewportChanged(refreshMetrics);
+            refreshChildren(this, refreshMetrics, metrics.densityDpi);
         }
     }
 

@@ -20,6 +20,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     private final EditorPanel resources;
     private final EditorPanel properties;
     private final EditorPanel preview;
+    private final EditorPreviewHost previewHost;
     private final EditorPanel actions;
     private final Button leftRail;
     private final Button rightRail;
@@ -33,10 +34,11 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             () -> EditorWidgets.styleTooltips(this);
 
     EditorWorkbench(Context context, EditorLayoutState state, ProjectWorkspace workspace, Runnable closeAction,
-                    ChoicePresenter choices) {
+                    ChoicePresenter choices, EditorPreviewHost previewHost) {
         super(context);
         this.state = state;
         this.workspace = workspace;
+        this.previewHost = previewHost;
         setBackground(EditorWidgets.shape(EditorWidgets.BACKGROUND, 0));
         setFocusable(true);
         setFocusableInTouchMode(true);
@@ -45,7 +47,8 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             cancelDrags();
             state.reset();
             requestLayout();
-        }, workspace);
+        }, workspace, previewHost);
+        previewHost.setListener(() -> toolbar.refresh(workspace));
         browser = new ResourceBrowserView(context, workspace);
         resources = new EditorPanel(context, "resources", browser, () -> {
             cancelDrags();
@@ -59,9 +62,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             requestLayout();
         }, false);
         document = new ResourceDocumentView(context, workspace);
-        TextView previewContent = EditorWidgets.placeholder(context, "preview_placeholder");
-        previewContent.setBackground(EditorWidgets.shape(EditorWidgets.PREVIEW, 0));
-        preview = new EditorPanel(context, "scene_preview", previewContent, null, true);
+        preview = new EditorPanel(context, "scene_preview", previewHost.createView(context), null, true);
         actions = new EditorPanel(context, "actions", EditorWidgets.placeholder(context, "no_step"), null, true);
         leftRail = EditorWidgets.icon(context, "›", "expand_left", () -> {
             state.leftCollapsed = false;
@@ -86,6 +87,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     }
 
     void refreshProject() {
+        previewHost.synchronize();
         toolbar.refresh(workspace);
         String name = workspace.draft() == null ? EditorWidgets.tr("no_project")
                 : workspace.draft().name().isBlank() ? EditorWidgets.tr("project.untitled") : workspace.draft().name();
@@ -110,6 +112,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         prepareViewport(widthMeasureSpec, heightMeasureSpec);
         layout = EditorLayout.calculate(state, MeasureSpec.getSize(widthMeasureSpec),
                 MeasureSpec.getSize(heightMeasureSpec), density());
+        previewHost.setReferenceHeight(layout.height());
         resources.setVisibility(layout.leftCollapsed() ? GONE : VISIBLE);
         leftRail.setVisibility(layout.leftCollapsed() ? VISIBLE : GONE);
         properties.setVisibility(layout.rightCollapsed() ? GONE : VISIBLE);
@@ -166,6 +169,12 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     @Override
     public void begin(EditorSplitter.Axis axis) {
         dragStart = layout;
+    }
+
+    @Override
+    public void end(EditorSplitter.Axis axis) {
+        dragStart = null;
+        previewHost.finishViewportResize();
     }
 
     // 拖动以按下时的实际尺寸为基准；当前手势里固定另一侧，避免钳制造成反向挤压。

@@ -43,6 +43,9 @@ import java.io.IOException;
 import java.util.Objects;
 
 public final class DialogueFragment extends Fragment implements ScreenCallback, DialogueScreenHandle {
+    /** DISPLAY_ONLY keeps the corner controls visible without history or skip interaction. */
+    public enum CornerControls { INTERACTIVE, DISPLAY_ONLY }
+
     private static final String HISTORY_BACK_STACK = "dialogue_history";
     private static final String HISTORY_ICON = "history_icon.png";
     private static final int HISTORY_BUTTON_SIZE_DP = 40;
@@ -54,6 +57,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
     private static final float NORMAL_PLAYBACK_RATE = 1.0F;
 
     private final DialogueUiActions controller;
+    private final CornerControls cornerControls;
     private final FastForwardPlayback fastForward;
     private final DialogueConfirmations confirmations;
     private long renderedGeneration = Long.MIN_VALUE;
@@ -75,7 +79,12 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
     private DialogueScreenState latestState;
 
     public DialogueFragment(DialogueUiActions controller) {
+        this(controller, CornerControls.INTERACTIVE);
+    }
+
+    public DialogueFragment(DialogueUiActions controller, CornerControls cornerControls) {
         this.controller = controller;
+        this.cornerControls = Objects.requireNonNull(cornerControls, "cornerControls");
         fastForward = new FastForwardPlayback(() -> latestState, controller);
         confirmations = new DialogueConfirmations(
                 () -> rootLayout, () -> latestState, this::requireContext, controller
@@ -124,6 +133,12 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                 skipEntry,
                 preferences
         );
+        if (cornerControls == CornerControls.DISPLAY_ONLY) {
+            root.setCornerControlsInteractive(false);
+            // Keep decorative controls readable over the editor's light transparency background.
+            historyEntry.setImageTintList(ColorStateList.valueOf(0xFF667080));
+            skipEntry.setImageTintList(ColorStateList.valueOf(0xFF667080));
+        }
         dialogueBox.setOptionsExpandedChanged(root::setOptionsExpanded);
         dialogueBox.setAdvanceAction(this::advanceFromUi);
         root.setOnClickListener(view -> advanceFromUi());
@@ -134,7 +149,9 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
         scene.setDialogueBoxStateConsumer(root::setDialogueBoxState);
         root.setFocusable(true);
         root.setFocusableInTouchMode(true);
-        root.requestFocus();
+        if (cornerControls == CornerControls.INTERACTIVE || controller.viewState().scenePlayback().isPresent()) {
+            root.requestFocus();
+        }
 
         rootLayout = root;
         sceneView = scene;
@@ -169,6 +186,8 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                         && historyButton == historyEntry
                         && skipButton == skipEntry,
                 () -> {
+                    box.setVisibility(cornerControls == CornerControls.DISPLAY_ONLY && state.presentation().isEmpty()
+                            ? View.GONE : View.VISIBLE);
                     confirmations.render(state);
                     if (state.generation() != renderedGeneration) {
                         renderedGeneration = state.generation();
@@ -214,6 +233,14 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                     );
                     fastForward.schedule(state);
                 });
+    }
+
+    /** Refresh the current View's metrics/layout without restarting its session or playback. */
+    public void refreshViewport() {
+        DialogueRootLayout root = rootLayout;
+        if (root == null) return;
+        DialogueUiDispatch.toView(root, () -> rootLayout == root && root.isAttachedToWindow(),
+                root::requestViewportRefresh);
     }
 
     private static void applyPresentation(
@@ -264,6 +291,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
     }
 
     private void openHistory() {
+        if (cornerControls == CornerControls.DISPLAY_ONLY) return;
         ImageButton entry = historyButton;
         if (entry == null || !entry.isEnabled()) {
             return;
@@ -292,7 +320,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
         DialogueUiDispatch.toClient(() -> controller.setAudioHistoryOpen(this, false));
         ImageButton entry = historyButton;
         if (entry != null) {
-            entry.setEnabled(true);
+            entry.setEnabled(cornerControls == CornerControls.INTERACTIVE);
         }
         DialogueRootLayout root = rootLayout;
         if (root != null) {

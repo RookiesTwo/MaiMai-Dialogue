@@ -26,13 +26,13 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     private ResourceDialog resourceDialog;
     private EditorDropdownMenu choices;
 
-    EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace) {
+    EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace, EditorPreviewHost preview) {
         super(context);
         this.workspace = workspace;
         setFocusable(true);
         setFocusableInTouchMode(true);
         workbench = new EditorWorkbench(context, layout, workspace,
-                () -> workspace.request(ProjectWorkspace.Action.CLOSE_EDITOR), this::showChoices);
+                () -> workspace.request(ProjectWorkspace.Action.CLOSE_EDITOR), this::showChoices, preview);
         addView(workbench, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         refresh();
     }
