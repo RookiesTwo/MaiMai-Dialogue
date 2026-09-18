@@ -38,6 +38,8 @@ final class EditorWidgets {
     private static final int BUTTON_HOVER = 0xFFE5F2FF;
     static final int SELECTION = 0xFFCDE6FF;
     private static final int BUTTON_PRESSED = SELECTION;
+    private static final int TREE_ROW_HOVER = 0x1A0088FF;
+    private static final int TREE_ROW_PRESSED = 0x330088FF;
     private static final int DISABLED_TEXT = 0xFF9BA3AF;
     private static final int SCROLLBAR_THUMB = 0xFFA6AFBB;
     private static final int METRICS_TAG = 0x6D650001;
@@ -189,13 +191,12 @@ final class EditorWidgets {
         return background;
     }
 
-    // The resource tree paints one moving selection underneath its transparent row labels.
+    // Pointer feedback remains active after selection and lets the moving selection show through.
     static StateListDrawable treeRowBackground() {
         StateListDrawable background = new StateListDrawable();
         background.addState(new int[]{-R.attr.state_enabled}, shape(0, 0));
-        background.addState(new int[]{R.attr.state_pressed}, shape(BUTTON_PRESSED, 0));
-        background.addState(new int[]{R.attr.state_selected}, shape(0, 0));
-        background.addState(new int[]{R.attr.state_hovered}, shape(BUTTON_HOVER, 0));
+        background.addState(new int[]{R.attr.state_pressed}, shape(TREE_ROW_PRESSED, 0));
+        background.addState(new int[]{R.attr.state_hovered}, shape(TREE_ROW_HOVER, 0));
         background.addState(StateSet.WILD_CARD, shape(0, 0));
         return background;
     }
