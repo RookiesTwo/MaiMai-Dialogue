@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import top.rookiestwo.maimai_dialogue_editor.content.ProjectDefinitions;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
+import top.rookiestwo.maimai_dialogue_editor.material.MaterialPack;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -58,6 +59,7 @@ public final class PackExporter {
         try {
             write(staging.resolve(resourcePack + "/pack.mcmeta"), metadata(report.source().name(), resourceFormat));
             write(staging.resolve(dataPack + "/pack.mcmeta"), metadata(report.source().name(), dataFormat));
+            MaterialPack.write(report.source(), (relative, bytes) -> writeContained(staging, resourcePack + "/" + relative, bytes));
             var resources = report.source().resources();
             for (ResourceKind kind : ResourceKind.values()) {
                 var type = ProjectDefinitions.type(kind);

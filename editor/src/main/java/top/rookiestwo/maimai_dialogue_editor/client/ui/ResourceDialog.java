@@ -53,7 +53,7 @@ final class ResourceDialog extends FrameLayout {
                 LayoutParams.MATCH_PARENT, dp(40))));
         if (resources.form() == ResourceWorkspace.Form.CREATE) {
             for (ResourceKind kind : ResourceKind.values()) {
-                if (kind.available()) kinds.put(kind, addButton("resource." + kind.key(), () -> resources.setFormKind(kind)));
+                if (kind.creatable()) kinds.put(kind, addButton("resource." + kind.key(), () -> resources.setFormKind(kind)));
             }
         }
         if (resources.form() != ResourceWorkspace.Form.DELETE) {

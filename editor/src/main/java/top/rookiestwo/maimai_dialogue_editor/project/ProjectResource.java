@@ -50,7 +50,8 @@ public final class ProjectResource {
     private static Summary summarize(ResourceKind kind, JsonElement value) {
         JsonObject object = value instanceof JsonObject data ? data : new JsonObject();
         JsonElement steps = object.get("steps");
-        return new Summary(kind == ResourceKind.SPEAKER ? string(object.get("name")) : "",
+        return new Summary(kind == ResourceKind.SPEAKER ? string(object.get("name"))
+                        : kind == ResourceKind.SOUND ? string(object.get("event")) : "",
                 steps != null && steps.isJsonArray() ? steps.getAsJsonArray().size() : 0,
                 ResourceReferences.scan(kind, value));
     }

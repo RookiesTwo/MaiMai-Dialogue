@@ -48,6 +48,7 @@ final class EditorPreviewHost {
     private ResourceTree.Node observedSelection;
     private long observedSelectionRevision = -1;
     private boolean publishingPosition;
+    private long materialRevision = -1;
 
     EditorPreviewHost(Fragment owner, ProjectWorkspace workspace) {
         this.owner = owner;
@@ -74,7 +75,7 @@ final class EditorPreviewHost {
     }
 
     boolean canStart() {
-        return canOperate();
+        return canOperate() && !workspace.materials().refreshing();
     }
 
     private boolean canOperate() {
@@ -88,8 +89,39 @@ final class EditorPreviewHost {
     boolean loading() { return loading; }
     String message() { return message; }
     String error() { return error; }
+    record ImagePreview(String namespace, String path, boolean linear, long revision) {}
+    boolean viewingMaterial() {
+        ResourceKey key = workspace.resources().opened();
+        return key != null && (key.kind() == ResourceKind.IMAGE || key.kind() == ResourceKind.VISUAL_ASSET);
+    }
+    ImagePreview imagePreview() {
+        if (!viewingMaterial() || workspace.materials().previewNamespace().isEmpty() || workspace.materials().refreshing()) return null;
+        var state = workspace.content().snapshot();
+        String id;
+        boolean linear = true;
+        if (state.key().kind() == ResourceKind.IMAGE) id = state.key().id(workspace.draft().namespace()) + ".png";
+        else {
+            if (state.data() == null || !(state.data().get("variants") instanceof com.google.gson.JsonObject variants)) return null;
+            id = top.rookiestwo.maimai_dialogue_editor.material.MaterialPack.string(variants.get(
+                    workspace.materials().variant(state.key(), state.data())));
+            linear = !"nearest".equals(top.rookiestwo.maimai_dialogue_editor.material.MaterialPack.string(state.data().get("sampling")));
+        }
+        ResourceLocation location = ResourceLocation.tryParse(id);
+        if (location == null) return null;
+        String namespace = location.getNamespace().equals(workspace.draft().namespace())
+                ? workspace.materials().previewNamespace() : location.getNamespace();
+        return new ImagePreview(namespace, location.getPath(), linear, workspace.materials().loadedRevision());
+    }
+    void refreshMaterials() { workspace.materials().refresh(); }
+    boolean canRefreshMaterials() { return workspace.materials().canRefresh(); }
+    String materialStatus() { return workspace.materials().status(); }
+    String materialError() { return workspace.materials().refreshError(); }
 
     void synchronize() {
+        if (materialRevision != workspace.materials().loadedRevision() || workspace.materials().refreshing()) {
+            materialRevision = workspace.materials().loadedRevision();
+            if (playback != null || loading) stop();
+        }
         // Undo/redo may restore a different document cursor before the properties View is rebound.
         workspace.content().snapshot();
         var resources = workspace.resources();
@@ -124,13 +156,14 @@ final class EditorPreviewHost {
 
     private void startAt(int step) {
         // A new tree selection may supersede a pending start before the client snapshot arrives.
-        if (!canOperate() || view == null || !view.isAttachedToWindow()) return;
+        if (!canStart() || view == null || !view.isAttachedToWindow()) return;
         workspace.endEdit();
         // Keep the displayed session and controls until the replacement is ready.
         // Its callbacks are suspended while loading, then discarded by session identity.
         source = workspace.draft();
         dialogue = workspace.resources().opened();
         ProjectDraft captured = source;
+        String mediaNamespace = workspace.materials().previewNamespace();
         ResourceKey capturedKey = dialogue;
         long expected = ++revision;
         loading = true;
@@ -140,7 +173,7 @@ final class EditorPreviewHost {
         Minecraft.getInstance().execute(() -> {
             var external = ClientServices.get().content().current();
             int interval = ClientConfig.get().defaultTypewriterIntervalMs();
-            workspace.prepare(() -> new ProjectContentSnapshot(captured, external).prepare(
+            workspace.prepare(() -> new ProjectContentSnapshot(captured, external, mediaNamespace).prepare(
                             ResourceLocation.fromNamespaceAndPath(captured.namespace(), capturedKey.path())))
                     .whenComplete((content, preparationFailure) -> Core.getUiHandler().post(() -> {
                 if (disposed || expected != revision || view == null) return;

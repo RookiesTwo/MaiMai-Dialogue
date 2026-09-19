@@ -3,6 +3,7 @@ package top.rookiestwo.maimai_dialogue_editor.export;
 import top.rookiestwo.maimai_dialogue.client.resource.ClientContentSnapshot;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.material.MaterialPack;
 
 import java.nio.file.Path;
 import java.util.Objects;
@@ -12,7 +13,11 @@ import java.util.function.Supplier;
 
 /** Per-open editor validation/export state; UI callbacks never publish another project's results. */
 public final class ExportWorkspace {
-    public record Environment(ClientContentSnapshot content, int resourceFormat, int dataFormat) {}
+    public record Environment(ClientContentSnapshot content, int resourceFormat, int dataFormat, MaterialPack.External media) {
+        public Environment(ClientContentSnapshot content, int resourceFormat, int dataFormat) {
+            this(content, resourceFormat, dataFormat, MaterialPack.External.EMPTY);
+        }
+    }
     private final ProjectWorkspace project;
     private final Executor io, ui;
     private final Supplier<CompletableFuture<Environment>> environment;
@@ -66,7 +71,7 @@ public final class ExportWorkspace {
                         Path written = null;
                         Throwable error = null;
                         try {
-                            checked = ProjectValidator.validate(captured, env.content());
+                            checked = ProjectValidator.validate(captured, env.content(), env.media());
                             if (write && checked.valid()) written = exporter.export(checked, env.resourceFormat(), env.dataFormat());
                         } catch (Exception exception) { error = exception; }
                         finish(checked, written, error);

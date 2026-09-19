@@ -14,6 +14,7 @@ final class ResourcePropertiesView extends LinearLayout {
     private final TextView details;
     private final ContentPropertiesView content;
     private final TextView diagnostic;
+    private final MaterialPropertiesView materials;
 
     ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices) {
         super(context);
@@ -27,6 +28,8 @@ final class ResourcePropertiesView extends LinearLayout {
         addView(diagnostic);
         content = new ContentPropertiesView(context, workspace, choices);
         addView(content, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        materials = new MaterialPropertiesView(context, workspace, choices);
+        addView(materials, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         refresh();
     }
 
@@ -35,6 +38,7 @@ final class ResourcePropertiesView extends LinearLayout {
         ResourceKey key = node.owner();
         boolean opened = key != null && key.equals(workspace.resources().opened());
         boolean editing = opened && (node.isStep() || key.kind() == ResourceKind.SPEAKER);
+        boolean editingMaterial = opened && (key.kind().material() || key.kind() == ResourceKind.VISUAL_ASSET);
         var issue = workspace.focusedIssue();
         boolean showIssue = issue != null && key != null && key.equals(issue.resource());
         diagnostic.setVisibility(showIssue ? VISIBLE : GONE);
@@ -61,5 +65,7 @@ final class ResourcePropertiesView extends LinearLayout {
         }
         content.setVisibility(editing ? VISIBLE : GONE);
         content.refresh();
+        materials.setVisibility(editingMaterial ? VISIBLE : GONE);
+        materials.refresh();
     }
 }

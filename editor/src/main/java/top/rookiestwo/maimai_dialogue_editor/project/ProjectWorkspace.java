@@ -13,17 +13,21 @@ import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;
 import top.rookiestwo.maimai_dialogue_editor.export.ValidationIssue;
+import top.rookiestwo.maimai_dialogue_editor.material.MaterialWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.material.MaterialFiles;
 
 /** Per-open editor state. Mutations and completion callbacks run on the owning UI thread. */
 public final class ProjectWorkspace {
-    public enum Page { NONE, MENU, EXPORT, NEW, OPEN, SAVE_AS, CONFIRM }
+    public enum Page { NONE, MENU, EXPORT, NEW, OPEN, SAVE_AS, CONFIRM, IMPORT }
     public enum Action { NEW, OPEN, CLOSE_PROJECT, CLOSE_EDITOR }
 
     private final ProjectStore store;
     private final Executor io;
     private final Executor ui;
     private final Runnable closeEditor;
+    private final MaterialWorkspace materials;
     private long previewSelectionRevision;
+    private long projectGeneration;
     private ValidationIssue focusedIssue;
     private ProjectDraft issueSource;
     private ResourceTree.Node issueNode;
@@ -47,7 +51,7 @@ public final class ProjectWorkspace {
     private final ResourceWorkspace resources = new ResourceWorkspace(this::draft, this::editResources,
             () -> !busy && !disposed && page == Page.NONE, this::resourceNavigationChanged);
     private final ContentWorkspace content = new ContentWorkspace(this::draft, resources,
-            this::editContent, this::endEdit, () -> changed.run());
+            this::editContent, this::endEdit, () -> notifyChanged());
 
     public ProjectWorkspace(ProjectStore store, Executor io, Executor ui,
                             Runnable closeEditor) {
@@ -56,6 +60,31 @@ public final class ProjectWorkspace {
         this.ui = ui;
         this.closeEditor = closeEditor;
         resources.setLoadRequest(this::loadResource);
+        materials = new MaterialWorkspace(this, io, ui, () -> notifyChanged(), store.root().getParent());
+    }
+    public MaterialWorkspace materials() { return materials; }
+    public void showImport() {
+        if (busy || disposed || draft() == null || resources.form() != ResourceWorkspace.Form.NONE) return;
+        endEdit(); page = Page.IMPORT; clearError(); notifyChanged();
+    }
+    public void importMaterial(Path source, ResourceKey key, boolean replace) {
+        importMaterials(List.of(new MaterialFiles.ImportRequest(source, key)), replace);
+    }
+    public void importMaterials(List<MaterialFiles.ImportRequest> requests, boolean replace) {
+        if (busy || disposed || draft() == null || page != Page.IMPORT || requests.isEmpty()) return;
+        List<MaterialFiles.ImportRequest> batch = List.copyOf(requests);
+        ProjectDraft before = draft();
+        Path targetDirectory = directory;
+        runIo("material.importing", () -> MaterialFiles.importBatch(store, targetDirectory, before, batch, replace), result -> {
+            history.edit(result, null);
+            page = Page.NONE; message = "material.imported";
+            resources.open(batch.getFirst().key());
+        });
+    }
+    public void editAsset(ResourceKey key, com.google.gson.JsonObject value, String group) {
+        if (busy || disposed || history == null || page != Page.NONE) return;
+        history.edit(draft().withResource(key, value), group == null ? null : "asset/" + key + "/" + group);
+        edited();
     }
 
     /** Background preparation shared by lazy document loading and preview snapshots. */
@@ -83,10 +112,15 @@ public final class ProjectWorkspace {
                     message = "project.failed";
                     errorReason = result instanceof ProjectException error ? error.reason() : "io";
                     errorDetail = result instanceof ProjectException ? "" : String.valueOf(result.getMessage());
-                    changed.run();
+                    notifyChanged();
                 }
             });
         });
+    }
+
+    private void notifyChanged() {
+        materials.synchronize();
+        changed.run();
     }
 
     public void setListener(Runnable listener) {
@@ -94,6 +128,7 @@ public final class ProjectWorkspace {
     }
 
     public ProjectDraft draft() { return history == null ? null : history.current(); }
+    public long projectGeneration() { return projectGeneration; }
     public Path directory() { return directory; }
     public Page page() { return page; }
     public boolean busy() { return busy; }
@@ -120,7 +155,7 @@ public final class ProjectWorkspace {
         if (busy || disposed || !windowFocused || draft() == null) return;
         endEdit();
         page = Page.EXPORT;
-        changed.run();
+        notifyChanged();
     }
 
     public void locateIssue(ValidationIssue issue) {
@@ -144,7 +179,7 @@ public final class ProjectWorkspace {
         issueSource = draft();
         issueNode = resources.selection();
         issueFocusRevision++;
-        changed.run();
+        notifyChanged();
     }
 
     /** Preview navigation updates the browser/properties together, without an edit or a user click event. */
@@ -156,13 +191,13 @@ public final class ProjectWorkspace {
         resources.focusStep(key, step, true);
         content.acceptBrowserSelection();
         previewSelectionRevision++;
-        changed.run();
+        notifyChanged();
     }
 
     private void resourceNavigationChanged() {
         endEdit();
         content.acceptBrowserSelection();
-        changed.run();
+        notifyChanged();
     }
 
     private void editResources(ProjectDraft next) {
@@ -183,7 +218,7 @@ public final class ProjectWorkspace {
         if (page == Page.NEW) {
             if (suggestNamespace) formNamespace = ProjectNames.suggestNamespace(value);
         }
-        changed.run();
+        notifyChanged();
     }
 
     public void setFormNamespace(String value) {
@@ -192,7 +227,7 @@ public final class ProjectWorkspace {
         if (page == Page.NEW) {
             suggestNamespace = false;
         }
-        changed.run();
+        notifyChanged();
     }
 
     public void showMenu() {
@@ -200,7 +235,7 @@ public final class ProjectWorkspace {
         endEdit();
         page = Page.MENU;
         clearError();
-        changed.run();
+        notifyChanged();
     }
 
     /** 收起菜单不关闭项目、不清除草稿，也不取消已经进入的确认流程。 */
@@ -208,7 +243,7 @@ public final class ProjectWorkspace {
         if (disposed || (page != Page.MENU && page != Page.EXPORT)) return;
         endEdit();
         page = Page.NONE;
-        changed.run();
+        notifyChanged();
     }
 
     public void windowFocusChanged(boolean focused) {
@@ -224,7 +259,7 @@ public final class ProjectWorkspace {
         if (dirty()) {
             pending = action;
             page = Page.CONFIRM;
-            changed.run();
+            notifyChanged();
         } else {
             perform(action);
         }
@@ -241,7 +276,7 @@ public final class ProjectWorkspace {
         endEdit();
         pending = null;
         page = Page.NONE;
-        changed.run();
+        notifyChanged();
     }
 
     public void discardAndContinue() {
@@ -272,6 +307,7 @@ public final class ProjectWorkspace {
                 return;
             }
             case CLOSE_PROJECT -> {
+                projectGeneration++;
                 history = null;
                 resources.reset();
                 content.reset();
@@ -285,13 +321,14 @@ public final class ProjectWorkspace {
                 closeEditor.run();
             }
         }
-        changed.run();
+        notifyChanged();
     }
 
     public void submitNew() {
         if (busy || disposed || page != Page.NEW) return;
         ProjectDraft draft = ProjectDraft.create(formName, formNamespace);
         runIo("project.creating", () -> store.allocateDirectory(draft.namespace()), target -> {
+            projectGeneration++;
             history = new ProjectHistory(draft, false);
             resources.reset();
             content.reset();
@@ -314,6 +351,7 @@ public final class ProjectWorkspace {
         if (busy || disposed || page != Page.OPEN || !projects.contains(entry) || !entry.canOpen()) return;
         Path target = entry.directory();
         runIo("project.opening", () -> store.open(target), result -> {
+            projectGeneration++;
             history = new ProjectHistory(result.draft(), true);
             resources.reset();
             content.reset();
@@ -331,7 +369,7 @@ public final class ProjectWorkspace {
         clearError();
         page = Page.SAVE_AS;
         formName = history.current().name();
-        changed.run();
+        notifyChanged();
     }
 
     public void submitSaveAs() {
@@ -365,7 +403,7 @@ public final class ProjectWorkspace {
     private void edited() {
         clearError();
         message = "project.ready";
-        changed.run();
+        notifyChanged();
     }
 
     public void endEdit() {
@@ -407,7 +445,7 @@ public final class ProjectWorkspace {
         busy = true;
         message = workingMessage;
         clearError();
-        changed.run();
+        notifyChanged();
         io.execute(() -> {
             T result = null;
             Exception failure = null;
@@ -428,7 +466,7 @@ public final class ProjectWorkspace {
                     errorReason = error instanceof ProjectException problem ? problem.reason() : "io";
                     errorDetail = error instanceof ProjectException ? "" : String.valueOf(error.getMessage());
                 }
-                changed.run();
+                notifyChanged();
             });
         });
     }
@@ -441,6 +479,7 @@ public final class ProjectWorkspace {
     /** Disposing a screen suppresses stale completions; an already started disk write may finish. */
     public void dispose() {
         disposed = true;
+        materials.dispose();
         changed = () -> {};
         pending = null;
     }

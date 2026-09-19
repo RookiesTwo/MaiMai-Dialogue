@@ -16,6 +16,7 @@ public final class ResourceReferences {
         ResourceReferences scanner = new ResourceReferences();
         switch (kind) {
             case DIALOGUE -> {
+                scanner.audio(get(draft, "bgm"), "bgm");
                 scanner.presentation(get(draft, "presentation"), "presentation");
                 each(get(draft, "steps"), (value, index) -> scanner.step(value, "steps[" + index + "]"));
                 JsonElement end = get(draft, "end");
@@ -27,19 +28,28 @@ public final class ResourceReferences {
             }
             case PRESENTATION -> scanner.presentation(draft, "");
             case SCENE -> scanner.visualObjects(draft, "");
+            case VISUAL_ASSET -> scanner.variants(draft, "");
+            case SPEAKER -> scanner.audio(get(draft, "typewriter_sound"), "typewriter_sound");
+            case ACTION -> scanner.action(draft, "");
             default -> { }
         }
         return List.copyOf(scanner.result);
     }
 
     private void step(JsonElement step, String path) {
+        audio(get(step, "typewriter_sound"), path + ".typewriter_sound");
         JsonElement speaker = get(step, "speaker");
         if (type(speaker, "set")) add(ResourceKind.SPEAKER, get(speaker, "id"), path + ".speaker.id");
         each(get(step, "actions"), (call, index) -> {
             JsonElement action = get(call, "action");
             if (type(action, "reference")) add(ResourceKind.ACTION, get(action, "id"),
                     path + ".actions[" + index + "].action.id");
+            else if (type(action, "inline")) action(get(action, "action"), path + ".actions[" + index + "].action.action.");
         });
+    }
+    private void action(JsonElement value, String prefix) {
+        audio(get(value, "sound"), prefix + "sound");
+        audio(get(value, "bgm"), prefix + "bgm");
     }
 
     private void target(JsonElement value, String path) {
@@ -58,12 +68,24 @@ public final class ResourceReferences {
     }
 
     private void visualObjects(JsonElement value, String path) {
+        variants(get(value, "background"), (path.isEmpty() ? "" : path + ".") + "background.");
         JsonElement objects = get(value, "visual_objects");
         if (objects != null && objects.isJsonObject()) {
-            objects.getAsJsonObject().entrySet().forEach(entry -> add(ResourceKind.VISUAL_ASSET,
-                    get(entry.getValue(), "asset"), (path.isEmpty() ? "" : path + ".")
-                            + "visual_objects[" + entry.getKey() + "].asset"));
+            objects.getAsJsonObject().entrySet().forEach(entry -> {
+                String field = (path.isEmpty() ? "" : path + ".") + "visual_objects[" + entry.getKey() + "].";
+                add(ResourceKind.VISUAL_ASSET, get(entry.getValue(), "asset"), field + "asset");
+                variants(entry.getValue(), field);
+            });
         }
+    }
+
+    private void variants(JsonElement value, String prefix) {
+        JsonElement variants = get(value, "variants");
+        if (variants instanceof JsonObject object) object.entrySet().forEach(entry ->
+                add(ResourceKind.IMAGE, entry.getValue(), prefix + "variants[" + entry.getKey() + "]"));
+    }
+    private void audio(JsonElement value, String field) {
+        add(ResourceKind.SOUND, get(value, "sound"), field + ".sound");
     }
 
     private void add(ResourceKind kind, JsonElement value, String field) {

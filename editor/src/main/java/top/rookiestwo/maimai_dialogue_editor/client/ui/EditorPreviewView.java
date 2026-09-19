@@ -8,6 +8,9 @@ import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.HorizontalScrollView;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
+import icyllis.modernui.widget.ImageView;
+import icyllis.modernui.graphics.Image;
+import icyllis.modernui.graphics.drawable.ImageDrawable;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 
 /** A centered, fitted 16:9 viewport hosts the runtime dialogue Fragment. */
@@ -21,6 +24,11 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     private final Button advance;
     private final Button restart;
     private final Button stop;
+    private final Button refreshMaterials;
+    private final TextView materialStatus;
+    private final ImageView materialImage;
+    private EditorPreviewHost.ImagePreview displayedImage;
+    private boolean hasImage;
     private int toolbarHeight;
     private int viewportWidth;
     private int viewportHeight;
@@ -36,6 +44,9 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         advance = control(context, controls, "preview.advance", host::advance);
         restart = control(context, controls, "preview.restart", host::start);
         stop = control(context, controls, "preview.stop", host::stop);
+        refreshMaterials = control(context, controls, "material.refresh", host::refreshMaterials);
+        materialStatus = EditorWidgets.label(context, "material.not_loaded", 12, EditorWidgets.MUTED);
+        controls.addView(materialStatus);
         toolbar = new HorizontalScrollView(context);
         toolbar.setHorizontalScrollBarEnabled(false);
         toolbar.setBackground(EditorWidgets.shape(EditorWidgets.HEADER, 0));
@@ -45,6 +56,9 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         canvas = new EditorPreviewViewport(context);
         surface = new EditorPreviewSurface(context, containerId);
         canvas.addView(surface, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        materialImage = new ImageView(context);
+        materialImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        canvas.addView(materialImage, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         message = EditorWidgets.paragraph(context, "preview.idle");
         message.setTextIsSelectable(true);
         notice = EditorWidgets.formScroll(context, message);
@@ -67,11 +81,27 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     }
 
     void refresh() {
+        EditorWidgets.enabled(refreshMaterials, host.canRefreshMaterials());
+        materialStatus.setText(EditorWidgets.tr(host.materialStatus()));
+        materialStatus.setTooltipText(host.materialError().isEmpty() ? materialStatus.getText() : host.materialError());
+        boolean material = host.viewingMaterial();
+        materialImage.setVisibility(material ? VISIBLE : GONE);
+        surface.setVisibility(material ? GONE : VISIBLE);
+        var nextImage = material ? host.imagePreview() : null;
+        if (!java.util.Objects.equals(nextImage, displayedImage)) {
+            displayedImage = nextImage; materialImage.setImage(null); hasImage = false;
+            if (nextImage != null) {
+                @SuppressWarnings("deprecation") Image image = Image.create(nextImage.namespace(), nextImage.path());
+                materialImage.setImage(image); hasImage = image != null;
+                if (materialImage.getDrawable() instanceof ImageDrawable drawable) drawable.setFilter(nextImage.linear());
+            }
+        }
         EditorWidgets.enabled(advance, host.canStart());
         EditorWidgets.enabled(restart, host.canStart() && host.running());
         EditorWidgets.enabled(stop, host.running());
-        notice.setVisibility(host.running() || host.loading() ? GONE : VISIBLE);
-        message.setText(EditorWidgets.tr(host.message()) + (host.error().isEmpty() ? "" : "\n" + host.error()));
+        notice.setVisibility(material ? (hasImage ? GONE : VISIBLE) : host.running() || host.loading() ? GONE : VISIBLE);
+        message.setText(material ? EditorWidgets.tr("material.preview_empty")
+                : EditorWidgets.tr(host.message()) + (host.error().isEmpty() ? "" : "\n" + host.error()));
     }
 
     void setReferenceHeight(int height) {
@@ -115,6 +145,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     }
 
     @Override protected void onDetachedFromWindow() {
+        materialImage.setImage(null); displayedImage = null; hasImage = false;
         refreshContentPending = false;
         super.onDetachedFromWindow();
     }

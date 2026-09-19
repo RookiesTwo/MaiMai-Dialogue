@@ -15,6 +15,7 @@ import top.rookiestwo.maimai_dialogue_editor.content.ProjectContentSnapshot;
 import top.rookiestwo.maimai_dialogue_editor.content.ProjectDefinitions;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
+import top.rookiestwo.maimai_dialogue_editor.material.MaterialPack;
 
 import java.util.*;
 
@@ -24,19 +25,27 @@ public final class ProjectValidator {
     private final Set<String> dependencies = new TreeSet<>();
 
     public static ValidationReport validate(ProjectDraft draft, ClientContentSnapshot external) {
-        return new ProjectValidator().run(draft, external);
+        return validate(draft, external, MaterialPack.External.EMPTY);
+    }
+    public static ValidationReport validate(ProjectDraft draft, ClientContentSnapshot external, MaterialPack.External media) {
+        return new ProjectValidator().run(draft, external, media);
     }
 
-    private ValidationReport run(ProjectDraft draft, ClientContentSnapshot external) {
+    private ValidationReport run(ProjectDraft draft, ClientContentSnapshot external, MaterialPack.External media) {
         if (draft.name().isBlank()) issue(null, "name", "required", "");
         if (!draft.namespace().matches("[a-z0-9_.-]+") || !portablePath(draft.namespace())) {
             issue(null, "namespace", "invalid_id", draft.namespace());
         }
         JsonObject groups = draft.resources();
+        MaterialPack.validate(draft).forEach(problem -> issue(problem.resource(), problem.field(), "material", problem.message()));
         Map<ResourceKey, JsonElement> definitions = new LinkedHashMap<>();
         for (var group : groups.entrySet()) {
             ResourceKind kind = Arrays.stream(ResourceKind.values()).filter(k -> k.directory().equals(group.getKey()))
                     .findFirst().orElse(null);
+            if (kind != null && kind.material()) {
+                if (!group.getValue().isJsonObject()) issue(null, "resources." + group.getKey(), "object", "");
+                continue;
+            }
             if (kind == null || ProjectDefinitions.type(kind) == null) {
                 if (!group.getValue().isJsonObject() || !group.getValue().getAsJsonObject().isEmpty())
                     issue(null, "resources." + group.getKey(), "unsupported", "");
@@ -75,7 +84,11 @@ public final class ProjectValidator {
                     ResourceLocation id = ResourceLocation.tryParse(reference.id());
                     if (id == null || id.getPath().isEmpty()) { issue(key, reference.field(), "invalid_id", reference.id()); continue; }
                     try {
-                        if (!exists(content, reference.kind(), id)) issue(key, reference.field(), "missing_reference", reference.id());
+                        boolean found = reference.kind().material()
+                                ? id.getNamespace().equals(draft.namespace()) ? MaterialPack.contains(draft, reference.kind(), id.toString())
+                                : (reference.kind() == ResourceKind.IMAGE ? media.images() : media.sounds()).contains(id.toString())
+                                : exists(content, reference.kind(), id);
+                        if (!found) issue(key, reference.field(), "missing_reference", reference.id());
                         else if (!id.getNamespace().equals(draft.namespace())) dependencies.add(reference.id());
                     } catch (RuntimeException failure) {
                         issue(key, reference.field(), "invalid_reference", failure.getMessage());

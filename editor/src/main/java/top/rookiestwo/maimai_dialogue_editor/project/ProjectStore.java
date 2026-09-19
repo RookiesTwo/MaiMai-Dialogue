@@ -22,6 +22,7 @@ public final class ProjectStore {
     public ProjectStore(Path projectsDirectory) {
         this.projectsDirectory = projectsDirectory.toAbsolutePath().normalize();
     }
+    public Path root() { return projectsDirectory; }
 
     public record Entry(Path directory, String name, String namespace, long modifiedMillis, String errorReason) {
         public boolean canOpen() { return errorReason == null; }
@@ -39,7 +40,8 @@ public final class ProjectStore {
         JsonElement index = readRevision(indexPath, indexHash);
         manifest.remove("resource_index");
         ProjectDraft draft = ProjectIndex.decode(manifest, index, (key, hash) -> () ->
-                ProjectJson.parse(readRevisionBytes(resourcePath(directory, key, hash), hash)));
+                ProjectJson.parse(readRevisionBytes(resourcePath(directory, key, hash), hash)),
+                (id, size) -> blob(directory, id, size));
         return new Loaded(draft, ProjectJson.hash(bytes));
     }
 
@@ -50,6 +52,12 @@ public final class ProjectStore {
         checkUnchanged(target, expectedFingerprint);
         Files.createDirectories(directory);
         validateDirectory(directory);
+        for (ProjectBlob blob : draft.blobs().values()) {
+            Path path = managedPath(directory, "media/" + blob.id());
+            if (Files.exists(path, LinkOption.NOFOLLOW_LINKS))
+                readRevisionBytes(path, blob.id().substring(0, 64), ProjectBlob.MAX_BYTES);
+            else writeRevision(directory, path, blob.read(), blob.id().substring(0, 64), ProjectBlob.MAX_BYTES);
+        }
         for (var entry : draft.entries().entrySet()) {
             ProjectResource resource = entry.getValue();
             Path path = resourcePath(directory, entry.getKey(), resource.fingerprint());
@@ -78,14 +86,19 @@ public final class ProjectStore {
         } finally {
             Files.deleteIfExists(temporary);
         }
+        for (ProjectBlob blob : draft.blobs().values()) blob.useStoredCopy(() ->
+                readRevisionBytes(managedPath(directory, "media/" + blob.id()), blob.id().substring(0, 64), ProjectBlob.MAX_BYTES));
         return ProjectJson.hash(bytes);
     }
 
     private void writeRevision(Path directory, Path target, byte[] bytes, String hash) throws IOException {
-        if (bytes.length > CONTENT_LIMIT) throw new ProjectException("too_large");
+        writeRevision(directory, target, bytes, hash, CONTENT_LIMIT);
+    }
+    private void writeRevision(Path directory, Path target, byte[] bytes, String hash, int limit) throws IOException {
+        if (bytes.length > limit) throw new ProjectException("too_large");
         if (!ProjectJson.hash(bytes).equals(hash)) throw new ProjectException("invalid_format");
         if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
-            readRevisionBytes(target, hash);
+            readRevisionBytes(target, hash, limit);
             return;
         }
         Files.createDirectories(target.getParent());
@@ -95,7 +108,7 @@ public final class ProjectStore {
             writeForced(temporary, bytes);
             // No replacement: immutable revisions may be shared by another in-flight save.
             try { Files.move(temporary, target); }
-            catch (FileAlreadyExistsException concurrent) { readRevisionBytes(target, hash); }
+            catch (FileAlreadyExistsException concurrent) { readRevisionBytes(target, hash, limit); }
         } finally {
             Files.deleteIfExists(temporary);
         }
@@ -109,9 +122,25 @@ public final class ProjectStore {
         }
     }
     private static byte[] readRevisionBytes(Path path, String hash) throws IOException {
-        byte[] bytes = ProjectJson.read(path, CONTENT_LIMIT);
+        return readRevisionBytes(path, hash, CONTENT_LIMIT);
+    }
+    private static byte[] readRevisionBytes(Path path, String hash, int limit) throws IOException {
+        byte[] bytes = ProjectJson.read(path, limit);
         if (!ProjectJson.hash(bytes).equals(hash)) throw new ProjectException("external_change");
         return bytes;
+    }
+    public ProjectBlob storeBlob(Path directory, byte[] bytes, String extension) throws IOException {
+        String hash = ProjectJson.hash(bytes);
+        String id = hash + "." + extension;
+        if (!ProjectBlob.validId(id) || bytes.length == 0) throw new ProjectException("invalid_format");
+        validateDirectory(directory);
+        Files.createDirectories(directory);
+        writeRevision(directory, managedPath(directory, "media/" + id), bytes, hash, ProjectBlob.MAX_BYTES);
+        return blob(directory, id, bytes.length);
+    }
+    private ProjectBlob blob(Path directory, String id, long size) {
+        return new ProjectBlob(id, size, () ->
+                readRevisionBytes(managedPath(directory, "media/" + id), id.substring(0, 64), ProjectBlob.MAX_BYTES));
     }
     private static JsonElement readRevision(Path path, String hash) throws IOException {
         return ProjectJson.parse(readRevisionBytes(path, hash));

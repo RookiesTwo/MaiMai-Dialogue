@@ -15,17 +15,23 @@ public final class ProjectDraft {
     private final Map<ResourceKey, ProjectResource> entries;
     private final Set<ResourceKind> groups;
     private final JsonObject extraGroups;
+    private final Map<String, ProjectBlob> blobs;
     private final int hash;
 
     ProjectDraft(JsonObject metadata, Map<ResourceKey, ProjectResource> entries,
                  Set<ResourceKind> groups, JsonObject extraGroups) {
+        this(metadata, entries, groups, extraGroups, Map.of());
+    }
+    ProjectDraft(JsonObject metadata, Map<ResourceKey, ProjectResource> entries,
+                 Set<ResourceKind> groups, JsonObject extraGroups, Map<String, ProjectBlob> blobs) {
         this.metadata = metadata.deepCopy();
         this.entries = Collections.unmodifiableMap(new LinkedHashMap<>(entries));
         this.groups = Set.copyOf(groups);
         this.extraGroups = extraGroups.deepCopy();
+        this.blobs = Map.copyOf(blobs);
         // Gson's parsed numeric primitives can have a different hash from equal constructed numbers.
         // Metadata equality is still checked below; use stable fields for this inexpensive precheck.
-        hash = Objects.hash(name(), namespace(), this.entries, this.groups);
+        hash = Objects.hash(name(), namespace(), this.entries, this.groups, this.blobs.keySet());
     }
     public static ProjectDraft create(String name, String namespace) {
         JsonObject metadata = new JsonObject();
@@ -70,6 +76,14 @@ public final class ProjectDraft {
     public String name() { return metadata.get("name").getAsString(); }
     public String namespace() { return metadata.get("namespace").getAsString(); }
     public JsonObject metadata() { return metadata.deepCopy(); }
+    public Map<String, ProjectBlob> blobs() { return blobs; }
+    public ProjectBlob blob(String id) { return blobs.get(id); }
+    public ProjectDraft withBlob(ProjectBlob blob) {
+        if (blobs.containsKey(blob.id())) return this;
+        var next = new LinkedHashMap<>(blobs);
+        next.put(blob.id(), blob);
+        return new ProjectDraft(metadata, entries, groups, extraGroups, next);
+    }
     Map<ResourceKey, ProjectResource> entries() { return entries; }
     Set<ResourceKind> groups() { return groups; }
     JsonObject extraGroups() { return extraGroups.deepCopy(); }
@@ -88,7 +102,7 @@ public final class ProjectDraft {
         if (metadata.get(key).getAsString().equals(value)) return this;
         JsonObject next = metadata();
         next.addProperty(key, Objects.requireNonNull(value));
-        return new ProjectDraft(next, entries, groups, extraGroups);
+        return new ProjectDraft(next, entries, groups, extraGroups, blobs);
     }
     public boolean hasValidMetadata() { return !name().isBlank() && namespace().matches("[a-z0-9_.-]+"); }
     public boolean hasResourceGroup(ResourceKind kind) { return !extraGroups.has(kind.directory()); }
@@ -106,14 +120,14 @@ public final class ProjectDraft {
         var categories = EnumSet.noneOf(ResourceKind.class);
         categories.addAll(groups);
         categories.add(key.kind());
-        return new ProjectDraft(metadata, resources, categories, extraGroups);
+        return new ProjectDraft(metadata, resources, categories, extraGroups, blobs);
     }
     public ProjectDraft withoutResource(ResourceKey key) {
         if (!hasResourceGroup(key.kind())) throw new IllegalStateException("Invalid resource group");
         if (!entries.containsKey(key)) return this;
         var resources = new LinkedHashMap<>(entries);
         resources.remove(key);
-        return new ProjectDraft(metadata, resources, groups, extraGroups);
+        return new ProjectDraft(metadata, resources, groups, extraGroups, blobs);
     }
     public JsonObject resources() {
         try { loadAll(); } catch (IOException failure) { throw new UncheckedIOException(failure); }
@@ -129,7 +143,8 @@ public final class ProjectDraft {
     }
     @Override public boolean equals(Object other) {
         return this == other || other instanceof ProjectDraft draft && hash == draft.hash && metadata.equals(draft.metadata)
-                && entries.equals(draft.entries) && groups.equals(draft.groups) && extraGroups.equals(draft.extraGroups);
+                && entries.equals(draft.entries) && groups.equals(draft.groups) && extraGroups.equals(draft.extraGroups)
+                && blobs.keySet().equals(draft.blobs.keySet());
     }
     @Override public int hashCode() { return hash; }
 }

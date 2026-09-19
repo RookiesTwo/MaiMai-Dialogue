@@ -162,7 +162,7 @@ public final class ResourceWorkspace {
 
     public boolean canCreate() {
         return active() && form == Form.NONE && !selection().isStep()
-                && (selection.kind() == null || selection.kind().available());
+                && (selection.kind() == null || selection.kind().creatable());
     }
 
     public boolean canModifySelected() {
@@ -200,7 +200,7 @@ public final class ResourceWorkspace {
     }
 
     public void setFormKind(ResourceKind kind) {
-        if (!active() || form != Form.CREATE || !kind.available()) return;
+        if (!active() || form != Form.CREATE || !kind.creatable()) return;
         formKind = kind;
         error = null;
         changed.run();

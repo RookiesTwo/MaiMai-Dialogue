@@ -29,6 +29,7 @@ final class ResourceBrowserView extends LinearLayout {
     private final Button create;
     private final Button copy;
     private final Button delete;
+    private final Button importMaterial;
     private final ResourceSelectionLayout rows;
     private final ScrollView scroll;
     private final TextView empty;
@@ -75,6 +76,10 @@ final class ResourceBrowserView extends LinearLayout {
             EditorWidgets.bindMetrics(button, () -> button.setLayoutParams(new LayoutParams(0, dp(30), 1)));
         }
         addView(actions);
+        importMaterial = EditorWidgets.button(context, "material.import", () -> workspace.materials().begin(null));
+        addView(importMaterial);
+        EditorWidgets.bindMetrics(importMaterial, () -> importMaterial.setLayoutParams(
+                new LayoutParams(LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP))));
         rows = new ResourceSelectionLayout(context);
         scroll = EditorWidgets.formScroll(context, rows);
         scroll.setVerticalScrollBarEnabled(true);
@@ -88,6 +93,7 @@ final class ResourceBrowserView extends LinearLayout {
         workspace.content().snapshot();
         ResourceTree.Node selection = resources.selection();
         boolean step = selection.isStep();
+        EditorWidgets.enabled(importMaterial, workspace.draft() != null && resources.active() && resources.form() == ResourceWorkspace.Form.NONE);
         refreshing = true;
         try {
             if (!search.getText().toString().equals(resources.query())) search.setText(resources.query());

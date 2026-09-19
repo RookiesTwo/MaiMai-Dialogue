@@ -48,14 +48,28 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
                     .resolve("maimai-dialogue-projects")), io,
                     task -> Core.getUiHandler().post(task), () -> EditorScreens.close(this));
             workspace.windowFocusChanged(gameWindowFocused);
+            workspace.materials().setPreview(new top.rookiestwo.maimai_dialogue_editor.client.EditorDevelopmentPack(
+                    io, Minecraft.getInstance().gameDirectory.toPath()));
             preview = new EditorPreviewHost(this, workspace);
             exports = new ExportWorkspace(workspace, io, task -> Core.getUiHandler().post(task), () -> {
                 CompletableFuture<ExportWorkspace.Environment> result = new CompletableFuture<>();
                 Minecraft.getInstance().execute(() -> {
                     try {
                         var version = SharedConstants.getCurrentVersion();
-                        result.complete(new ExportWorkspace.Environment(ClientServices.get().content().current(),
-                                version.getPackVersion(PackType.CLIENT_RESOURCES), version.getPackVersion(PackType.SERVER_DATA)));
+                        var content = ClientServices.get().content().current();
+                        var manager = Minecraft.getInstance().getResourceManager();
+                        var sounds = Minecraft.getInstance().getSoundManager().getAvailableSounds().stream()
+                                .map(Object::toString).collect(java.util.stream.Collectors.toSet());
+                        io.execute(() -> {
+                            try {
+                                var images = manager.listResources("textures", id -> !id.getPath().endsWith(".mcmeta")).keySet().stream()
+                                        .map(id -> id.getNamespace() + ":" + id.getPath().substring("textures/".length()))
+                                        .collect(java.util.stream.Collectors.toSet());
+                                result.complete(new ExportWorkspace.Environment(content,
+                                        version.getPackVersion(PackType.CLIENT_RESOURCES), version.getPackVersion(PackType.SERVER_DATA),
+                                        new top.rookiestwo.maimai_dialogue_editor.material.MaterialPack.External(images, sounds)));
+                            } catch (RuntimeException failure) { result.completeExceptionally(failure); }
+                        });
                     } catch (RuntimeException failure) { result.completeExceptionally(failure); }
                 });
                 return result;

@@ -28,6 +28,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     private ResourceWorkspace.Form shownResourceForm = ResourceWorkspace.Form.NONE;
     private ResourceDialog resourceDialog;
     private EditorDropdownMenu choices;
+    private MaterialImportDialog materialDialog;
 
     EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace, EditorPreviewHost preview,
                         ExportWorkspace exports) {
@@ -50,6 +51,8 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
             workbench.cancelDrags();
             if (dialog != null) removeView(dialog);
             dialog = null;
+            if (materialDialog != null) removeView(materialDialog);
+            materialDialog = null;
             releaseDropdown();
             shown = page;
             workbench.setDescendantFocusability(page == ProjectWorkspace.Page.NONE
@@ -64,6 +67,10 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
                 dropdown = new EditorDropdownMenu(exportMenu, workbench.exportMenuAnchor(), workspace::dismissMenu);
                 addView(dropdown, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
                 dropdown.requestFocus();
+            } else if (page == ProjectWorkspace.Page.IMPORT) {
+                materialDialog = new MaterialImportDialog(getContext(), workspace);
+                addView(materialDialog, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+                materialDialog.requestFocus();
             } else if (page != ProjectWorkspace.Page.NONE) {
                 dialog = new ProjectDialog(getContext(), workspace);
                 addView(dialog, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
@@ -73,6 +80,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
             }
         }
         if (dialog != null) dialog.refresh();
+        if (materialDialog != null) materialDialog.refresh();
         if (projectMenu != null) projectMenu.refresh();
         if (exportMenu != null) exportMenu.refresh();
         if (dropdown != null) dropdown.requestLayout();
@@ -186,6 +194,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     protected void onViewportChanged(boolean densityChanged) {
         cancelDrags();
         if (densityChanged && dialog != null) EditorWidgets.refreshMetrics(dialog);
+        if (densityChanged && materialDialog != null) EditorWidgets.refreshMetrics(materialDialog);
         if (densityChanged && dropdown != null) EditorWidgets.refreshMetrics(dropdown);
         if (densityChanged && resourceDialog != null) EditorWidgets.refreshMetrics(resourceDialog);
         if (densityChanged && choices != null) EditorWidgets.refreshMetrics(choices);

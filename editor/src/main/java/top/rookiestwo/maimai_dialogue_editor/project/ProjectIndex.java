@@ -9,6 +9,7 @@ final class ProjectIndex {
     @FunctionalInterface interface LoaderFactory {
         ProjectResource.Loader create(ResourceKey key, String hash);
     }
+    @FunctionalInterface interface BlobFactory { ProjectBlob create(String id, long size); }
     static JsonObject encode(ProjectDraft draft) {
         JsonObject index = new JsonObject();
         JsonArray groups = new JsonArray();
@@ -27,9 +28,13 @@ final class ProjectIndex {
             resources.add(resource);
         });
         index.add("resources", resources);
+        JsonObject blobs = new JsonObject();
+        draft.blobs().entrySet().stream().sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> blobs.addProperty(entry.getKey(), entry.getValue().size()));
+        if (!blobs.isEmpty()) index.add("blobs", blobs);
         return index;
     }
-    static ProjectDraft decode(JsonObject metadata, JsonElement value, LoaderFactory loaders) throws ProjectException {
+    static ProjectDraft decode(JsonObject metadata, JsonElement value, LoaderFactory loaders, BlobFactory blobFactory) throws ProjectException {
         try {
             JsonObject index = value.getAsJsonObject();
             Set<ResourceKind> groups = EnumSet.noneOf(ResourceKind.class);
@@ -57,7 +62,12 @@ final class ProjectIndex {
                         new ProjectResource.Summary(name, steps, refs), loaders.create(key, hash))) != null)
                     throw new IllegalStateException();
             }
-            return new ProjectDraft(metadata, entries, groups, extras);
+            Map<String, ProjectBlob> blobs = new LinkedHashMap<>();
+            if (index.has("blobs")) for (var entry : index.getAsJsonObject("blobs").entrySet()) {
+                long size = entry.getValue().getAsBigDecimal().longValueExact();
+                blobs.put(entry.getKey(), blobFactory.create(entry.getKey(), size));
+            }
+            return new ProjectDraft(metadata, entries, groups, extras, blobs);
         } catch (IllegalArgumentException | IllegalStateException | NullPointerException | ArithmeticException | NoSuchElementException invalid) {
             throw new ProjectException("invalid_format");
         }

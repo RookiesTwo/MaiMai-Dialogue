@@ -28,8 +28,18 @@ public final class ResourceCatalog {
             for (ResourceReferences.Reference ref : value.summary().references()) {
                 String prefix = draft.namespace() + ":";
                 if (ref.id().startsWith(prefix)) {
-                    ResourceKey target = new ResourceKey(ref.kind(), ref.id().substring(prefix.length()));
-                    inbound.computeIfAbsent(target, key -> new ArrayList<>()).add(new Use(source, ref.field()));
+                    String path = ref.id().substring(prefix.length());
+                    if (ref.kind() == ResourceKind.IMAGE && path.endsWith(".png")) path = path.substring(0, path.length() - 4);
+                    if (ref.kind() == ResourceKind.SOUND) {
+                        String event = path;
+                        entries.forEach((target, sound) -> {
+                            if (target.kind() == ResourceKind.SOUND && sound.summary().name().equals(event))
+                                inbound.computeIfAbsent(target, key -> new ArrayList<>()).add(new Use(source, ref.field()));
+                        });
+                    } else {
+                        ResourceKey target = new ResourceKey(ref.kind(), path);
+                        inbound.computeIfAbsent(target, key -> new ArrayList<>()).add(new Use(source, ref.field()));
+                    }
                 }
             }
         });
@@ -71,6 +81,7 @@ public final class ResourceCatalog {
                     {"presentation":{"theme":"maimai_dialogue:default"},"steps":[],"end":{"exit":{"type":"return"}}}
                     """).getAsJsonObject();
             case SPEAKER -> JsonParser.parseString("{\"name\":\"\"}").getAsJsonObject();
+            case VISUAL_ASSET -> JsonParser.parseString("{\"variants\":{},\"sampling\":\"linear\"}").getAsJsonObject();
             default -> throw new IllegalArgumentException("Resource editor is not available: " + kind);
         };
     }

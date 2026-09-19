@@ -6,11 +6,11 @@ public enum ResourceKind {
     SPEAKER("speakers", "speaker", true),
     PRESENTATION("presentations", "presentation", false),
     SCENE("scenes", "scene", false),
-    VISUAL_ASSET("visual_assets", "visual_asset", false),
+    VISUAL_ASSET("visual_assets", "visual_asset", true),
     ACTION("actions", "action", false),
     THEME("themes", "theme", false),
-    IMAGE("images", "image", false),
-    SOUND("sounds", "sound", false);
+    IMAGE("images", "image", true),
+    SOUND("sounds", "sound", true);
 
     private final String directory;
     private final String key;
@@ -25,4 +25,6 @@ public enum ResourceKind {
     public String directory() { return directory; }
     public String key() { return key; }
     public boolean available() { return available; }
+    public boolean material() { return this == IMAGE || this == SOUND; }
+    public boolean creatable() { return available && !material(); }
 }

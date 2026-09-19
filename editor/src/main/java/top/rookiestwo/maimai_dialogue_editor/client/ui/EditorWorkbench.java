@@ -91,6 +91,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     }
 
     void refreshProject() {
+        workspace.materials().synchronize();
         if (issueFocusRevision != workspace.issueFocusRevision()) {
             issueFocusRevision = workspace.issueFocusRevision();
             var issue = workspace.focusedIssue();
@@ -114,7 +115,8 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
                 + EditorWidgets.tr(workspace.dirty() ? "project.unsaved" : "project.saved_state");
         String validation = exports.busy() || exports.report() != null || !exports.error().isEmpty()
                 ? " · " + EditorWidgets.tr(exports.status()) : "";
-        status.setText(label + saveState + " · " + message + validation);
+        String material = workspace.draft() == null ? "" : " · " + EditorWidgets.tr(workspace.materials().status());
+        status.setText(label + saveState + " · " + message + validation + material);
         status.setTooltipText(status.getText());
     }
 
