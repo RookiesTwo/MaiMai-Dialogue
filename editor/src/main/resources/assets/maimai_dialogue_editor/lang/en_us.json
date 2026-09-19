@@ -3,7 +3,6 @@
   "gui.maimai_dialogue_editor.preview.restart": "Restart",
   "gui.maimai_dialogue_editor.preview.stop": "Stop",
   "gui.maimai_dialogue_editor.preview.idle": "Not playing",
-  "gui.maimai_dialogue_editor.preview.loading": "Preparing preview…",
   "gui.maimai_dialogue_editor.preview.running": "Preview running",
   "gui.maimai_dialogue_editor.preview.finished": "Preview finished",
   "gui.maimai_dialogue_editor.preview.failed": "Cannot preview",

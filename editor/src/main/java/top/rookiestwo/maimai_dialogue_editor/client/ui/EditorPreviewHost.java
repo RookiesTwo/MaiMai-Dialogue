@@ -33,10 +33,12 @@ final class EditorPreviewHost {
     private EditorPreviewView view;
     private EditorPreviewSession playback;
     private DialogueFragment fragment;
+    private boolean showingIdle;
     private ProjectDraft source;
     private ResourceKey dialogue;
     private long revision;
     private boolean loading;
+    private boolean advanceAfterLoad;
     private boolean disposed;
     private String message = "preview.idle";
     private String error = "";
@@ -72,7 +74,7 @@ final class EditorPreviewHost {
     }
 
     boolean canStart() {
-        return !loading && canOperate();
+        return canOperate();
     }
 
     private boolean canOperate() {
@@ -105,13 +107,13 @@ final class EditorPreviewHost {
             if (view != null) view.refresh();
             return;
         }
-        if (source != null && (source != workspace.draft() || !Objects.equals(dialogue, workspace.resources().opened()))) {
-            stop();
-        }
         // Draft edits stop playback. Browsing a Step is a separate, explicit seek request.
-        if (!draftChanged && selectionChanged) {
-            if (selected.isStep() && Objects.equals(selected.owner(), opened)) startAt(selected.stepIndex());
-            else if (selected.kind() == ResourceKind.DIALOGUE && selected.type() == ResourceTree.Type.RESOURCE) stop();
+        if (!draftChanged && selectionChanged && selected.isStep() && Objects.equals(selected.owner(), opened)) {
+            startAt(selected.stepIndex());
+        } else {
+            if (source != null && (source != draft || !Objects.equals(dialogue, opened))) stop();
+            if (!draftChanged && selectionChanged && selected.kind() == ResourceKind.DIALOGUE
+                    && selected.type() == ResourceTree.Type.RESOURCE) stop();
         }
         if (view != null) view.refresh();
     }
@@ -124,14 +126,15 @@ final class EditorPreviewHost {
         // A new tree selection may supersede a pending start before the client snapshot arrives.
         if (!canOperate() || view == null || !view.isAttachedToWindow()) return;
         workspace.endEdit();
-        stop();
+        // Keep the displayed session and controls until the replacement is ready.
+        // Its callbacks are suspended while loading, then discarded by session identity.
         source = workspace.draft();
         dialogue = workspace.resources().opened();
         ProjectDraft captured = source;
         ResourceKey capturedKey = dialogue;
         long expected = ++revision;
         loading = true;
-        message = "preview.loading";
+        advanceAfterLoad = false;
         refresh();
         // Read the loaded resource snapshot on the client thread; never replace the global repository.
         Minecraft.getInstance().execute(() -> {
@@ -146,17 +149,22 @@ final class EditorPreviewHost {
                 }
                 try {
                     var content = new ProjectContentSnapshot(captured, external);
-                    playback = new EditorPreviewSession(content,
+                    var prepared = new EditorPreviewSession(content,
                             ResourceLocation.fromNamespaceAndPath(captured.namespace(), capturedKey.path()), interval, step);
+                    if (playback != null) playback.stop();
+                    playback = prepared;
+                    if (advanceAfterLoad) playback.advance();
+                    advanceAfterLoad = false;
                     if (running()) {
+                        showingIdle = false;
                         fragment = new DialogueFragment(new PreviewActions(playback), DialogueFragment.CornerControls.DISPLAY_ONLY);
                         owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, "editor-preview").commitNow();
                     }
                     render();
                 } catch (RuntimeException failure) {
+                    advanceAfterLoad = false;
                     if (playback != null) playback.stop();
                     playback = null;
-                    clearFragments();
                     showIdleControls();
                     error = failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage();
                     message = "preview.failed";
@@ -168,6 +176,11 @@ final class EditorPreviewHost {
 
     void advance() {
         if (!canStart()) return;
+        if (loading) {
+            // Apply a click to the requested Step once ready, never to the old displayed session.
+            advanceAfterLoad = true;
+            return;
+        }
         if (!running()) {
             var selected = workspace.resources().selection();
             startAt(selected.isStep() && selected.owner().equals(workspace.resources().opened()) ? selected.stepIndex() : 0);
@@ -179,7 +192,6 @@ final class EditorPreviewHost {
 
     void stop() {
         reset();
-        clearFragments();
         showIdleControls();
         refresh();
     }
@@ -188,13 +200,17 @@ final class EditorPreviewHost {
         if (disposed || view == null || !view.isAttachedToWindow()) return;
         FragmentManager manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return;
+        if (showingIdle && fragment != null) return;
+        clearFragments();
         fragment = new DialogueFragment(new PreviewActions(null), DialogueFragment.CornerControls.DISPLAY_ONLY);
         manager.beginTransaction().replace(containerId, fragment, "editor-preview").commitNow();
+        showingIdle = true;
     }
 
     private void reset() {
         ++revision;
         loading = false;
+        advanceAfterLoad = false;
         if (playback != null) playback.stop();
         playback = null;
         source = null;
@@ -205,6 +221,7 @@ final class EditorPreviewHost {
 
     private void clearFragments() {
         fragment = null;
+        showingIdle = false;
         FragmentManager manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return;
         // The embedded history page uses the same child manager and must be released with playback.
@@ -229,7 +246,6 @@ final class EditorPreviewHost {
         error = playback.error();
         if (running() && fragment != null) fragment.render(playback.state());
         else {
-            clearFragments();
             // Drop decoded definitions, history and simulated commands as soon as playback ends.
             playback = null;
             showIdleControls();
@@ -260,14 +276,14 @@ final class EditorPreviewHost {
         // FragmentManager destroys child Views before the parent callback; do not start nested transactions here.
         reset();
         fragment = null;
+        showingIdle = false;
         view = null;
         changed = () -> {};
     }
 
     void onViewReady() {
         if (view != null) view.post(() -> {
-            if (view != null && view.isAttachedToWindow() && !running()) {
-                clearFragments();
+            if (view != null && view.isAttachedToWindow() && !loading && !running()) {
                 showIdleControls();
             }
         });
@@ -290,7 +306,7 @@ final class EditorPreviewHost {
             if (session == null) return;
             Core.getUiHandler().post(() -> {
                 // Old animation, text and destruction callbacks must never operate on a restarted preview.
-                if (disposed || playback != session || !session.running()) return;
+                if (disposed || loading || playback != session || !session.running()) return;
                 action.accept(session);
                 render();
             });

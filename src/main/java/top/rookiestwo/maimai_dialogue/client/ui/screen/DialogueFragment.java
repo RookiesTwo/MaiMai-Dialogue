@@ -112,6 +112,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
     ) {
         var context = Objects.requireNonNull(getContext(), "Fragment context");
         ClientPreferences preferences = ClientConfig.get();
+        DialogueScreenState initialState = controller.viewState();
         DialogueTypography typography = DialogueTypography.resolve(preferences);
         DialogueBoxView dialogueBox = new DialogueBoxView(
                 context,
@@ -119,6 +120,8 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                         () -> controller.selectOption(option)
                 )
         );
+        // The first render is queued; an idle preview must already be hidden before attachment.
+        dialogueBox.setVisibility(dialogueBoxVisibility(initialState));
         dialogueBox.setTypography(typography);
         ImageButton historyEntry = createHistoryButton(context);
         historyEntry.setOnClickListener(view -> openHistory());
@@ -149,7 +152,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
         scene.setDialogueBoxStateConsumer(root::setDialogueBoxState);
         root.setFocusable(true);
         root.setFocusableInTouchMode(true);
-        if (cornerControls == CornerControls.INTERACTIVE || controller.viewState().scenePlayback().isPresent()) {
+        if (cornerControls == CornerControls.INTERACTIVE || initialState.scenePlayback().isPresent()) {
             root.requestFocus();
         }
 
@@ -158,8 +161,13 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
         boxView = dialogueBox;
         historyButton = historyEntry;
         skipButton = skipEntry;
-        render(controller.viewState());
+        render(initialState);
         return root;
+    }
+
+    private int dialogueBoxVisibility(DialogueScreenState state) {
+        return cornerControls == CornerControls.DISPLAY_ONLY && state.presentation().isEmpty()
+                ? View.GONE : View.VISIBLE;
     }
 
     // 根据不可变 screen state 分发对话框和场景状态。
@@ -186,8 +194,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                         && historyButton == historyEntry
                         && skipButton == skipEntry,
                 () -> {
-                    box.setVisibility(cornerControls == CornerControls.DISPLAY_ONLY && state.presentation().isEmpty()
-                            ? View.GONE : View.VISIBLE);
+                    box.setVisibility(dialogueBoxVisibility(state));
                     confirmations.render(state);
                     if (state.generation() != renderedGeneration) {
                         renderedGeneration = state.generation();

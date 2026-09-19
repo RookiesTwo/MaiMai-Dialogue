@@ -69,8 +69,8 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     void refresh() {
         EditorWidgets.enabled(advance, host.canStart());
         EditorWidgets.enabled(restart, host.canStart() && host.running());
-        EditorWidgets.enabled(stop, host.running() || host.loading());
-        notice.setVisibility(host.running() ? GONE : VISIBLE);
+        EditorWidgets.enabled(stop, host.running());
+        notice.setVisibility(host.running() || host.loading() ? GONE : VISIBLE);
         message.setText(EditorWidgets.tr(host.message()) + (host.error().isEmpty() ? "" : "\n" + host.error()));
     }
 

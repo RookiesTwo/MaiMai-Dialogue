@@ -3,7 +3,6 @@
   "gui.maimai_dialogue_editor.preview.restart": "重新开始",
   "gui.maimai_dialogue_editor.preview.stop": "停止",
   "gui.maimai_dialogue_editor.preview.idle": "未播放",
-  "gui.maimai_dialogue_editor.preview.loading": "正在准备预览…",
   "gui.maimai_dialogue_editor.preview.running": "正在预览",
   "gui.maimai_dialogue_editor.preview.finished": "预览已结束",
   "gui.maimai_dialogue_editor.preview.failed": "无法预览",
