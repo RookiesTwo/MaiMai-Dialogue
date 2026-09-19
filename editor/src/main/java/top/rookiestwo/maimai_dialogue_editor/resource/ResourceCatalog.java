@@ -1,9 +1,9 @@
 package top.rookiestwo.maimai_dialogue_editor.resource;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
+import top.rookiestwo.maimai_dialogue_editor.project.ProjectResource;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,21 +16,16 @@ import java.util.Map;
 public final class ResourceCatalog {
     public record Use(ResourceKey source, String field) {}
     private final ProjectDraft draft;
-    private final Map<ResourceKey, JsonElement> entries = new LinkedHashMap<>();
+    private final Map<ResourceKey, ProjectResource> entries = new LinkedHashMap<>();
     private final Map<ResourceKey, List<Use>> inbound = new LinkedHashMap<>();
 
     public ResourceCatalog(ProjectDraft draft) {
         this.draft = draft;
         if (draft == null) return;
-        JsonObject resources = draft.resources();
-        for (ResourceKind kind : ResourceKind.values()) {
-            JsonElement group = resources.get(kind.directory());
-            if (group == null || !group.isJsonObject()) continue;
-            group.getAsJsonObject().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry ->
-                    entries.put(new ResourceKey(kind, entry.getKey()), entry.getValue()));
-        }
+        draft.resourceKeys().stream().sorted(java.util.Comparator.comparing(ResourceKey::kind)
+                .thenComparing(ResourceKey::path)).forEach(key -> entries.put(key, draft.revision(key)));
         entries.forEach((source, value) -> {
-            for (ResourceReferences.Reference ref : ResourceReferences.scan(source.kind(), value)) {
+            for (ResourceReferences.Reference ref : value.summary().references()) {
                 String prefix = draft.namespace() + ":";
                 if (ref.id().startsWith(prefix)) {
                     ResourceKey target = new ResourceKey(ref.kind(), ref.id().substring(prefix.length()));
@@ -48,20 +43,16 @@ public final class ResourceCatalog {
         return users(key).stream().filter(use -> !use.source().equals(key)).toList();
     }
     public String displayName(ResourceKey key) {
-        return key.kind() == ResourceKind.SPEAKER
-                ? ResourceReferences.string(ResourceReferences.get(entries.get(key), "name")) : "";
+        ProjectResource resource = entries.get(key);
+        return resource == null ? "" : resource.summary().name();
     }
     public int stepCount(ResourceKey key) {
-        JsonElement steps = ResourceReferences.get(entries.get(key), "steps");
-        return steps != null && steps.isJsonArray() ? steps.getAsJsonArray().size() : 0;
+        ProjectResource resource = entries.get(key);
+        return resource == null ? 0 : resource.summary().steps();
     }
     public String stepText(ResourceKey key, int index) {
-        JsonElement dialogue = entries.get(key);
-        JsonElement steps = ResourceReferences.get(dialogue, "steps");
-        JsonElement node = index < 0 ? ResourceReferences.get(dialogue, "end")
-                : steps != null && steps.isJsonArray() && index < steps.getAsJsonArray().size()
-                ? steps.getAsJsonArray().get(index) : null;
-        return ResourceReferences.string(ResourceReferences.get(node, "text"));
+        ProjectResource resource = entries.get(key);
+        return resource == null ? "" : resource.stepText(index);
     }
     public List<ResourceKey> search(String query) {
         String needle = query.strip().toLowerCase(Locale.ROOT);

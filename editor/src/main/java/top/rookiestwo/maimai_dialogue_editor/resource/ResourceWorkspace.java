@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -31,6 +32,8 @@ public final class ResourceWorkspace {
     private String error;
     private long revealRevision;
     private long selectionRevision;
+    private long navigationRequest;
+    private BiConsumer<ResourceKey, Runnable> loadRequest = (key, ready) -> ready.run();
 
     public ResourceWorkspace(Supplier<ProjectDraft> current, Consumer<ProjectDraft> edit,
                              BooleanSupplier enabled, Runnable changed) {
@@ -41,6 +44,21 @@ public final class ResourceWorkspace {
     }
 
     public ResourceCatalog catalog() { synchronize(); return catalog; }
+    public void setLoadRequest(BiConsumer<ResourceKey, Runnable> request) { loadRequest = request; }
+    public long navigationRequest() { return navigationRequest; }
+    /** Keep the current document visible while its replacement is loaded on the IO executor. */
+    public boolean whenLoaded(ResourceKey key, Runnable retry) {
+        long expected = ++navigationRequest;
+        ProjectDraft draft = current.get();
+        if (key == null || draft == null || draft.isLoaded(key)) return true;
+        var revision = draft.revision(key);
+        loadRequest.accept(key, () -> {
+            ProjectDraft now = current.get();
+            if (expected == navigationRequest && active() && form == Form.NONE
+                    && now != null && now.revision(key) == revision && now.isLoaded(key)) retry.run();
+        });
+        return false;
+    }
     public ResourceTree.Node selection() { synchronize(); return selection; }
     public ResourceKey opened() { synchronize(); return opened; }
     public String query() { return query; }
@@ -59,6 +77,7 @@ public final class ResourceWorkspace {
     }
 
     public void reset() {
+        navigationRequest++;
         indexed = null;
         catalog = new ResourceCatalog(null);
         selection = ResourceTree.Node.project();
@@ -90,6 +109,7 @@ public final class ResourceWorkspace {
     public void select(ResourceTree.Node node) {
         if (!active() || form != Form.NONE) return;
         if (!rows().stream().anyMatch(row -> row.node().equals(node))) return;
+        if (!whenLoaded(node.kind() != null && node.kind().available() ? node.owner() : null, () -> select(node))) return;
         selection = node;
         selectionRevision++;
         if (node.isStep()) {
@@ -105,6 +125,7 @@ public final class ResourceWorkspace {
 
     public void toggle(ResourceTree.Node node) {
         if (!active() || form != Form.NONE || node.isStep()) return;
+        if (!whenLoaded(node.resource(), () -> toggle(node))) return;
         if (node.type() == ResourceTree.Type.RESOURCE) {
             if (node.kind() != ResourceKind.DIALOGUE || !catalog().contains(node.resource())) return;
             if (!expandedDialogues.remove(node.resource())) expandedDialogues.add(node.resource());
@@ -117,12 +138,14 @@ public final class ResourceWorkspace {
 
     public void setQuery(String query) {
         if (!active() || form != Form.NONE) return;
+        navigationRequest++;
         this.query = query;
         changed.run();
     }
 
     public void open(ResourceKey key) {
         if (!active() || form != Form.NONE || !key.kind().available() || !catalog().contains(key)) return;
+        if (!whenLoaded(key, () -> open(key))) return;
         reveal(key);
         opened = key;
         selectionRevision++;
@@ -131,6 +154,7 @@ public final class ResourceWorkspace {
 
     public void closeDocument() {
         if (!active() || form != Form.NONE) return;
+        navigationRequest++;
         opened = null;
         selectionRevision++;
         changed.run();
@@ -147,6 +171,7 @@ public final class ResourceWorkspace {
 
     public void beginCreate() {
         if (!canCreate()) return;
+        navigationRequest++;
         form = Form.CREATE;
         formKind = selection.kind() == null ? ResourceKind.DIALOGUE : selection.kind();
         String folder = switch (selection.type()) {
@@ -165,6 +190,7 @@ public final class ResourceWorkspace {
 
     private void beginSelected(Form next) {
         if (!canModifySelected()) return;
+        if (!whenLoaded(selection.resource(), () -> beginSelected(next))) return;
         source = selection.resource();
         form = next;
         formKind = source.kind();
@@ -237,6 +263,7 @@ public final class ResourceWorkspace {
     /** Reveal a validation location even when search/folding currently hides it. */
     public void locate(ResourceKey key, int step) {
         if (!active() || form != Form.NONE || !catalog().contains(key)) return;
+        if (!whenLoaded(key, () -> locate(key, step))) return;
         reveal(key);
         if (key.kind().available()) opened = key;
         if (key.kind() == ResourceKind.DIALOGUE && step >= -1 && step < catalog.stepCount(key)) {

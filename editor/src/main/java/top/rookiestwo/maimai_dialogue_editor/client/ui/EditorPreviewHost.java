@@ -140,7 +140,9 @@ final class EditorPreviewHost {
         Minecraft.getInstance().execute(() -> {
             var external = ClientServices.get().content().current();
             int interval = ClientConfig.get().defaultTypewriterIntervalMs();
-            Core.getUiHandler().post(() -> {
+            workspace.prepare(() -> new ProjectContentSnapshot(captured, external).prepare(
+                            ResourceLocation.fromNamespaceAndPath(captured.namespace(), capturedKey.path())))
+                    .whenComplete((content, preparationFailure) -> Core.getUiHandler().post(() -> {
                 if (disposed || expected != revision || view == null) return;
                 loading = false;
                 if (captured != workspace.draft() || !Objects.equals(capturedKey, workspace.resources().opened())) {
@@ -148,7 +150,7 @@ final class EditorPreviewHost {
                     return;
                 }
                 try {
-                    var content = new ProjectContentSnapshot(captured, external);
+                    if (preparationFailure != null) throw new java.util.concurrent.CompletionException(preparationFailure);
                     var prepared = new EditorPreviewSession(content,
                             ResourceLocation.fromNamespaceAndPath(captured.namespace(), capturedKey.path()), interval, step);
                     if (playback != null) playback.stop();
@@ -166,11 +168,14 @@ final class EditorPreviewHost {
                     if (playback != null) playback.stop();
                     playback = null;
                     showIdleControls();
-                    error = failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage();
+                    Throwable cause = failure;
+                    while (cause instanceof java.util.concurrent.CompletionException && cause.getCause() != null)
+                        cause = cause.getCause();
+                    error = cause.getMessage() == null ? cause.getClass().getSimpleName() : cause.getMessage();
                     message = "preview.failed";
                     refresh();
                 }
-            });
+            }));
         });
     }
 

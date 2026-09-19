@@ -4,7 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Objects;
 
-/** Document history outlives Views; saved content is compared independently of the undo cursor. */
+/** History retains resource maps sharing unchanged revisions, never full copies of project JSON. */
 public final class ProjectHistory {
     private static final int LIMIT = 100;
     private final Deque<ProjectDraft> undo = new ArrayDeque<>();

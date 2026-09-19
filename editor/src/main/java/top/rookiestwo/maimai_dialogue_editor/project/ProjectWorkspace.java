@@ -4,6 +4,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.function.Consumer;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
@@ -53,6 +55,38 @@ public final class ProjectWorkspace {
         this.io = io;
         this.ui = ui;
         this.closeEditor = closeEditor;
+        resources.setLoadRequest(this::loadResource);
+    }
+
+    /** Background preparation shared by lazy document loading and preview snapshots. */
+    public <T> CompletableFuture<T> prepare(Supplier<T> operation) {
+        return CompletableFuture.supplyAsync(operation, io);
+    }
+
+    private void loadResource(ResourceKey key, Runnable ready) {
+        ProjectHistory owner = history;
+        ProjectDraft snapshot = draft();
+        if (snapshot == null) return;
+        var revision = snapshot.revision(key);
+        long request = resources.navigationRequest();
+        io.execute(() -> {
+            Exception failure = null;
+            try { snapshot.load(key); } catch (Exception error) { failure = error; }
+            Exception result = failure;
+            ui.execute(() -> {
+                if (disposed || busy || page != Page.NONE || history != owner
+                        || resources.navigationRequest() != request || draft().revision(key) != revision) return;
+                if (result == null) {
+                    clearError();
+                    ready.run();
+                } else {
+                    message = "project.failed";
+                    errorReason = result instanceof ProjectException error ? error.reason() : "io";
+                    errorDetail = result instanceof ProjectException ? "" : String.valueOf(result.getMessage());
+                    changed.run();
+                }
+            });
+        });
     }
 
     public void setListener(Runnable listener) {
@@ -94,6 +128,7 @@ public final class ProjectWorkspace {
         page = Page.NONE;
         focusedIssue = null;
         ResourceKey key = issue.resource();
+        if (key != null && !resources.whenLoaded(key, () -> locateIssue(issue))) return;
         if (key == null) {
             page = Page.MENU;
         } else if (resources.catalog().contains(key)) {

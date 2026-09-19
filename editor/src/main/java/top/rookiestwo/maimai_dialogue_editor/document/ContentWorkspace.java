@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
+import top.rookiestwo.maimai_dialogue_editor.project.ProjectResource;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
@@ -34,6 +35,9 @@ public final class ContentWorkspace {
     private final Map<ProjectDraft, Navigation> navigation = new WeakHashMap<>();
     private ProjectDraft seen;
     private ResourceKey seenResource;
+    private ResourceKey dataKey;
+    private ProjectResource dataRevision;
+    private JsonObject dataCache;
 
     public ContentWorkspace(Supplier<ProjectDraft> current, ResourceWorkspace resources,
                             BiConsumer<ProjectDraft, String> edit, Runnable endEdit, Runnable changed) {
@@ -48,8 +52,19 @@ public final class ContentWorkspace {
     public Snapshot snapshot() {
         ResourceKey key = resources.opened();
         ProjectDraft draft = current.get();
-        if (key == null || draft == null) return new Snapshot(null, null, new Cursor(END, -1));
-        JsonObject data = object(draft.resource(key));
+        if (key == null || draft == null) {
+            dataKey = null;
+            dataRevision = null;
+            dataCache = null;
+            return new Snapshot(null, null, new Cursor(END, -1));
+        }
+        ProjectResource revision = draft.revision(key);
+        if (!key.equals(dataKey) || revision != dataRevision) {
+            dataCache = object(draft.resource(key));
+            dataKey = key;
+            dataRevision = revision;
+        }
+        JsonObject data = dataCache;
         Cursor cursor = cursors.getOrDefault(key, new Cursor(END, 0));
         if (draft != seen && key.equals(seenResource)) {
             Navigation saved = navigation.get(draft);
@@ -96,6 +111,9 @@ public final class ContentWorkspace {
         navigation.clear();
         seen = null;
         seenResource = null;
+        dataKey = null;
+        dataRevision = null;
+        dataCache = null;
     }
 
     public void selectStep(int index) {
@@ -300,6 +318,8 @@ public final class ContentWorkspace {
         ProjectDraft before = current.get();
         ProjectDraft after = before.withResource(state.key(), state.data());
         if (before.equals(after)) return;
+        dataKey = state.key();
+        dataRevision = after.revision(state.key());
         navigation.put(before, new Navigation(state.key(), state.cursor()));
         edit.accept(after, group == null ? null : "content/" + state.key() + "/" + state.cursor() + "/" + group);
         cursors.put(state.key(), cursor);
