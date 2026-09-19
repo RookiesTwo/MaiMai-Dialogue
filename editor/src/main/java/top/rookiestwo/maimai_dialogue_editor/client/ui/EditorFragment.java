@@ -15,6 +15,12 @@ import top.rookiestwo.maimai_dialogue_editor.project.ProjectStore;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 import net.minecraft.client.Minecraft;
+import net.minecraft.SharedConstants;
+import net.minecraft.server.packs.PackType;
+import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
+import top.rookiestwo.maimai_dialogue_editor.export.ExportWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.export.PackExporter;
+import java.util.concurrent.CompletableFuture;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,6 +31,7 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
     private EditorWorkspaceView root;
     private ProjectWorkspace workspace;
     private EditorPreviewHost preview;
+    private ExportWorkspace exports;
     private ExecutorService io;
     private volatile boolean gameWindowFocused = true;
 
@@ -42,9 +49,21 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
                     task -> Core.getUiHandler().post(task), () -> EditorScreens.close(this));
             workspace.windowFocusChanged(gameWindowFocused);
             preview = new EditorPreviewHost(this, workspace);
+            exports = new ExportWorkspace(workspace, io, task -> Core.getUiHandler().post(task), () -> {
+                CompletableFuture<ExportWorkspace.Environment> result = new CompletableFuture<>();
+                Minecraft.getInstance().execute(() -> {
+                    try {
+                        var version = SharedConstants.getCurrentVersion();
+                        result.complete(new ExportWorkspace.Environment(ClientServices.get().content().current(),
+                                version.getPackVersion(PackType.CLIENT_RESOURCES), version.getPackVersion(PackType.SERVER_DATA)));
+                    } catch (RuntimeException failure) { result.completeExceptionally(failure); }
+                });
+                return result;
+            }, new PackExporter(Minecraft.getInstance().gameDirectory.toPath().resolve("maimai-dialogue-exports")));
         }
-        root = new EditorWorkspaceView(requireContext(), layoutState, workspace, preview);
+        root = new EditorWorkspaceView(requireContext(), layoutState, workspace, preview, exports);
         workspace.setListener(root::refresh);
+        exports.setListener(root::refresh);
         if (workspace.page() == ProjectWorkspace.Page.NONE && workspace.resources().form() == ResourceWorkspace.Form.NONE) {
             root.requestFocus();
         }
@@ -74,6 +93,7 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
     @Override
     public void onDestroyView() {
         if (preview != null) preview.releaseView();
+        if (exports != null) exports.setListener(() -> {});
         if (workspace != null) {
             workspace.endEdit();
             workspace.setListener(() -> {});
@@ -104,6 +124,7 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
     @Override
     public void onDestroy() {
         if (preview != null) preview.dispose();
+        if (exports != null) exports.dispose();
         if (workspace != null) workspace.dispose();
         if (io != null) io.shutdown();
         super.onDestroy();

@@ -17,6 +17,7 @@ final class ProjectProperties extends LinearLayout {
     private final TextView path;
     private final TextView warning;
     private boolean refreshing;
+    private long focusedRevision = -1;
 
     ProjectProperties(Context context, ProjectWorkspace workspace) {
         super(context);
@@ -61,8 +62,21 @@ final class ProjectProperties extends LinearLayout {
             namespace.setEnabled(!workspace.busy());
             path.setText(workspace.directory().toString());
             warning.setVisibility(draft.hasValidMetadata() ? GONE : VISIBLE);
+            warning.setText(EditorWidgets.tr("project.metadata_warning"));
         } finally {
             refreshing = false;
+        }
+        var issue = workspace.focusedIssue();
+        if (issue != null && issue.resource() == null) {
+            warning.setVisibility(VISIBLE);
+            warning.setText(issue.field() + "\n" + ExportMenu.describe(issue));
+            EditText target = issue.field().equals("name") ? name : issue.field().equals("namespace") ? namespace : null;
+            if (focusedRevision != workspace.issueFocusRevision()) {
+                focusedRevision = workspace.issueFocusRevision();
+                if (target != null) post(() -> {
+                    if (isAttachedToWindow() && workspace.focusedIssue() == issue) target.requestFocus();
+                });
+            }
         }
     }
 }

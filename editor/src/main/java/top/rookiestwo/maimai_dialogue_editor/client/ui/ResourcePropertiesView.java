@@ -13,6 +13,7 @@ final class ResourcePropertiesView extends LinearLayout {
     private final ProjectWorkspace workspace;
     private final TextView details;
     private final ContentPropertiesView content;
+    private final TextView diagnostic;
 
     ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices) {
         super(context);
@@ -21,6 +22,9 @@ final class ResourcePropertiesView extends LinearLayout {
         EditorWidgets.bindMetrics(this, () -> setPadding(dp(12), dp(8), dp(12), dp(8)));
         details = EditorWidgets.paragraph(context, "no_selection");
         addView(details, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        diagnostic = EditorWidgets.paragraph(context, "");
+        diagnostic.setTextIsSelectable(true);
+        addView(diagnostic);
         content = new ContentPropertiesView(context, workspace, choices);
         addView(content, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         refresh();
@@ -31,6 +35,10 @@ final class ResourcePropertiesView extends LinearLayout {
         ResourceKey key = node.owner();
         boolean opened = key != null && key.equals(workspace.resources().opened());
         boolean editing = opened && (node.isStep() || key.kind() == ResourceKind.SPEAKER);
+        var issue = workspace.focusedIssue();
+        boolean showIssue = issue != null && key != null && key.equals(issue.resource());
+        diagnostic.setVisibility(showIssue ? VISIBLE : GONE);
+        diagnostic.setText(showIssue ? issue.field() + "\n" + ExportMenu.describe(issue) : "");
         if (workspace.draft() == null || node.type() == ResourceTree.Type.PROJECT) {
             details.setText(EditorWidgets.tr("no_selection"));
         } else {

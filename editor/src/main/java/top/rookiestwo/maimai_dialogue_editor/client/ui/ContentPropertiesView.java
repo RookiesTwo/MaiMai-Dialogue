@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.MeasureSpec;
+import icyllis.modernui.view.View;
+import icyllis.modernui.graphics.Rect;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
@@ -36,6 +38,8 @@ final class ContentPropertiesView extends LinearLayout {
     private ContentWorkspace.Snapshot state;
     private Binding binding;
     private boolean refreshing;
+    private long focusedRevision = -1;
+    private final java.util.Map<String, View> fields = new java.util.HashMap<>();
 
     ContentPropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices) {
         super(context);
@@ -56,12 +60,45 @@ final class ContentPropertiesView extends LinearLayout {
                 removeAllViews();
                 bindings.clear();
                 choiceButtons.clear();
+                fields.clear();
                 build();
             }
             for (Runnable update : bindings) update.run();
         } finally {
             refreshing = false;
         }
+        focusIssue();
+    }
+
+    private void focusIssue() {
+        var issue = workspace.focusedIssue();
+        if (issue == null || !Objects.equals(issue.resource(), state.key())
+                || focusedRevision == workspace.issueFocusRevision()) return;
+        focusedRevision = workspace.issueFocusRevision();
+        String path = issue.field().replaceFirst("^steps\\[\\d+]\\.", "").replaceFirst("^end\\.", "");
+        boolean option = path.startsWith("exit.options[");
+        if (option) path = path.replaceFirst("^exit\\.options\\[\\d+]\\.", "");
+        String label = switch (path) {
+            case "name" -> "browser.display_name";
+            case "text" -> option ? "edit.option_text" : "edit.markdown";
+            case "speaker", "speaker.type" -> "edit.speaker";
+            case "speaker.id" -> "edit.speaker_id";
+            case "exit", "exit.type", "exit.options" -> "edit.exit";
+            case "exit.dialogue", "target.dialogue" -> "edit.target_dialogue";
+            case "target", "target.type" -> "edit.target";
+            case "icon" -> "edit.icon";
+            default -> "";
+        };
+        View target = fields.get(label);
+        if (target == null && path.equals("text")) target = fields.get("edit.text_mode");
+        View selected = target;
+        long revision = focusedRevision;
+        if (selected != null) post(() -> {
+            if (isAttachedToWindow() && revision == workspace.issueFocusRevision() && workspace.focusedIssue() == issue) {
+                selected.requestFocus();
+                selected.requestRectangleOnScreen(new Rect(0, 0, selected.getWidth(), selected.getHeight()));
+            }
+        });
     }
 
     private String shape() {
@@ -193,6 +230,7 @@ final class ContentPropertiesView extends LinearLayout {
             });
         }
         addView(input, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        fields.put(label, input);
         bindings.add(() -> {
             String text = value.get();
             if (!input.getText().toString().equals(text)) input.setText(text);
@@ -225,6 +263,7 @@ final class ContentPropertiesView extends LinearLayout {
         });
         addView(button);
         choiceButtons.add(button);
+        if (label != null) fields.put(label, button);
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         EditorWidgets.bindMetrics(button, () -> {
             button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP),

@@ -234,6 +234,18 @@ public final class ResourceWorkspace {
         if (key.kind() == ResourceKind.DIALOGUE) expandedDialogues.add(key);
     }
 
+    /** Reveal a validation location even when search/folding currently hides it. */
+    public void locate(ResourceKey key, int step) {
+        if (!active() || form != Form.NONE || !catalog().contains(key)) return;
+        reveal(key);
+        if (key.kind().available()) opened = key;
+        if (key.kind() == ResourceKind.DIALOGUE && step >= -1 && step < catalog.stepCount(key)) {
+            selection = ResourceTree.Node.step(key, step);
+        }
+        selectionRevision++;
+        changed.run();
+    }
+
     /** Content edits publish one notification after updating both document cursor and browser selection. */
     public void focusStep(ResourceKey key, int index, boolean reveal) {
         if (key.kind() != ResourceKind.DIALOGUE || !catalog().contains(key)) return;

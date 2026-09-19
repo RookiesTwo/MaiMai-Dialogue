@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.function.BiConsumer;
 
 /** Tolerant draft traversal of runtime reference fields; never scans arbitrary text or commands. */
-final class ResourceReferences {
-    record Reference(ResourceKind kind, String id, String field) {}
+public final class ResourceReferences {
+    public record Reference(ResourceKind kind, String id, String field) {}
     private final List<Reference> result = new ArrayList<>();
 
-    static List<Reference> scan(ResourceKind kind, JsonElement draft) {
+    public static List<Reference> scan(ResourceKind kind, JsonElement draft) {
         ResourceReferences scanner = new ResourceReferences();
         switch (kind) {
             case DIALOGUE -> {
@@ -69,7 +69,8 @@ final class ResourceReferences {
     private void add(ResourceKind kind, JsonElement value, String field) {
         String id = string(value);
         // ResourceLocation's default namespace is minecraft, not the owning project namespace.
-        if (!id.isEmpty()) result.add(new Reference(kind, id.contains(":") ? id : "minecraft:" + id, field));
+        if (value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString())
+            result.add(new Reference(kind, id.contains(":") ? id : "minecraft:" + id, field));
     }
 
     static String string(JsonElement value) {

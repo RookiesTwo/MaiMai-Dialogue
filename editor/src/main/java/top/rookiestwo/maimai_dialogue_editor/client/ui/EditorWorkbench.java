@@ -8,6 +8,7 @@ import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.export.ExportWorkspace;
 
 final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplitter.DragListener {
     private final EditorLayoutState state;
@@ -17,6 +18,8 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     private final ResourcePropertiesView resourceProperties;
     private final ResourceDocumentView document;
     private final ProjectWorkspace workspace;
+    private long issueFocusRevision = -1;
+    private final ExportWorkspace exports;
     private final EditorPanel resources;
     private final EditorPanel properties;
     private final EditorPanel preview;
@@ -34,10 +37,11 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             () -> EditorWidgets.styleTooltips(this);
 
     EditorWorkbench(Context context, EditorLayoutState state, ProjectWorkspace workspace, Runnable closeAction,
-                    ChoicePresenter choices, EditorPreviewHost previewHost) {
+                    ChoicePresenter choices, EditorPreviewHost previewHost, ExportWorkspace exports) {
         super(context);
         this.state = state;
         this.workspace = workspace;
+        this.exports = exports;
         this.previewHost = previewHost;
         setBackground(EditorWidgets.shape(EditorWidgets.BACKGROUND, 0));
         setFocusable(true);
@@ -87,6 +91,15 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     }
 
     void refreshProject() {
+        if (issueFocusRevision != workspace.issueFocusRevision()) {
+            issueFocusRevision = workspace.issueFocusRevision();
+            var issue = workspace.focusedIssue();
+            if (issue != null && issue.resource() != null) {
+                state.leftCollapsed = false;
+                state.rightCollapsed = false;
+                requestLayout();
+            }
+        }
         previewHost.synchronize();
         toolbar.refresh(workspace);
         String name = workspace.draft() == null ? EditorWidgets.tr("no_project")
@@ -99,13 +112,17 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
                 : EditorWidgets.tr("project.error." + workspace.errorReason()) + " " + workspace.errorDetail();
         String saveState = workspace.draft() == null ? "" : " · "
                 + EditorWidgets.tr(workspace.dirty() ? "project.unsaved" : "project.saved_state");
-        status.setText(label + saveState + " · " + message);
+        String validation = exports.busy() || exports.report() != null || !exports.error().isEmpty()
+                ? " · " + EditorWidgets.tr(exports.status()) : "";
+        status.setText(label + saveState + " · " + message + validation);
         status.setTooltipText(status.getText());
     }
 
     View projectMenuAnchor() {
         return toolbar.projectMenuAnchor();
     }
+
+    View exportMenuAnchor() { return toolbar.exportMenuAnchor(); }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {

@@ -10,6 +10,7 @@ import icyllis.modernui.widget.LinearLayout;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.export.ExportWorkspace;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -22,17 +23,21 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     private ProjectDialog dialog;
     private EditorDropdownMenu dropdown;
     private ProjectMenu projectMenu;
+    private ExportMenu exportMenu;
+    private final ExportWorkspace exports;
     private ResourceWorkspace.Form shownResourceForm = ResourceWorkspace.Form.NONE;
     private ResourceDialog resourceDialog;
     private EditorDropdownMenu choices;
 
-    EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace, EditorPreviewHost preview) {
+    EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace, EditorPreviewHost preview,
+                        ExportWorkspace exports) {
         super(context);
         this.workspace = workspace;
+        this.exports = exports;
         setFocusable(true);
         setFocusableInTouchMode(true);
         workbench = new EditorWorkbench(context, layout, workspace,
-                () -> workspace.request(ProjectWorkspace.Action.CLOSE_EDITOR), this::showChoices, preview);
+                () -> workspace.request(ProjectWorkspace.Action.CLOSE_EDITOR), this::showChoices, preview, exports);
         addView(workbench, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         refresh();
     }
@@ -54,6 +59,11 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
                 dropdown = new EditorDropdownMenu(projectMenu, workbench.projectMenuAnchor(), workspace::dismissMenu);
                 addView(dropdown, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
                 dropdown.requestFocus();
+            } else if (page == ProjectWorkspace.Page.EXPORT) {
+                exportMenu = new ExportMenu(getContext(), workspace, exports);
+                dropdown = new EditorDropdownMenu(exportMenu, workbench.exportMenuAnchor(), workspace::dismissMenu);
+                addView(dropdown, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+                dropdown.requestFocus();
             } else if (page != ProjectWorkspace.Page.NONE) {
                 dialog = new ProjectDialog(getContext(), workspace);
                 addView(dialog, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
@@ -64,6 +74,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         }
         if (dialog != null) dialog.refresh();
         if (projectMenu != null) projectMenu.refresh();
+        if (exportMenu != null) exportMenu.refresh();
         if (dropdown != null) dropdown.requestLayout();
         ResourceWorkspace.Form resourceForm = workspace.resources().form();
         if (shownResourceForm != resourceForm) {
@@ -143,6 +154,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
             removeView(dropdown);
             dropdown = null;
             projectMenu = null;
+            exportMenu = null;
             shown = ProjectWorkspace.Page.NONE;
         }
     }

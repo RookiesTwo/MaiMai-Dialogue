@@ -47,6 +47,7 @@ final class EditorToolbar extends FrameLayout {
                 case "undo" -> workspace::undo;
                 case "redo" -> workspace::redo;
                 case "preview" -> preview::advance;
+                case "export" -> workspace::showExportMenu;
                 default -> null;
             };
             Button button = EditorWidgets.button(context, key, action);
@@ -75,12 +76,15 @@ final class EditorToolbar extends FrameLayout {
         EditorWidgets.enabled(businessButtons.get("undo"), workspace.canUndo());
         EditorWidgets.enabled(businessButtons.get("redo"), workspace.canRedo());
         EditorWidgets.enabled(businessButtons.get("preview"), preview.canStart());
+        EditorWidgets.enabled(businessButtons.get("export"), !workspace.busy() && workspace.draft() != null);
         EditorWidgets.enabled(close, !workspace.busy());
     }
 
     View projectMenuAnchor() {
         return businessButtons.get("project");
     }
+
+    View exportMenuAnchor() { return businessButtons.get("export"); }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {

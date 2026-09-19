@@ -10,10 +10,11 @@ import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;
+import top.rookiestwo.maimai_dialogue_editor.export.ValidationIssue;
 
 /** Per-open editor state. Mutations and completion callbacks run on the owning UI thread. */
 public final class ProjectWorkspace {
-    public enum Page { NONE, MENU, NEW, OPEN, SAVE_AS, CONFIRM }
+    public enum Page { NONE, MENU, EXPORT, NEW, OPEN, SAVE_AS, CONFIRM }
     public enum Action { NEW, OPEN, CLOSE_PROJECT, CLOSE_EDITOR }
 
     private final ProjectStore store;
@@ -21,6 +22,10 @@ public final class ProjectWorkspace {
     private final Executor ui;
     private final Runnable closeEditor;
     private long previewSelectionRevision;
+    private ValidationIssue focusedIssue;
+    private ProjectDraft issueSource;
+    private ResourceTree.Node issueNode;
+    private long issueFocusRevision;
     private Runnable changed = () -> {};
     private ProjectHistory history;
     private Path directory;
@@ -71,6 +76,41 @@ public final class ProjectWorkspace {
     public ResourceWorkspace resources() { return resources; }
     public ContentWorkspace content() { return content; }
     public long previewSelectionRevision() { return previewSelectionRevision; }
+    public long issueFocusRevision() { return issueFocusRevision; }
+    public ValidationIssue focusedIssue() {
+        return issueSource == draft() && (focusedIssue == null || focusedIssue.resource() == null
+                || Objects.equals(issueNode, resources.selection())) ? focusedIssue : null;
+    }
+
+    public void showExportMenu() {
+        if (busy || disposed || !windowFocused || draft() == null) return;
+        endEdit();
+        page = Page.EXPORT;
+        changed.run();
+    }
+
+    public void locateIssue(ValidationIssue issue) {
+        if (busy || disposed || draft() == null) return;
+        page = Page.NONE;
+        focusedIssue = null;
+        ResourceKey key = issue.resource();
+        if (key == null) {
+            page = Page.MENU;
+        } else if (resources.catalog().contains(key)) {
+            int step = -2;
+            var match = java.util.regex.Pattern.compile("^steps\\[(\\d+)]").matcher(issue.field());
+            if (match.find()) step = Integer.parseInt(match.group(1));
+            else if (issue.field().startsWith("end")) step = -1;
+            resources.locate(key, step);
+            var option = java.util.regex.Pattern.compile("^end\\.exit\\.options\\[(\\d+)]").matcher(issue.field());
+            if (option.find()) content.selectOption(Integer.parseInt(option.group(1)));
+        }
+        focusedIssue = issue;
+        issueSource = draft();
+        issueNode = resources.selection();
+        issueFocusRevision++;
+        changed.run();
+    }
 
     /** Preview navigation updates the browser/properties together, without an edit or a user click event. */
     public void followPreviewStep(ResourceKey key, int step) {
@@ -130,7 +170,7 @@ public final class ProjectWorkspace {
 
     /** 收起菜单不关闭项目、不清除草稿，也不取消已经进入的确认流程。 */
     public void dismissMenu() {
-        if (disposed || page != Page.MENU) return;
+        if (disposed || (page != Page.MENU && page != Page.EXPORT)) return;
         endEdit();
         page = Page.NONE;
         changed.run();
