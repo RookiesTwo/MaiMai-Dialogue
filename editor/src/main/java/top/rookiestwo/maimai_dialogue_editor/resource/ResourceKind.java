@@ -5,7 +5,7 @@ public enum ResourceKind {
     DIALOGUE("dialogues", "dialogue", true),
     SPEAKER("speakers", "speaker", true),
     PRESENTATION("presentations", "presentation", false),
-    SCENE("scenes", "scene", false),
+    SCENE("scenes", "scene", true),
     VISUAL_ASSET("visual_assets", "visual_asset", true),
     ACTION("actions", "action", false),
     THEME("themes", "theme", false),

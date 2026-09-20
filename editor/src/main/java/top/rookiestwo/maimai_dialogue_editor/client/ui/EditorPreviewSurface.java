@@ -3,21 +3,26 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.fragment.FragmentContainerView;
 import icyllis.modernui.view.MeasureSpec;
+import icyllis.modernui.view.View;
 import icyllis.modernui.widget.FrameLayout;
 
 /** Measure the real UI at game-window scale, then fit its complete View tree into the preview. */
 final class EditorPreviewSurface extends FrameLayout {
-    private final FragmentContainerView content;
+    private final View content;
     private int referenceHeight = 1;
     private int logicalWidth;
     private int logicalHeight;
     private float scale = 1.0F;
 
     EditorPreviewSurface(Context context, int containerId) {
+        this(context, new FragmentContainerView(context));
+        content.setId(containerId);
+    }
+
+    EditorPreviewSurface(Context context, View content) {
         super(context);
         setClipChildren(true);
-        content = new FragmentContainerView(context);
-        content.setId(containerId);
+        this.content = content;
         content.setPivotX(0);
         content.setPivotY(0);
         addView(content);

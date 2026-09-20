@@ -20,6 +20,7 @@ import top.rookiestwo.maimai_dialogue_editor.material.MaterialSnapshot;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
 import top.rookiestwo.maimai_dialogue_editor.preview.EditorPreviewSession;
 import top.rookiestwo.maimai_dialogue_editor.preview.AudioPreviewSession;
+import top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewSession;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
@@ -31,11 +32,12 @@ import java.util.function.Consumer;
 
 /** UI-thread owner of one embedded runtime Fragment. Client callbacks cross back through the UI handler. */
 final class EditorPreviewHost {
-    enum Mode { DIALOGUE, IMAGE, SOUND, EMPTY }
+    enum Mode { DIALOGUE, IMAGE, SOUND, SCENE, EMPTY }
     private final Fragment owner;
     private final ProjectWorkspace workspace;
     private final EditorPreviewAssets assets;
     private final AudioPreviewSession audio;
+    private final ScenePreviewSession scenes;
     private final int containerId = View.generateViewId();
     private EditorPreviewView view;
     private EditorPreviewSession playback;
@@ -61,6 +63,24 @@ final class EditorPreviewHost {
         this.workspace = workspace;
         this.assets = assets;
         audio = new AudioPreviewSession(audioBackend, this::refresh);
+        scenes = new ScenePreviewSession((draft, key) -> {
+            var future = new java.util.concurrent.CompletableFuture<ScenePreviewSession.Prepared>();
+            Minecraft.getInstance().execute(() -> {
+                try {
+                    var external = ClientServices.get().content().current();
+                    workspace.prepare(() -> {
+                        try { return ScenePreviewSession.prepare(draft, key, external); }
+                        catch (java.io.IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
+                    }).whenComplete((result, failure) -> {
+                        if (failure == null) future.complete(result); else future.completeExceptionally(failure);
+                    });
+                } catch (RuntimeException failure) {
+                    // The editor IO executor may already be shut down while this client callback was queued.
+                    future.completeExceptionally(failure);
+                }
+            });
+            return future;
+        }, task -> Core.getUiHandler().post(task), this::refresh);
     }
 
     EditorPreviewView createView(Context context) {
@@ -105,10 +125,13 @@ final class EditorPreviewHost {
             case DIALOGUE -> Mode.DIALOGUE;
             case IMAGE, VISUAL_ASSET -> Mode.IMAGE;
             case SOUND -> Mode.SOUND;
+            case SCENE -> Mode.SCENE;
             default -> Mode.EMPTY;
         };
     }
     AudioPreviewSession audio() { return audio; }
+    ScenePreviewSession scenes() { return scenes; }
+    EditorPreviewAssets assets() { return assets; }
     boolean viewingMaterial() {
         ResourceKey key = workspace.resources().opened();
         return key != null && (key.kind() == ResourceKind.IMAGE || key.kind() == ResourceKind.VISUAL_ASSET);
@@ -145,6 +168,7 @@ final class EditorPreviewHost {
         var resources = workspace.resources();
         ProjectDraft draft = workspace.draft();
         ResourceKey opened = resources.opened();
+        scenes.select(workspace.projectGeneration(), draft, opened);
         ResourceTree.Node selected = resources.selection();
         boolean draftChanged = draft != observedDraft;
         boolean selectionChanged = observedSelectionRevision != resources.selectionRevision()
@@ -337,6 +361,7 @@ final class EditorPreviewHost {
 
     void releaseView() {
         audio.stop();
+        scenes.select(workspace.projectGeneration(), null, null);
         // FragmentManager destroys child Views before the parent callback; do not start nested transactions here.
         reset();
         fragment = null;
@@ -347,6 +372,7 @@ final class EditorPreviewHost {
 
     void onViewReady() {
         if (view != null) view.post(() -> {
+            if (view != null && view.isAttachedToWindow()) synchronize();
             if (view != null && view.isAttachedToWindow() && !loading && !running()) {
                 showIdleControls();
             }
@@ -355,6 +381,7 @@ final class EditorPreviewHost {
 
     void dispose() {
         disposed = true;
+        scenes.dispose();
         releaseView();
     }
 

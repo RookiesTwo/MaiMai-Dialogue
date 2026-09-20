@@ -27,6 +27,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     private final Button stop;
     private final ImageView materialImage;
     private final EditorAudioPreviewView audio;
+    private final EditorScenePreviewView scene;
     private EditorPreviewHost.Mode mode = EditorPreviewHost.Mode.EMPTY;
     private int imageWidth, imageHeight;
     private EditorPreviewHost.ImagePreview displayedImage;
@@ -60,6 +61,8 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         materialImage = new ImageView(context);
         materialImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
         canvas.addView(materialImage, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        scene = new EditorScenePreviewView(context, host.assets());
+        canvas.addView(scene, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         message = EditorWidgets.paragraph(context, "preview.idle");
         message.setTextIsSelectable(true);
         notice = EditorWidgets.formScroll(context, message);
@@ -89,7 +92,9 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         boolean material = mode == EditorPreviewHost.Mode.IMAGE;
         boolean dialogue = mode == EditorPreviewHost.Mode.DIALOGUE;
         toolbar.setVisibility(dialogue ? VISIBLE : GONE);
-        canvas.setVisibility(material || dialogue ? VISIBLE : GONE);
+        canvas.setVisibility(material || dialogue || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
+        scene.setVisibility(mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
+        scene.refresh(host.scenes());
         audio.setVisibility(mode == EditorPreviewHost.Mode.SOUND ? VISIBLE : GONE);
         audio.refresh();
         materialImage.setVisibility(material ? VISIBLE : GONE);
@@ -136,6 +141,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
 
     void setReferenceHeight(int height) {
         surface.setReferenceHeight(height);
+        scene.setReferenceHeight(height);
     }
 
     void refreshContentAfterLayout() {

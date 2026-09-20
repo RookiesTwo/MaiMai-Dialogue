@@ -52,6 +52,8 @@ public final class ProjectWorkspace {
             () -> !busy && !disposed && page == Page.NONE, this::resourceNavigationChanged);
     private final ContentWorkspace content = new ContentWorkspace(this::draft, resources,
             this::editContent, this::endEdit, () -> notifyChanged());
+    private final top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace scenes =
+            new top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace(this, () -> notifyChanged());
 
     public ProjectWorkspace(ProjectStore store, Executor io, Executor ui,
                             Runnable closeEditor) {
@@ -63,6 +65,7 @@ public final class ProjectWorkspace {
         materials = new MaterialWorkspace(this, io, ui, () -> notifyChanged(), store.root().getParent());
     }
     public MaterialWorkspace materials() { return materials; }
+    public top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace scenes() { return scenes; }
     public void showImport() {
         if (busy || disposed || draft() == null || resources.form() != ResourceWorkspace.Form.NONE) return;
         endEdit(); page = Page.IMPORT; clearError(); notifyChanged();

@@ -107,6 +107,15 @@ public final class ProjectValidator {
                         for (String error : resolved.visualErrors()) issue(key, "presentation.visual_objects", "invalid_reference", error);
                     } catch (RuntimeException failure) { issue(key, "presentation", "invalid_reference", failure.getMessage()); }
                 }
+                if (key.kind() == ResourceKind.SCENE && issues.stream().noneMatch(i -> key.equals(i.resource()))) {
+                    try {
+                        var scene = content.scene(ResourceLocation.parse(key.id(draft.namespace()))).orElseThrow();
+                        var presentation = new Presentation(Presentation.DEFAULT_THEME_ID, scene.background(),
+                                top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout.DEFAULT, scene.visualObjects(), scene.filter());
+                        var resolved = top.rookiestwo.maimai_dialogue.content.resolve.VisualAssetResolver.resolve(presentation, content::visualAsset);
+                        resolved.errors().forEach(error -> issue(key, "visual_objects", "invalid_reference", error));
+                    } catch (RuntimeException failure) { issue(key, "visual_objects", "invalid_reference", failure.getMessage()); }
+                }
             }
         }
         return new ValidationReport(draft, issues, new ArrayList<>(dependencies));

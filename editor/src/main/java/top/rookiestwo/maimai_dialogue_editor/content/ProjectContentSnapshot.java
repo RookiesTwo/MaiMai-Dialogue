@@ -44,10 +44,14 @@ public final class ProjectContentSnapshot implements DialogueContentLookup {
 
     /** Called on the IO executor. Load/convert only the reachable graph, including external links back into the project. */
     public ProjectContentSnapshot prepare(ResourceLocation root) {
+        return prepare(ResourceKind.DIALOGUE, root);
+    }
+
+    public ProjectContentSnapshot prepare(ResourceKind rootKind, ResourceLocation root) {
         record Request(ResourceKind kind, ResourceLocation id) {}
         var pending = new ArrayDeque<Request>();
         var visited = new HashSet<Request>();
-        pending.add(new Request(ResourceKind.DIALOGUE, root));
+        pending.add(new Request(rootKind, root));
         while (!pending.isEmpty()) {
             Request request = pending.removeFirst();
             if (!visited.add(request)) continue;
