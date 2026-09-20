@@ -31,6 +31,9 @@ run
 # Local project notes
 /.project-notes/
 
+# Local AI collaboration instructions (including subprojects)
+AGENTS.md
+
 # Local editor documentation
 /editor/README.md
 /editor/IMPLEMENTATION_PLAN.md
