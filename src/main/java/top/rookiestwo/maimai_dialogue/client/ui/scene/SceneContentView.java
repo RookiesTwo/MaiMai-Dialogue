@@ -11,11 +11,13 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 final class SceneContentView extends FrameLayout {
+    private final DialogueImageSource images;
     private final Map<String, ObjectBinding> objectBindings =
             new LinkedHashMap<>();
 
-    SceneContentView(Context context) {
+    SceneContentView(Context context, DialogueImageSource images) {
         super(context);
+        this.images = images;
         setClickable(false);
     }
 
@@ -91,6 +93,7 @@ final class SceneContentView extends FrameLayout {
 
     void releaseImages() {
         SceneImageRenderer.releaseImages(this);
+        images.close();
     }
 
     private static final float DESIGN_SCREEN_HEIGHT = 1080.0F;

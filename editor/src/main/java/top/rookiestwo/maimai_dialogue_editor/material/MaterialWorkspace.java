@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.function.*;
 
-/** File-picker state, asset edits and explicit refresh status, independent of Views. UI-thread owner. */
+/** File-picker state, asset edits and automatic asset synchronization, independent of Views. UI-thread owner. */
 public final class MaterialWorkspace {
     private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
     public interface PreviewAssets {
@@ -26,6 +26,8 @@ public final class MaterialWorkspace {
     private String target = "", error = "", loadedSignature = "", previewNamespace = "";
     private String folder = "";
     private String refreshError = "";
+    private String attemptedSignature = "";
+    private boolean refreshQueued;
     private ResourceKey replacement;
     private long browseRevision, refreshRevision, loadedRevision;
     private long projectGeneration;
@@ -35,7 +37,7 @@ public final class MaterialWorkspace {
     public MaterialWorkspace(ProjectWorkspace project, Executor io, Executor ui, Runnable changed, Path initialDirectory) {
         this.project = project; this.io = io; this.ui = ui; this.changed = changed; this.initialDirectory = initialDirectory;
     }
-    public void setPreview(PreviewAssets preview) { this.preview = preview; }
+    public void setPreview(PreviewAssets preview) { this.preview = preview; synchronize(); }
     public boolean choosing() { return project.page() == ProjectWorkspace.Page.IMPORT; }
     public Path browsing() { return browsing; }
     public List<Path> selectedFiles() { return List.copyOf(selected); }
@@ -45,6 +47,11 @@ public final class MaterialWorkspace {
     public String target() { return batch() ? folder : target; }
     public String error() { return error; }
     public String refreshError() { return refreshError; }
+    public void reportLoadFailure(String message) {
+        if (disposed || project.draft() == null) return;
+        refreshError = message;
+        changed.run();
+    }
     public boolean browsingBusy() { return browsingBusy; }
     public boolean replacing() { return replacement != null; }
     public String previewNamespace() { return previewNamespace; }
@@ -63,13 +70,24 @@ public final class MaterialWorkspace {
                 && project.page() == ProjectWorkspace.Page.NONE && project.resources().form() == ResourceWorkspace.Form.NONE;
     }
     public void synchronize() {
-        if (Objects.equals(projectDirectory, project.directory()) && projectGeneration == project.projectGeneration()) return;
-        projectDirectory = project.directory();
-        projectGeneration = project.projectGeneration();
-        ++refreshRevision; ++browseRevision;
-        loadedSignature = ""; previewNamespace = ""; loadedRevision++;
-        refreshing = false; error = ""; refreshError = ""; variants.clear();
-        if (preview != null) preview.clear();
+        if (disposed) return;
+        if (!Objects.equals(projectDirectory, project.directory()) || projectGeneration != project.projectGeneration()) {
+            projectDirectory = project.directory();
+            projectGeneration = project.projectGeneration();
+            ++refreshRevision; ++browseRevision;
+            loadedSignature = ""; attemptedSignature = ""; previewNamespace = ""; loadedRevision++;
+            refreshing = false; error = ""; refreshError = ""; variants.clear();
+            if (preview != null) preview.clear();
+        }
+        if (preview == null || project.draft() == null || project.busy() || refreshing || refreshQueued
+                || attemptedSignature.equals(MaterialPack.signature(project.draft()))) return;
+        refreshQueued = true;
+        // Collapse changes queued in the same UI turn; a running preparation is followed by only the latest draft.
+        ui.execute(() -> {
+            refreshQueued = false;
+            if (!disposed && preview != null && project.draft() != null && !project.busy() && !refreshing
+                    && !attemptedSignature.equals(MaterialPack.signature(project.draft()))) refreshNow();
+        });
     }
     public void begin(ResourceKey replace) {
         if (disposed || project.busy() || project.draft() == null) return;
@@ -154,8 +172,12 @@ public final class MaterialWorkspace {
     }
     public void refresh() {
         if (!canRefresh()) return;
+        refreshNow();
+    }
+    private void refreshNow() {
         ProjectDraft draft = project.draft(); Path directory = project.directory();
         long expected = ++refreshRevision; String signature = MaterialPack.signature(draft);
+        attemptedSignature = signature;
         refreshing = true; refreshError = ""; changed.run();
         CompletableFuture<String> future;
         try { future = preview.refresh(draft); }
@@ -163,6 +185,10 @@ public final class MaterialWorkspace {
         future.whenComplete((namespace, failure) -> ui.execute(() -> {
             if (disposed || expected != refreshRevision || !Objects.equals(directory, project.directory())) return;
             refreshing = false;
+            if (!signature.equals(MaterialPack.signature(project.draft()))) {
+                changed.run(); // synchronize schedules the newest revision; never publish an obsolete completion.
+                return;
+            }
             if (failure == null) { previewNamespace = namespace; loadedSignature = signature; loadedRevision++; }
             else {
                 Throwable cause = failure;
@@ -198,7 +224,15 @@ public final class MaterialWorkspace {
         edit(ResourceKind.VISUAL_ASSET, null, data -> data.getAsJsonObject("variants")
                 .remove(variant(project.resources().opened(), data)));
     }
-    public void renameVariant(String name) {
+    /** A completed name edit. The View keeps intermediate text private until focus leaves the field. */
+    public String renameVariant(String name) {
+        if (!name.matches("[a-z0-9_-]+")) return "material.variant_name.invalid";
+        var selected = project.content().snapshot();
+        if (selected.key() == null || selected.key().kind() != ResourceKind.VISUAL_ASSET || selected.data() == null
+                || !(selected.data().get("variants") instanceof JsonObject existing)) return "";
+        String current = variant(selected.key(), selected.data());
+        if (current.equals(name)) return "";
+        if (existing.has(name)) return "material.variant_name.duplicate";
         edit(ResourceKind.VISUAL_ASSET, "variant_name", data -> {
             var key = project.resources().opened();
             String old = variant(key, data);
@@ -208,6 +242,7 @@ public final class MaterialWorkspace {
             values.entrySet().forEach(e -> next.add(e.getKey().equals(old) ? name : e.getKey(), e.getValue()));
             data.add("variants", next); variants.put(key, name);
         });
+        return "";
     }
     public void setVariantImage(String image) {
         edit(ResourceKind.VISUAL_ASSET, "variant_image", data -> {

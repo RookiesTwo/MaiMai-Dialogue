@@ -5,7 +5,6 @@ import top.rookiestwo.maimai_dialogue.client.ui.scene.SceneContentView.ObjectBin
 import top.rookiestwo.maimai_dialogue.client.ui.animation.PlaybackTimeline;
 
 import icyllis.modernui.core.Context;
-import icyllis.modernui.graphics.Image;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
 import icyllis.modernui.widget.FrameLayout;
@@ -32,7 +31,8 @@ public final class DialogueSceneView extends FrameLayout {
     // VisualObject scale 以该屏幕高度为设计基准，其他分辨率自动等比缩放。
     private final Map<String, ObjectBinding> objectBindings =
             new LinkedHashMap<>();
-    private final SceneImageRenderer imageRenderer = new SceneImageRenderer();
+    private final DialogueImageSource images;
+    private SceneImageRenderer imageRenderer;
     private Presentation renderedPresentation;
     private SceneImageRenderer.ImageLayers backgroundLayers;
     private final SceneTransition transition = new SceneTransition(this);
@@ -46,7 +46,12 @@ public final class DialogueSceneView extends FrameLayout {
     };
 
     public DialogueSceneView(Context context) {
+        this(context, DialogueImageSource.RESOURCES);
+    }
+
+    public DialogueSceneView(Context context, DialogueImageSource images) {
         super(context);
+        this.images = java.util.Objects.requireNonNull(images);
         setClickable(false);
     }
 
@@ -65,7 +70,9 @@ public final class DialogueSceneView extends FrameLayout {
             renderedPresentation = presentation;
             return;
         }
-        transition.begin(new SceneContentView(getContext()), currentBackgroundOpacity);
+        DialogueImageSource sceneImages = images.fork();
+        imageRenderer = new SceneImageRenderer(sceneImages);
+        transition.begin(new SceneContentView(getContext(), sceneImages), currentBackgroundOpacity);
         objectBindings.clear();
         backgroundLayers = null;
         currentBackgroundOpacity = 0.0F;
@@ -140,11 +147,6 @@ public final class DialogueSceneView extends FrameLayout {
 
     private void addBackground(SceneBackground background) {
         ResourceLocation imageId = background.initialImage();
-        Image image = imageRenderer.load(imageId, "background");
-        if (image == null) {
-            return;
-        }
-
         ImageView underlay = new ImageView(getContext());
         underlay.setScaleType(scaleType(background.fit()));
         underlay.setVisibility(INVISIBLE);
@@ -157,7 +159,6 @@ public final class DialogueSceneView extends FrameLayout {
         );
 
         ImageView primary = new ImageView(getContext());
-        primary.setImage(image);
         primary.setImageAlpha(background.opacity());
         primary.setScaleType(scaleType(background.fit()));
         addSceneView(
@@ -170,17 +171,13 @@ public final class DialogueSceneView extends FrameLayout {
         backgroundLayers = new SceneImageRenderer.ImageLayers(
                 primary,
                 underlay,
-                imageId
+                null
         );
+        imageRenderer.initialize(backgroundLayers, imageId, "background");
     }
 
     private void addObject(String objectId, VisualObject object) {
         ResourceLocation imageId = object.initialImage();
-        Image image = imageRenderer.load(imageId, "VisualObject " + objectId);
-        if (image == null) {
-            return;
-        }
-
         ImageView underlay = new ImageView(getContext());
         underlay.setScaleType(ImageView.ScaleType.FIT_CENTER);
         underlay.setVisibility(INVISIBLE);
@@ -193,7 +190,6 @@ public final class DialogueSceneView extends FrameLayout {
         );
 
         ImageView primary = new ImageView(getContext());
-        primary.setImage(image);
         imageRenderer.applySampling(primary, object.sampling());
         primary.setImageAlpha(object.opacity());
         primary.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -211,7 +207,7 @@ public final class DialogueSceneView extends FrameLayout {
                         new SceneImageRenderer.ImageLayers(
                                 primary,
                                 underlay,
-                                imageId,
+                                null,
                                 object.sampling()
                         ),
                         SceneObjectState.initial(object),
@@ -221,6 +217,7 @@ public final class DialogueSceneView extends FrameLayout {
         transition.current().addObjectBinding(
                 objectBindings.get(objectId)
         );
+        imageRenderer.initialize(objectBindings.get(objectId).layers, imageId, "VisualObject " + objectId);
     }
 
     private void startPlayback(

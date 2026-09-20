@@ -115,9 +115,10 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
                 + EditorWidgets.tr(workspace.dirty() ? "project.unsaved" : "project.saved_state");
         String validation = exports.busy() || exports.report() != null || !exports.error().isEmpty()
                 ? " · " + EditorWidgets.tr(exports.status()) : "";
-        String material = workspace.draft() == null ? "" : " · " + EditorWidgets.tr(workspace.materials().status());
+        String materialError = workspace.draft() == null ? "" : workspace.materials().refreshError();
+        String material = materialError.isEmpty() ? "" : " · " + EditorWidgets.tr("material.failed");
         status.setText(label + saveState + " · " + message + validation + material);
-        status.setTooltipText(status.getText());
+        status.setTooltipText(status.getText() + (materialError.isEmpty() ? "" : "\n" + materialError));
     }
 
     View projectMenuAnchor() {

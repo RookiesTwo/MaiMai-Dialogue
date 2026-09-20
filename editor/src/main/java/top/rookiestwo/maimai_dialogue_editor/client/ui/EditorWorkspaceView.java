@@ -3,6 +3,7 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.KeyEvent;
+import icyllis.modernui.view.MotionEvent;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.View;
 import icyllis.modernui.widget.Button;
@@ -104,8 +105,32 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     }
 
     void escape() {
+        finishDeferredInput();
         if (choices != null) dismissChoices();
         else workspace.escape();
+    }
+
+    private void finishDeferredInput() {
+        View focused = findFocus();
+        if (focused != null && Boolean.TRUE.equals(focused.getTag(EditorWidgets.DEFERRED_INPUT_TAG))) requestFocus();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(@NonNull MotionEvent event) {
+        View focused = findFocus();
+        if (event.getAction() == MotionEvent.ACTION_DOWN && focused != null
+                && Boolean.TRUE.equals(focused.getTag(EditorWidgets.DEFERRED_INPUT_TAG))) {
+            int[] inputLocation = new int[2], rootLocation = new int[2];
+            focused.getLocationInWindow(inputLocation);
+            getLocationInWindow(rootLocation);
+            float x = event.getX() + rootLocation[0] - inputLocation[0];
+            float y = event.getY() + rootLocation[1] - inputLocation[1];
+            if (x < 0 || y < 0 || x >= focused.getWidth() || y >= focused.getHeight()) {
+                // Commit before the clicked control takes a project snapshot or changes the selected variant.
+                finishDeferredInput();
+            }
+        }
+        return super.dispatchTouchEvent(event);
     }
 
     private void showChoices(View anchor, List<ChoicePresenter.Item> items, String selected, Consumer<String> chosen) {

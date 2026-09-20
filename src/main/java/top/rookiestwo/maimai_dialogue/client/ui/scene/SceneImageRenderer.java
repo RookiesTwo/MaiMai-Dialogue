@@ -15,18 +15,20 @@ import java.util.Map;
 
 @SuppressWarnings("deprecation")
 final class SceneImageRenderer {
+    private final DialogueImageSource source;
+
+    SceneImageRenderer(DialogueImageSource source) { this.source = source; }
+
     // 加载资源图片，并统一报告缺失图片错误。
-    Image load(ResourceLocation imageId, String owner) {
-        Image image = Image.create(
-                imageId.getNamespace(),
-                imageId.getPath()
-        );
-        if (image == null) {
-            ClientDiagnostics.report(
-                    "Client is missing image " + imageId + " for " + owner
-            );
-        }
-        return image;
+    private void load(ResourceLocation imageId, String owner, java.util.function.Consumer<Image> ready) {
+        source.load(imageId, image -> {
+            if (image == null) ClientDiagnostics.report("Client is missing image " + imageId + " for " + owner);
+            ready.accept(image);
+        });
+    }
+
+    void initialize(ImageLayers layers, ResourceLocation imageId, String owner) {
+        setPrimaryImage(layers, imageId, owner);
     }
 
     // 应用图片 variant；返回值用于让 WRAP_CONTENT 图层先完成测量。
@@ -100,14 +102,14 @@ final class SceneImageRenderer {
         if (imageId.equals(layers.primaryId)) {
             return false;
         }
-        Image image = load(imageId, owner);
-        if (image != null) {
-            layers.primary.setImage(image);
-            applySampling(layers.primary, layers.sampling);
-            layers.primaryId = imageId;
-            return true;
-        }
-        return false;
+        layers.primaryId = imageId;
+        load(imageId, owner, image -> {
+            if (image != null && imageId.equals(layers.primaryId) && layers.primary.getParent() != null) {
+                layers.primary.setImage(image);
+                applySampling(layers.primary, layers.sampling);
+            }
+        });
+        return true;
     }
 
     private boolean setUnderlayImage(
@@ -118,15 +120,16 @@ final class SceneImageRenderer {
         if (imageId.equals(layers.underlayId)) {
             return false;
         }
-        Image image = load(imageId, owner);
-        if (image != null) {
-            layers.underlay.setImage(image);
-            applySampling(layers.underlay, layers.sampling);
-            layers.underlayId = imageId;
-            layers.underlayImage = image;
-            return true;
-        }
-        return false;
+        layers.underlayId = imageId;
+        layers.underlayImage = null;
+        load(imageId, owner, image -> {
+            if (image != null && imageId.equals(layers.underlayId) && layers.underlay.getParent() != null) {
+                layers.underlay.setImage(image);
+                applySampling(layers.underlay, layers.sampling);
+                layers.underlayImage = image;
+            }
+        });
+        return true;
     }
 
     private static void clearUnderlay(ImageLayers layers) {

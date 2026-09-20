@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-/** Shared mapping for exported assets and the temporary development resource pack. */
+/** Asset IDs, validation and standard resource-pack export. Preview reads project assets directly. */
 public final class MaterialPack {
     private static final Gson JSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     @FunctionalInterface public interface Writer { void write(String relative, byte[] bytes) throws IOException; }

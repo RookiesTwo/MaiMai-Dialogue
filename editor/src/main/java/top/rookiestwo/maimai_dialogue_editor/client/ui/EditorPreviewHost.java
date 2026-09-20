@@ -15,7 +15,11 @@ import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.client.ui.screen.DialogueFragment;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueOption;
 import top.rookiestwo.maimai_dialogue_editor.content.ProjectContentSnapshot;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets;
+import top.rookiestwo.maimai_dialogue_editor.material.MaterialSnapshot;
+import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
 import top.rookiestwo.maimai_dialogue_editor.preview.EditorPreviewSession;
+import top.rookiestwo.maimai_dialogue_editor.preview.AudioPreviewSession;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
@@ -27,8 +31,11 @@ import java.util.function.Consumer;
 
 /** UI-thread owner of one embedded runtime Fragment. Client callbacks cross back through the UI handler. */
 final class EditorPreviewHost {
+    enum Mode { DIALOGUE, IMAGE, SOUND, EMPTY }
     private final Fragment owner;
     private final ProjectWorkspace workspace;
+    private final EditorPreviewAssets assets;
+    private final AudioPreviewSession audio;
     private final int containerId = View.generateViewId();
     private EditorPreviewView view;
     private EditorPreviewSession playback;
@@ -48,11 +55,12 @@ final class EditorPreviewHost {
     private ResourceTree.Node observedSelection;
     private long observedSelectionRevision = -1;
     private boolean publishingPosition;
-    private long materialRevision = -1;
 
-    EditorPreviewHost(Fragment owner, ProjectWorkspace workspace) {
+    EditorPreviewHost(Fragment owner, ProjectWorkspace workspace, EditorPreviewAssets assets, AudioPreviewSession.Backend audioBackend) {
         this.owner = owner;
         this.workspace = workspace;
+        this.assets = assets;
+        audio = new AudioPreviewSession(audioBackend, this::refresh);
     }
 
     EditorPreviewView createView(Context context) {
@@ -75,7 +83,7 @@ final class EditorPreviewHost {
     }
 
     boolean canStart() {
-        return canOperate() && !workspace.materials().refreshing();
+        return canOperate();
     }
 
     private boolean canOperate() {
@@ -90,13 +98,26 @@ final class EditorPreviewHost {
     String message() { return message; }
     String error() { return error; }
     record ImagePreview(String namespace, String path, boolean linear, long revision) {}
+    Mode mode() {
+        ResourceKey key = workspace.resources().opened();
+        if (key == null) return Mode.EMPTY;
+        return switch (key.kind()) {
+            case DIALOGUE -> Mode.DIALOGUE;
+            case IMAGE, VISUAL_ASSET -> Mode.IMAGE;
+            case SOUND -> Mode.SOUND;
+            default -> Mode.EMPTY;
+        };
+    }
+    AudioPreviewSession audio() { return audio; }
     boolean viewingMaterial() {
         ResourceKey key = workspace.resources().opened();
         return key != null && (key.kind() == ResourceKind.IMAGE || key.kind() == ResourceKind.VISUAL_ASSET);
     }
     ImagePreview imagePreview() {
-        if (!viewingMaterial() || workspace.materials().previewNamespace().isEmpty() || workspace.materials().refreshing()) return null;
+        if (!viewingMaterial() || workspace.materials().previewNamespace().isEmpty()
+                || workspace.draft() == null || !workspace.materials().previewNamespace().equals(workspace.draft().namespace())) return null;
         var state = workspace.content().snapshot();
+        if (state.key() == null || !state.key().equals(workspace.resources().opened())) return null;
         String id;
         boolean linear = true;
         if (state.key().kind() == ResourceKind.IMAGE) id = state.key().id(workspace.draft().namespace()) + ".png";
@@ -108,22 +129,19 @@ final class EditorPreviewHost {
         }
         ResourceLocation location = ResourceLocation.tryParse(id);
         if (location == null) return null;
-        String namespace = location.getNamespace().equals(workspace.draft().namespace())
-                ? workspace.materials().previewNamespace() : location.getNamespace();
-        return new ImagePreview(namespace, location.getPath(), linear, workspace.materials().loadedRevision());
+        return new ImagePreview(location.getNamespace(), location.getPath(), linear, workspace.materials().loadedRevision());
     }
-    void refreshMaterials() { workspace.materials().refresh(); }
-    boolean canRefreshMaterials() { return workspace.materials().canRefresh(); }
-    String materialStatus() { return workspace.materials().status(); }
-    String materialError() { return workspace.materials().refreshError(); }
+    DialogueImageSource openImages() { return assets.openImages(); }
 
     void synchronize() {
-        if (materialRevision != workspace.materials().loadedRevision() || workspace.materials().refreshing()) {
-            materialRevision = workspace.materials().loadedRevision();
-            if (playback != null || loading) stop();
-        }
         // Undo/redo may restore a different document cursor before the properties View is rebound.
-        workspace.content().snapshot();
+        var document = workspace.content().snapshot();
+        record SoundSelection(long project, ResourceKey key) {}
+        if (mode() == Mode.SOUND && document.key() != null && document.key().equals(workspace.resources().opened())
+                && document.data() != null && workspace.draft() != null) {
+            String blob = top.rookiestwo.maimai_dialogue_editor.material.MaterialPack.string(document.data().get("blob"));
+            audio.select(new SoundSelection(workspace.projectGeneration(), document.key()), workspace.draft().blob(blob));
+        } else audio.select(null, null);
         var resources = workspace.resources();
         ProjectDraft draft = workspace.draft();
         ResourceKey opened = resources.opened();
@@ -163,7 +181,6 @@ final class EditorPreviewHost {
         source = workspace.draft();
         dialogue = workspace.resources().opened();
         ProjectDraft captured = source;
-        String mediaNamespace = workspace.materials().previewNamespace();
         ResourceKey capturedKey = dialogue;
         long expected = ++revision;
         loading = true;
@@ -173,8 +190,14 @@ final class EditorPreviewHost {
         Minecraft.getInstance().execute(() -> {
             var external = ClientServices.get().content().current();
             int interval = ClientConfig.get().defaultTypewriterIntervalMs();
-            workspace.prepare(() -> new ProjectContentSnapshot(captured, external, mediaNamespace).prepare(
-                            ResourceLocation.fromNamespaceAndPath(captured.namespace(), capturedKey.path())))
+            record Prepared(ProjectContentSnapshot content, MaterialSnapshot assets) {}
+            workspace.prepare(() -> {
+                try {
+                    return new Prepared(new ProjectContentSnapshot(captured, external).prepare(
+                            ResourceLocation.fromNamespaceAndPath(captured.namespace(), capturedKey.path())),
+                            MaterialSnapshot.prepare(captured));
+                } catch (java.io.IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
+            })
                     .whenComplete((content, preparationFailure) -> Core.getUiHandler().post(() -> {
                 if (disposed || expected != revision || view == null) return;
                 loading = false;
@@ -184,7 +207,7 @@ final class EditorPreviewHost {
                 }
                 try {
                     if (preparationFailure != null) throw new java.util.concurrent.CompletionException(preparationFailure);
-                    var prepared = new EditorPreviewSession(content,
+                    var prepared = new EditorPreviewSession(content.content(),
                             ResourceLocation.fromNamespaceAndPath(captured.namespace(), capturedKey.path()), interval, step);
                     if (playback != null) playback.stop();
                     playback = prepared;
@@ -192,7 +215,8 @@ final class EditorPreviewHost {
                     advanceAfterLoad = false;
                     if (running()) {
                         showingIdle = false;
-                        fragment = new DialogueFragment(new PreviewActions(playback), DialogueFragment.CornerControls.DISPLAY_ONLY);
+                        fragment = new DialogueFragment(new PreviewActions(playback), DialogueFragment.CornerControls.DISPLAY_ONLY,
+                                assets.openImages(content.assets()));
                         owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, "editor-preview").commitNow();
                     }
                     render();
@@ -236,6 +260,7 @@ final class EditorPreviewHost {
 
     private void showIdleControls() {
         if (disposed || view == null || !view.isAttachedToWindow()) return;
+        if (mode() != Mode.DIALOGUE) { clearFragments(); return; }
         FragmentManager manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return;
         if (showingIdle && fragment != null) return;
@@ -311,6 +336,7 @@ final class EditorPreviewHost {
     }
 
     void releaseView() {
+        audio.stop();
         // FragmentManager destroys child Views before the parent callback; do not start nested transactions here.
         reset();
         fragment = null;

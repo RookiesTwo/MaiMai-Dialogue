@@ -7,6 +7,7 @@ import top.rookiestwo.maimai_dialogue.client.controller.DialogueUiActions;
 import top.rookiestwo.maimai_dialogue.client.ui.box.DialogueBoxView;
 import top.rookiestwo.maimai_dialogue.client.ui.history.DialogueHistoryFragment;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueSceneView;
+import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
 import top.rookiestwo.maimai_dialogue.client.ui.style.DialogueTypography;
 
 import icyllis.modernui.R;
@@ -58,6 +59,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
 
     private final DialogueUiActions controller;
     private final CornerControls cornerControls;
+    private final DialogueImageSource images;
     private final FastForwardPlayback fastForward;
     private final DialogueConfirmations confirmations;
     private long renderedGeneration = Long.MIN_VALUE;
@@ -83,7 +85,13 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
     }
 
     public DialogueFragment(DialogueUiActions controller, CornerControls cornerControls) {
+        this(controller, cornerControls, DialogueImageSource.RESOURCES);
+    }
+
+    /** Owns the scoped image source until this Fragment is destroyed. Existing constructors use game resources. */
+    public DialogueFragment(DialogueUiActions controller, CornerControls cornerControls, DialogueImageSource images) {
         this.controller = controller;
+        this.images = Objects.requireNonNull(images);
         this.cornerControls = Objects.requireNonNull(cornerControls, "cornerControls");
         fastForward = new FastForwardPlayback(() -> latestState, controller);
         confirmations = new DialogueConfirmations(
@@ -127,7 +135,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
         historyEntry.setOnClickListener(view -> openHistory());
         HoldToSkipButton skipEntry = createSkipButton(context);
         skipEntry.setHoldDurationMs(preferences.skipHoldDurationMs());
-        DialogueSceneView scene = new DialogueSceneView(context);
+        DialogueSceneView scene = new DialogueSceneView(context, images);
         DialogueRootLayout root = new DialogueRootLayout(
                 context,
                 scene,
@@ -465,6 +473,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
     @Override
     // Screen 真正销毁时才通知 controller 结束当前会话。
     public void onDestroy() {
+        images.close();
         DialogueUiDispatch.toClient(
                 () -> controller.onScreenDestroyed(this)
         );

@@ -57,7 +57,7 @@ final class MaterialPropertiesView extends LinearLayout {
             if (data.getAsJsonObject("variants").isEmpty()) return;
             choice("material.variant", this::variant, () -> data.getAsJsonObject("variants").keySet().stream()
                     .map(name -> new ChoicePresenter.Item(name, name)).toList(), model::selectVariant);
-            field("material.variant_name", this::variant, model::renameVariant);
+            variantNameField();
             field("material.image_id", () -> MaterialPack.string(data.getAsJsonObject("variants").get(variant())), model::setVariantImage);
             choice(null, () -> MaterialPack.string(data.getAsJsonObject("variants").get(variant())), () ->
                     project.resources().catalog().keys().stream().filter(k -> k.kind() == ResourceKind.IMAGE)
@@ -87,6 +87,42 @@ final class MaterialPropertiesView extends LinearLayout {
     private String number(String field) {
         JsonElement value = data.get(field);
         return value != null && value.isJsonPrimitive() ? value.getAsString() : "?";
+    }
+    private void variantNameField() {
+        EditorWidgets.formLabel(this, "material.variant_name");
+        String expected = binding;
+        String[] boundVariant = {variant()};
+        boolean[] invalid = {false};
+        EditText input = EditorWidgets.input(getContext(), variant(), ignored -> {}, () -> {});
+        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
+        TextView error = EditorWidgets.paragraph(getContext(), "");
+        error.setVisibility(GONE);
+        input.setOnFocusChangeListener((view, focused) -> {
+            if (focused) {
+                invalid[0] = false;
+                error.setVisibility(GONE);
+                return;
+            }
+            if (active() && binding.equals(expected) && boundVariant[0].equals(variant())) {
+                String issue = model.renameVariant(input.getText().toString());
+                invalid[0] = !issue.isEmpty();
+                error.setText(invalid[0] ? EditorWidgets.tr(issue) : "");
+                error.setVisibility(invalid[0] ? VISIBLE : GONE);
+            }
+            project.endEdit();
+        });
+        addView(input); addView(error);
+        bindings.add(() -> {
+            String current = variant();
+            if (!boundVariant[0].equals(current)) {
+                boundVariant[0] = current;
+                invalid[0] = false;
+                error.setVisibility(GONE);
+                input.setText(current);
+            } else if (!input.isFocused() && !invalid[0] && !input.getText().toString().equals(current)) {
+                input.setText(current);
+            }
+        });
     }
     private void field(String label, Supplier<String> value, Consumer<String> setter) {
         EditorWidgets.formLabel(this, label);

@@ -48,9 +48,12 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
                     .resolve("maimai-dialogue-projects")), io,
                     task -> Core.getUiHandler().post(task), () -> EditorScreens.close(this));
             workspace.windowFocusChanged(gameWindowFocused);
-            workspace.materials().setPreview(new top.rookiestwo.maimai_dialogue_editor.client.EditorDevelopmentPack(
-                    io, Minecraft.getInstance().gameDirectory.toPath()));
-            preview = new EditorPreviewHost(this, workspace);
+            var assets = new top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets(
+                    io, task -> Core.getUiHandler().post(task));
+            assets.setLoadFailure(workspace.materials()::reportLoadFailure);
+            workspace.materials().setPreview(assets);
+            preview = new EditorPreviewHost(this, workspace, assets,
+                    new top.rookiestwo.maimai_dialogue_editor.client.EditorAudioPreview(io, task -> Core.getUiHandler().post(task)));
             exports = new ExportWorkspace(workspace, io, task -> Core.getUiHandler().post(task), () -> {
                 CompletableFuture<ExportWorkspace.Environment> result = new CompletableFuture<>();
                 Minecraft.getInstance().execute(() -> {

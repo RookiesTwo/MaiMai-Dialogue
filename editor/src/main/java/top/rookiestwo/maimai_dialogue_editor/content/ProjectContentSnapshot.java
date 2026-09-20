@@ -35,15 +35,10 @@ public final class ProjectContentSnapshot implements DialogueContentLookup {
     private final ClientContentSnapshot external;
     private final Map<ResourceKey, Object> decoded = new HashMap<>();
     private final Map<ResourceKey, RuntimeException> failures = new HashMap<>();
-    private final String mediaNamespace;
 
     public ProjectContentSnapshot(ProjectDraft draft, ClientContentSnapshot external) {
-        this(draft, external, "");
-    }
-    public ProjectContentSnapshot(ProjectDraft draft, ClientContentSnapshot external, String mediaNamespace) {
         this.draft = Objects.requireNonNull(draft);
         this.external = Objects.requireNonNull(external);
-        this.mediaNamespace = Objects.requireNonNull(mediaNamespace);
         if (!draft.hasValidMetadata()) throw new IllegalArgumentException("Invalid project name or namespace");
     }
 
@@ -127,12 +122,7 @@ public final class ProjectContentSnapshot implements DialogueContentLookup {
     @SuppressWarnings("unchecked")
     private <T> Optional<T> find(ResourceKind kind, ResourceLocation id, Codec<T> codec, DefinitionRegistry<T> fallback) {
         if (!id.getNamespace().equals(draft.namespace())) {
-            var value = fallback.find(id);
-            if (mediaNamespace.isEmpty() || value.isEmpty()) return value;
-            // External definitions stay read-only; only this preview's decoded copy gets media aliases.
-            var json = codec.encodeStart(JsonOps.INSTANCE, value.get()).getOrThrow();
-            rewriteMedia(json);
-            return Optional.of(codec.parse(JsonOps.INSTANCE, json).getOrThrow());
+            return fallback.find(id);
         }
         ResourceKey key = new ResourceKey(kind, id.getPath());
         if (failures.containsKey(key)) throw failures.get(key);
@@ -142,29 +132,9 @@ public final class ProjectContentSnapshot implements DialogueContentLookup {
         var json = draft.resource(key);
         // The project's namespace is authoritative; an old installed pack must not fill a missing draft.
         if (json == null) return Optional.empty();
-        rewriteMedia(json);
         T value = codec.parse(JsonOps.INSTANCE, json).getOrThrow(error ->
                 new IllegalArgumentException(kind.key() + " " + id + ": " + error));
         decoded.put(key, value);
         return Optional.of(value);
-    }
-    private void rewriteMedia(JsonElement value) {
-        if (mediaNamespace.isEmpty()) return;
-        if (value instanceof com.google.gson.JsonObject object) {
-            for (var entry : object.entrySet()) {
-                if (entry.getKey().equals("variants") && entry.getValue() instanceof com.google.gson.JsonObject variants) {
-                    for (String variant : List.copyOf(variants.keySet())) {
-                        String image = top.rookiestwo.maimai_dialogue_editor.material.MaterialPack.string(variants.get(variant));
-                        if (image.startsWith(draft.namespace() + ":"))
-                            variants.addProperty(variant, mediaNamespace + image.substring(draft.namespace().length()));
-                    }
-                } else if (entry.getKey().equals("sound")) {
-                    String sound = top.rookiestwo.maimai_dialogue_editor.material.MaterialPack.string(entry.getValue());
-                    if (sound.startsWith(draft.namespace() + ":"))
-                        entry.setValue(new com.google.gson.JsonPrimitive(mediaNamespace + sound.substring(draft.namespace().length())));
-                    else rewriteMedia(entry.getValue());
-                } else rewriteMedia(entry.getValue());
-            }
-        } else if (value.isJsonArray()) value.getAsJsonArray().forEach(this::rewriteMedia);
     }
 }

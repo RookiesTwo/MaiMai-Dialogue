@@ -44,6 +44,7 @@ final class EditorWidgets {
     private static final int SCROLLBAR_THUMB = 0xFFA6AFBB;
     private static final int METRICS_TAG = 0x6D650001;
     private static final int TOOLTIP_STYLE_TAG = 0x6D650002;
+    static final int DEFERRED_INPUT_TAG = 0x6D650003;
 
     private EditorWidgets() {
     }

@@ -9,11 +9,12 @@ import icyllis.modernui.widget.HorizontalScrollView;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
 import icyllis.modernui.widget.ImageView;
-import icyllis.modernui.graphics.Image;
 import icyllis.modernui.graphics.drawable.ImageDrawable;
+import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
+import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 
-/** A centered, fitted 16:9 viewport hosts the runtime dialogue Fragment. */
+/** Type-specific preview: 16:9 dialogue, image-sized transparency canvas, or sound transport. */
 final class EditorPreviewView extends ResponsiveFrameLayout {
     private final EditorPreviewHost host;
     private final HorizontalScrollView toolbar;
@@ -24,11 +25,14 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     private final Button advance;
     private final Button restart;
     private final Button stop;
-    private final Button refreshMaterials;
-    private final TextView materialStatus;
     private final ImageView materialImage;
+    private final EditorAudioPreviewView audio;
+    private EditorPreviewHost.Mode mode = EditorPreviewHost.Mode.EMPTY;
+    private int imageWidth, imageHeight;
     private EditorPreviewHost.ImagePreview displayedImage;
-    private boolean hasImage;
+    private DialogueImageSource imageSource;
+    private DialogueImageSource pendingImageSource;
+    private long imageRequest;
     private int toolbarHeight;
     private int viewportWidth;
     private int viewportHeight;
@@ -44,9 +48,6 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         advance = control(context, controls, "preview.advance", host::advance);
         restart = control(context, controls, "preview.restart", host::start);
         stop = control(context, controls, "preview.stop", host::stop);
-        refreshMaterials = control(context, controls, "material.refresh", host::refreshMaterials);
-        materialStatus = EditorWidgets.label(context, "material.not_loaded", 12, EditorWidgets.MUTED);
-        controls.addView(materialStatus);
         toolbar = new HorizontalScrollView(context);
         toolbar.setHorizontalScrollBarEnabled(false);
         toolbar.setBackground(EditorWidgets.shape(EditorWidgets.HEADER, 0));
@@ -65,6 +66,8 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         EditorWidgets.bindMetrics(notice, () -> notice.setPadding(dp(10), dp(56), dp(10), dp(10)));
         canvas.addView(notice, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         addView(canvas);
+        audio = new EditorAudioPreviewView(context, host.audio());
+        addView(audio);
         refresh();
     }
 
@@ -81,26 +84,53 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     }
 
     void refresh() {
-        EditorWidgets.enabled(refreshMaterials, host.canRefreshMaterials());
-        materialStatus.setText(EditorWidgets.tr(host.materialStatus()));
-        materialStatus.setTooltipText(host.materialError().isEmpty() ? materialStatus.getText() : host.materialError());
-        boolean material = host.viewingMaterial();
+        var nextMode = host.mode();
+        if (mode != nextMode) { mode = nextMode; requestLayout(); }
+        boolean material = mode == EditorPreviewHost.Mode.IMAGE;
+        boolean dialogue = mode == EditorPreviewHost.Mode.DIALOGUE;
+        toolbar.setVisibility(dialogue ? VISIBLE : GONE);
+        canvas.setVisibility(material || dialogue ? VISIBLE : GONE);
+        audio.setVisibility(mode == EditorPreviewHost.Mode.SOUND ? VISIBLE : GONE);
+        audio.refresh();
         materialImage.setVisibility(material ? VISIBLE : GONE);
-        surface.setVisibility(material ? GONE : VISIBLE);
+        surface.setVisibility(dialogue ? VISIBLE : GONE);
         var nextImage = material ? host.imagePreview() : null;
         if (!java.util.Objects.equals(nextImage, displayedImage)) {
-            displayedImage = nextImage; materialImage.setImage(null); hasImage = false;
+            var previous = displayedImage;
+            displayedImage = nextImage;
+            long request = ++imageRequest;
+            if (pendingImageSource != null) { pendingImageSource.close(); pendingImageSource = null; }
+            boolean sameImage = previous != null && nextImage != null
+                    && previous.namespace().equals(nextImage.namespace()) && previous.path().equals(nextImage.path());
+            if (!sameImage) {
+                materialImage.setImage(null);
+                imageWidth = imageHeight = 0; requestLayout();
+                if (imageSource != null) { imageSource.close(); imageSource = null; }
+            }
             if (nextImage != null) {
-                @SuppressWarnings("deprecation") Image image = Image.create(nextImage.namespace(), nextImage.path());
-                materialImage.setImage(image); hasImage = image != null;
-                if (materialImage.getDrawable() instanceof ImageDrawable drawable) drawable.setFilter(nextImage.linear());
+                pendingImageSource = host.openImages();
+                pendingImageSource.load(ResourceLocation.fromNamespaceAndPath(nextImage.namespace(), nextImage.path()), image -> {
+                    if (request == imageRequest) {
+                        materialImage.setImage(image);
+                        imageWidth = image == null ? 0 : image.getWidth();
+                        imageHeight = image == null ? 0 : image.getHeight();
+                        requestLayout();
+                        if (imageSource != null) imageSource.close();
+                        imageSource = pendingImageSource;
+                        pendingImageSource = null;
+                        if (materialImage.getDrawable() instanceof ImageDrawable drawable) drawable.setFilter(nextImage.linear());
+                        refresh();
+                    }
+                });
             }
         }
         EditorWidgets.enabled(advance, host.canStart());
+        canvas.setImageBounds(material, imageWidth, imageHeight);
         EditorWidgets.enabled(restart, host.canStart() && host.running());
         EditorWidgets.enabled(stop, host.running());
-        notice.setVisibility(material ? (hasImage ? GONE : VISIBLE) : host.running() || host.loading() ? GONE : VISIBLE);
-        message.setText(material ? EditorWidgets.tr("material.preview_empty")
+        // A pending image is just the canvas; asset failures remain available in the workbench status bar.
+        notice.setVisibility(!dialogue || host.running() || host.loading() ? GONE : VISIBLE);
+        message.setText(!dialogue ? ""
                 : EditorWidgets.tr(host.message()) + (host.error().isEmpty() ? "" : "\n" + host.error()));
     }
 
@@ -118,12 +148,17 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         prepareViewport(widthSpec, heightSpec);
         int width = MeasureSpec.getSize(widthSpec);
         int height = MeasureSpec.getSize(heightSpec);
-        toolbarHeight = Math.min(height, dp(EditorWidgets.COMPACT_ROW_DP));
+        toolbarHeight = mode == EditorPreviewHost.Mode.DIALOGUE ? Math.min(height, dp(EditorWidgets.COMPACT_ROW_DP)) : 0;
         int availableHeight = Math.max(0, height - toolbarHeight);
-        viewportWidth = (int) Math.min(width, availableHeight * 16L / 9L);
-        viewportHeight = (int) Math.min(availableHeight, viewportWidth * 9L / 16L);
+        if (mode == EditorPreviewHost.Mode.IMAGE) {
+            viewportWidth = width; viewportHeight = availableHeight;
+        } else {
+            viewportWidth = (int)Math.min(width, availableHeight * 16L / 9L);
+            viewportHeight = (int)Math.min(availableHeight, viewportWidth * 9L / 16L);
+        }
         EditorPanel.measureExact(toolbar, width, toolbarHeight);
         EditorPanel.measureExact(canvas, viewportWidth, viewportHeight);
+        EditorPanel.measureExact(audio, width, height);
         setMeasuredDimension(width, height);
     }
 
@@ -132,6 +167,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         int x = (right - left - viewportWidth) / 2;
         int y = toolbarHeight + (bottom - top - toolbarHeight - viewportHeight) / 2;
         canvas.layout(x, y, x + viewportWidth, y + viewportHeight);
+        audio.layout(0, 0, right - left, bottom - top);
         restoreScrollPositions();
         if (refreshContentPending) {
             refreshContentPending = false;
@@ -145,7 +181,11 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     }
 
     @Override protected void onDetachedFromWindow() {
-        materialImage.setImage(null); displayedImage = null; hasImage = false;
+        ++imageRequest;
+        materialImage.setImage(null); displayedImage = null;
+        imageWidth = imageHeight = 0;
+        if (imageSource != null) { imageSource.close(); imageSource = null; }
+        if (pendingImageSource != null) { pendingImageSource.close(); pendingImageSource = null; }
         refreshContentPending = false;
         super.onDetachedFromWindow();
     }
