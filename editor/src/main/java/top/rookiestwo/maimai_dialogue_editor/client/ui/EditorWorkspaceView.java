@@ -15,6 +15,7 @@ import top.rookiestwo.maimai_dialogue_editor.export.ExportWorkspace;
 
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /** View binding only. The Fragment owns the document, forms and IO lifecycle. */
 final class EditorWorkspaceView extends ResponsiveFrameLayout {
@@ -29,6 +30,8 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     private ResourceWorkspace.Form shownResourceForm = ResourceWorkspace.Form.NONE;
     private ResourceDialog resourceDialog;
     private EditorDropdownMenu choices;
+    private EditorColorPalette colorPalette;
+    private long paletteRevision;
     private MaterialImportConfirmation materialDialog;
 
     EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace, EditorPreviewHost preview,
@@ -38,8 +41,16 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         this.exports = exports;
         setFocusable(true);
         setFocusableInTouchMode(true);
+        ChoicePresenter presenter = new ChoicePresenter() {
+            @Override public void show(View anchor, List<Item> items, String selected, Consumer<String> chosen) {
+                showChoices(anchor, items, selected, chosen);
+            }
+            @Override public void showColor(View anchor, Supplier<String> value, Consumer<String> changed) {
+                showColorPalette(anchor, value, changed);
+            }
+        };
         workbench = new EditorWorkbench(context, layout, workspace,
-                () -> workspace.request(ProjectWorkspace.Action.CLOSE_EDITOR), this::showChoices, preview, exports);
+                () -> workspace.request(ProjectWorkspace.Action.CLOSE_EDITOR), presenter, preview, exports);
         addView(workbench, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         refresh();
     }
@@ -48,6 +59,8 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         workbench.refreshProject();
         ProjectWorkspace.Page page = workspace.page();
         if (page != ProjectWorkspace.Page.NONE || workspace.resources().form() != ResourceWorkspace.Form.NONE) dismissChoices();
+        if (choices != null && !choices.hasAnchor()) dismissChoices();
+        if (colorPalette != null) colorPalette.refresh();
         if (shown != page) {
             workbench.cancelDrags();
             if (dialog != null) removeView(dialog);
@@ -169,11 +182,31 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         menu.requestFocus();
     }
 
+    private void showColorPalette(View anchor, Supplier<String> value, Consumer<String> changed) {
+        if (!workspace.content().active() || !workspace.windowFocused() || !anchor.isAttachedToWindow()) return;
+        dismissChoices();
+        workspace.endEdit();
+        long request = ++paletteRevision;
+        EditorColorPalette palette = new EditorColorPalette(getContext(), value, selected -> {
+            if (request == paletteRevision && colorPalette != null && anchor.isAttachedToWindow()
+                    && workspace.content().active()) changed.accept(selected);
+        }, workspace::endEdit, () -> { if (request == paletteRevision) dismissChoices(); });
+        colorPalette = palette;
+        choices = EditorDropdownMenu.forContent(palette, anchor, 300, this::dismissChoices);
+        workbench.setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
+        addView(choices, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        choices.requestFocus();
+    }
+
     void dismissChoices() {
         if (choices == null) return;
-        choices.dispose();
-        removeView(choices);
+        EditorDropdownMenu previous = choices;
         choices = null;
+        colorPalette = null;
+        paletteRevision++;
+        previous.dispose();
+        removeView(previous);
+        workspace.endEdit();
         if (workspace.page() == ProjectWorkspace.Page.NONE && workspace.resources().form() == ResourceWorkspace.Form.NONE) {
             workbench.setDescendantFocusability(FOCUS_AFTER_DESCENDANTS);
             requestFocus();

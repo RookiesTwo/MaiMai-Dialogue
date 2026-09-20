@@ -4,6 +4,8 @@ import com.google.gson.*;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.*;
 import icyllis.modernui.widget.*;
+import net.minecraft.resources.ResourceLocation;
+import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.Part;
@@ -108,10 +110,11 @@ final class ScenePropertiesView extends LinearLayout {
         String type = value(Part.FILTER, "type", "none");
         if (type.equals("color_adjust")) {
             for (NumberField field : COLOR_NUMBERS) number(Part.FILTER, field);
-            field("scene.tint", () -> value(Part.FILTER, "tint", ""), value -> {
-                if (!value.isEmpty() && !value.matches("#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})")) return "scene.invalid_color";
-                model.setText(Part.FILTER, "tint", value); return "";
-            }, false);
+            String expected = binding;
+            var tint = new EditorColorField(getContext(), () -> value(Part.FILTER, "tint", ""),
+                    value -> model.setText(Part.FILTER, "tint", value), () -> accepts(expected), project::endEdit, choices);
+            EditorWidgets.propertyRow(group, "scene.tint", tint, false);
+            bindings.add(() -> tint.refresh(model.active()));
         } else if (type.equals("crt")) for (NumberField field : CRT_NUMBERS) number(Part.FILTER, field);
     }
     private void variants(Part part) {
@@ -127,15 +130,51 @@ final class ScenePropertiesView extends LinearLayout {
         initialVariant(part);
     }
     private void initialVariant(Part part) {
-        field("scene.initial_variant", () -> value(part, "initial_variant", part == Part.BACKGROUND ? "default" : ""), value -> {
-            model.setText(part, "initial_variant", value); return "";
-        }, false);
-        choice(null, () -> value(part, "initial_variant", part == Part.BACKGROUND ? "default" : ""),
+        if (part == Part.OBJECT) {
+            String expected = binding;
+            Button button = choice("scene.initial_variant", () -> value(part, "initial_variant", ""),
+                    this::objectVariantItems, value -> model.setText(part, "initial_variant", value));
+            button.setOnClickListener(view -> showObjectVariants(button, expected));
+            return;
+        }
+        choice("scene.initial_variant", () -> value(part, "initial_variant", "default"),
                 () -> names(model.variantMap(part)), value -> model.setText(part, "initial_variant", value));
+    }
+    private List<ChoicePresenter.Item> objectVariantItems() {
+        ResourceLocation asset = ResourceLocation.tryParse(value(Part.OBJECT, "asset", ""));
+        if (asset != null && project.draft() != null && !asset.getNamespace().equals(project.draft().namespace())) {
+            // The repository publishes immutable snapshots; external assets remain read-only.
+            return ClientServices.get().content().current().visualAssets().find(asset)
+                    .map(definition -> definition.variants().keySet().stream()
+                            .map(name -> new ChoicePresenter.Item(name, name)).toList()).orElse(List.of());
+        }
+        return names(model.variantMap(Part.OBJECT));
+    }
+    private void showObjectVariants(Button button, String expected) {
+        if (!accepts(expected) || !button.isAttachedToWindow()) return;
+        String source = value(Part.OBJECT, "asset", "");
+        ResourceLocation asset = ResourceLocation.tryParse(source);
+        if (asset != null && asset.getNamespace().equals(project.draft().namespace())) {
+            ResourceKey key = new ResourceKey(ResourceKind.VISUAL_ASSET, asset.getPath());
+            if (project.draft().revision(key) != null && !project.draft().isLoaded(key)
+                    && !project.resources().whenLoaded(key, () -> {
+                        if (source.equals(value(Part.OBJECT, "asset", ""))) showObjectVariants(button, expected);
+                    })) return;
+        }
+        choices.show(button, objectVariantItems(), value(Part.OBJECT, "initial_variant", ""), selected -> {
+            if (accepts(expected) && source.equals(value(Part.OBJECT, "asset", ""))
+                    && objectVariantItems().stream().anyMatch(item -> item.value().equals(selected))) {
+                model.setText(Part.OBJECT, "initial_variant", selected);
+            }
+        });
     }
     private void number(Part part, NumberField field) {
         String fallback = field.integer() ? Integer.toString((int)field.fallback()) : Float.toString(field.fallback());
-        field("scene." + field.name(), () -> value(part, field.name(), fallback), value -> model.setNumber(part, field, value), true);
+        String expected = binding;
+        var control = new EditorNumberField(getContext(), field, () -> value(part, field.name(), fallback),
+                value -> model.setNumber(part, field, value), () -> accepts(expected), project::endEdit);
+        EditorWidgets.propertyRow(group, "scene." + field.name(), control, false);
+        bindings.add(() -> control.refresh(model.active()));
     }
     private void field(String label, Supplier<String> value, Function<String, String> setter, boolean live) {
         String expected = binding;
@@ -168,7 +207,7 @@ final class ScenePropertiesView extends LinearLayout {
                     return new ChoicePresenter.Item(id, id);
                 }).toList(), setter);
     }
-    private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
+    private Button choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;
         Button button = EditorWidgets.button(getContext(), "", null);
         button.setOnClickListener(view -> { if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> {
@@ -186,6 +225,7 @@ final class ScenePropertiesView extends LinearLayout {
                     .orElse(current.isEmpty() ? EditorWidgets.tr("no_selection") : current);
             button.setText(text + " ▾"); button.setTooltipText(text); EditorWidgets.enabled(button, model.active());
         });
+        return button;
     }
     private void action(LinearLayout row, String label, Runnable action, BooleanSupplier enabled) {
         String expected = binding;

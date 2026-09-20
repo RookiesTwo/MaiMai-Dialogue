@@ -4,6 +4,7 @@ import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.graphics.Rect;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.MotionEvent;
+import icyllis.modernui.view.PointerIcon;
 import icyllis.modernui.view.View;
 import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.ScrollView;
@@ -14,6 +15,7 @@ final class EditorDropdownMenu extends FrameLayout {
     private final View anchor;
     private final Runnable onDismiss;
     private final boolean matchAnchorWidth;
+    private final int preferredWidthDp;
     private final Rect panelBounds = new Rect();
     private final int[] anchorLocation = new int[2];
     private final int[] ownLocation = new int[2];
@@ -29,10 +31,19 @@ final class EditorDropdownMenu extends FrameLayout {
     }
 
     private EditorDropdownMenu(View content, View anchor, Runnable onDismiss, boolean matchAnchorWidth) {
+        this(content, anchor, onDismiss, matchAnchorWidth, 380);
+    }
+
+    static EditorDropdownMenu forContent(View content, View anchor, int widthDp, Runnable onDismiss) {
+        return new EditorDropdownMenu(content, anchor, onDismiss, false, widthDp);
+    }
+
+    private EditorDropdownMenu(View content, View anchor, Runnable onDismiss, boolean matchAnchorWidth, int widthDp) {
         super(content.getContext());
         this.anchor = anchor;
         this.onDismiss = onDismiss;
         this.matchAnchorWidth = matchAnchorWidth;
+        this.preferredWidthDp = widthDp;
         setClickable(true);
         setFocusable(true);
         setFocusableInTouchMode(true);
@@ -53,7 +64,7 @@ final class EditorDropdownMenu extends FrameLayout {
     private void measurePanel(int width, int height) {
         anchor.getLocationInWindow(anchorLocation);
         getLocationInWindow(ownLocation);
-        int panelWidth = Math.min(matchAnchorWidth ? anchor.getWidth() : dp(380), width);
+        int panelWidth = Math.min(matchAnchorWidth ? anchor.getWidth() : dp(preferredWidthDp), width);
         int left = Math.clamp(anchorLocation[0] - ownLocation[0], 0, width - panelWidth);
         int anchorTop = Math.clamp(anchorLocation[1] - ownLocation[1], 0, height);
         int top = Math.clamp(anchorTop + anchor.getHeight(), 0, height);
@@ -90,11 +101,20 @@ final class EditorDropdownMenu extends FrameLayout {
         return !insidePanel(event) || super.dispatchGenericMotionEvent(event);
     }
 
+    @Override
+    public PointerIcon onResolvePointerIcon(@NonNull MotionEvent event) {
+        PointerIcon icon = super.onResolvePointerIcon(event);
+        // A null result lets the parent query obscured siblings, including their text cursors.
+        return icon != null ? icon : PointerIcon.getSystemIcon(PointerIcon.TYPE_ARROW);
+    }
+
     private boolean insidePanel(MotionEvent event) {
         return panelBounds.contains((int) event.getX(), (int) event.getY());
     }
 
     // 只释放当前菜单 View；旧菜单的延迟回调不能取消后来打开的表单。
+    boolean hasAnchor() { return anchor.isAttachedToWindow(); }
+
     void dispose() {
         disposed = true;
     }

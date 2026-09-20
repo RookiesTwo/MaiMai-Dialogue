@@ -106,15 +106,27 @@ final class SceneCanvasOverlay extends View {
         float sy = vertical ? 1 + lastDeltaY / vy : 1;
         float minX = Math.max(1, dp(2)) / Math.max(1, initialBounds.width());
         float minY = Math.max(1, dp(2)) / Math.max(1, initialBounds.height());
+        float scaleX, scaleY;
         if (shiftPressed) {
-            // Project corner movement onto its initial diagonal; side handles use their active axis.
-            float uniform = horizontal && vertical ? 1 + (lastDeltaX * vx + lastDeltaY * vy) / (vx * vx + vy * vy)
-                    : horizontal ? sx : sy;
-            sx = sy = Math.max(Math.max(minX, minY), uniform);
-        } else { sx = horizontal ? Math.max(minX, sx) : 1; sy = vertical ? Math.max(minY, sy) : 1; }
+            // Remove the existing axis stretch before projecting onto the image's original diagonal.
+            // FIT_CENTER and the common scale preserve aspect; equal absolute axis scales restore it.
+            double baseX = (double) vx / initialTransform.scaleX();
+            double baseY = (double) vy / initialTransform.scaleY();
+            double uniform = horizontal && vertical
+                    ? ((vx + (double) lastDeltaX) * baseX + (vy + (double) lastDeltaY) * baseY)
+                    / (baseX * baseX + baseY * baseY)
+                    : horizontal ? (vx + (double) lastDeltaX) / baseX : (vy + (double) lastDeltaY) / baseY;
+            scaleX = scaleY = (float) Math.max(Math.max((double) minX * initialTransform.scaleX(),
+                    (double) minY * initialTransform.scaleY()), uniform);
+            sx = scaleX / initialTransform.scaleX();
+            sy = scaleY / initialTransform.scaleY();
+        } else {
+            sx = horizontal ? Math.max(minX, sx) : 1; sy = vertical ? Math.max(minY, sy) : 1;
+            scaleX = initialTransform.scaleX() * sx; scaleY = initialTransform.scaleY() * sy;
+        }
         // Scaling the actual image about the opposite handle also moves the object's configured anchor.
         host.resizeObject(initialTransform, (initialAnchor.left - px) * (sx - 1),
-                (initialAnchor.top - py) * (sy - 1), sx, sy);
+                (initialAnchor.top - py) * (sy - 1), scaleX, scaleY);
     }
     void finish(boolean commit) {
         boolean hadGesture = dragging;

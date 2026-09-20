@@ -116,9 +116,9 @@ final class EditorScenePreviewView extends FrameLayout {
     void moveObject(float dx, float dy) {
         if (surface != null) workspace.scenes().movePositionDrag(surface.normalizedDeltaX(dx), surface.normalizedDeltaY(dy));
     }
-    void resizeObject(SceneWorkspace.Transform origin, float anchorDeltaX, float anchorDeltaY, float factorX, float factorY) {
+    void resizeObject(SceneWorkspace.Transform origin, float anchorDeltaX, float anchorDeltaY, float scaleX, float scaleY) {
         if (surface != null) workspace.scenes().resizeDrag(origin.x() + surface.normalizedDeltaX(anchorDeltaX),
-                origin.y() + surface.normalizedDeltaY(anchorDeltaY), origin.scaleX() * factorX, origin.scaleY() * factorY);
+                origin.y() + surface.normalizedDeltaY(anchorDeltaY), scaleX, scaleY);
     }
     void endDrag(boolean commit) { overlay.finish(commit); }
     private void updatePosition() {
