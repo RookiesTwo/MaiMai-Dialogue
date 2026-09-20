@@ -47,11 +47,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         setFocusable(true);
         setFocusableInTouchMode(true);
 
-        toolbar = new EditorToolbar(context, closeAction, () -> {
-            cancelDrags();
-            state.reset();
-            requestLayout();
-        }, workspace, previewHost);
+        toolbar = new EditorToolbar(context, closeAction, this::restoreDefaultLayout, workspace, previewHost);
         previewHost.setListener(() -> toolbar.refresh(workspace));
         browser = new ResourceBrowserView(context, workspace);
         resources = new EditorPanel(context, "resources", browser, () -> {
@@ -59,7 +55,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             state.leftCollapsed = true;
             requestLayout();
         }, true);
-        resourceProperties = new ResourcePropertiesView(context, workspace, choices);
+        resourceProperties = new ResourcePropertiesView(context, workspace, choices, state);
         properties = new EditorPanel(context, "properties", EditorWidgets.formScroll(context, resourceProperties), () -> {
             cancelDrags();
             state.rightCollapsed = true;
@@ -88,6 +84,13 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             addView(view);
         }
         refreshProject();
+    }
+
+    private void restoreDefaultLayout() {
+        cancelDrags();
+        state.reset();
+        resourceProperties.refresh();
+        requestLayout();
     }
 
     void refreshProject() {
@@ -244,6 +247,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             }
         }
         dragStart = null;
+        previewHost.finishSceneDrag(true);
     }
 
     @Override

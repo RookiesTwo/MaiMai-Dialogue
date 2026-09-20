@@ -226,6 +226,8 @@
   "gui.maimai_dialogue_editor.scene.x": "X（视口宽度比例）",
   "gui.maimai_dialogue_editor.scene.y": "Y（视口高度比例）",
   "gui.maimai_dialogue_editor.scene.scale": "缩放",
+  "gui.maimai_dialogue_editor.scene.scale_x": "水平缩放",
+  "gui.maimai_dialogue_editor.scene.scale_y": "垂直缩放",
   "gui.maimai_dialogue_editor.scene.opacity": "不透明度（0～1）",
   "gui.maimai_dialogue_editor.scene.z_index": "显示层级",
   "gui.maimai_dialogue_editor.scene.anchor": "锚点",

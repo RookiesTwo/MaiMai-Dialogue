@@ -16,7 +16,9 @@ public record SceneObjectState(
         float scale,
         float opacity,
         boolean visible,
-        int zIndex
+        int zIndex,
+        float scaleX,
+        float scaleY
 ) {
     public SceneObjectState {
         Objects.requireNonNull(variants, "variants");
@@ -35,12 +37,23 @@ public record SceneObjectState(
                 object.scale(),
                 object.opacity(),
                 object.visible(),
-                object.zIndex()
+                object.zIndex(),
+                object.scaleX(),
+                object.scaleY()
         );
     }
 
     public ResourceLocation image() {
         return variants.get(variant);
+    }
+
+    public SceneObjectState(Map<String, ResourceLocation> variants, String variant, float x, float y,
+                            VisualAnchor anchor, float scale, float opacity, boolean visible, int zIndex) {
+        this(variants, variant, x, y, anchor, scale, opacity, visible, zIndex, 1, 1);
+    }
+
+    public SceneObjectState withAxisScale(float nextScaleX, float nextScaleY) {
+        return new SceneObjectState(variants, variant, x, y, anchor, scale, opacity, visible, zIndex, nextScaleX, nextScaleY);
     }
 
     public SceneObjectState withAnimated(
@@ -60,7 +73,9 @@ public record SceneObjectState(
                 nextScale,
                 nextOpacity,
                 nextVisible,
-                zIndex
+                zIndex,
+                scaleX,
+                scaleY
         );
     }
 }

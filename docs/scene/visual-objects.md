@@ -189,6 +189,7 @@ flowchart LR
 | `x`、`y` | 对象的位置，用画面比例表示，范围 `[0,1]`（0.5 是正中间，0.3 是离顶部约三成处） |
 | `anchor` | 对象的哪个点对准 `x`/`y` 位置（`center` 是中心点，还有九宫格的其他 8 个值，见[Presentation JSON 参考](../reference/presentation-json.md#visualobject-视觉对象)） |
 | `scale` | 放大倍数，`8.0` 表示放大 8 倍 |
+| `scale_x`、`scale_y` | 分别控制水平／垂直方向的额外缩放，默认都为 `1.0`；实际尺寸还会乘以 `scale` |
 | `opacity` | 不透明度，`0` 全透明，`1` 不透明 |
 | `visible` | 是否显示，`false` 时隐藏 |
 | `z_index` | 层级，数值越大画得越靠前 |

@@ -226,6 +226,8 @@
   "gui.maimai_dialogue_editor.scene.x": "X (viewport width ratio)",
   "gui.maimai_dialogue_editor.scene.y": "Y (viewport height ratio)",
   "gui.maimai_dialogue_editor.scene.scale": "Scale",
+  "gui.maimai_dialogue_editor.scene.scale_x": "Horizontal scale",
+  "gui.maimai_dialogue_editor.scene.scale_y": "Vertical scale",
   "gui.maimai_dialogue_editor.scene.opacity": "Opacity (0–1)",
   "gui.maimai_dialogue_editor.scene.z_index": "Z index",
   "gui.maimai_dialogue_editor.scene.anchor": "Anchor",

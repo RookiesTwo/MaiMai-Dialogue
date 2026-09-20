@@ -19,7 +19,7 @@ public final class ScenePreviewSession {
     private final Backend backend;
     private final Executor ui;
     private final Runnable changed;
-    private Request requested, pending;
+    private Request requested, pending, published;
     private Prepared prepared;
     private String error = "";
     private boolean disposed;
@@ -29,6 +29,7 @@ public final class ScenePreviewSession {
     }
     public Prepared prepared() { return prepared; }
     public String error() { return error; }
+    public boolean current() { return !disposed && prepared != null && published == requested && error.isEmpty(); }
     public void select(long project, ProjectDraft draft, ResourceKey key) {
         if (disposed) return;
         Request next = draft == null || key == null || key.kind() != ResourceKind.SCENE ? null : new Request(project, draft, key);
@@ -36,7 +37,7 @@ public final class ScenePreviewSession {
                 && requested.draft == next.draft && requested.key.equals(next.key)) return;
         boolean sameScene = requested != null && next != null && requested.project == next.project && requested.key.equals(next.key);
         requested = next;
-        if (!sameScene) { prepared = null; error = ""; }
+        if (!sameScene) { prepared = null; published = null; error = ""; }
         changed.run();
         if (pending == null) start();
     }
@@ -50,7 +51,7 @@ public final class ScenePreviewSession {
             if (disposed) return;
             pending = null;
             if (request == requested) {
-                if (failure == null) { prepared = result; error = ""; }
+                if (failure == null) { prepared = result; published = request; error = ""; }
                 else {
                     Throwable cause = failure;
                     while (cause instanceof CompletionException && cause.getCause() != null) cause = cause.getCause();
@@ -60,7 +61,7 @@ public final class ScenePreviewSession {
             } else start();
         }));
     }
-    public void dispose() { disposed = true; requested = null; pending = null; prepared = null; error = ""; }
+    public void dispose() { disposed = true; requested = null; pending = null; published = null; prepared = null; error = ""; }
 
     /** Runs entirely on the IO executor, using the same codecs and VisualAsset resolution as gameplay. */
     public static Prepared prepare(ProjectDraft draft, ResourceKey key, ClientContentSnapshot external) throws java.io.IOException {

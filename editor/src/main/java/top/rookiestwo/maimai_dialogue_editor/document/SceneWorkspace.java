@@ -3,6 +3,7 @@ package top.rookiestwo.maimai_dialogue_editor.document;
 import com.google.gson.*;
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialPack;
 import java.util.*;
@@ -21,7 +22,9 @@ public final class SceneWorkspace {
             new NumberField("y", .5f, -Float.MAX_VALUE, Float.MAX_VALUE),
             new NumberField("scale", 1, Float.MIN_VALUE, Float.MAX_VALUE),
             new NumberField("opacity", 1, 0, 1),
-            new NumberField("z_index", 0, Integer.MIN_VALUE, Integer.MAX_VALUE, true));
+            new NumberField("z_index", 0, Integer.MIN_VALUE, Integer.MAX_VALUE, true),
+            new NumberField("scale_x", 1, Float.MIN_VALUE, Float.MAX_VALUE),
+            new NumberField("scale_y", 1, Float.MIN_VALUE, Float.MAX_VALUE));
     public static final List<NumberField> COLOR_NUMBERS = List.of(
             new NumberField("brightness", 0, -1, 1), new NumberField("contrast", 1, 0, 2), new NumberField("saturation", 1, 0, 2));
     public static final List<NumberField> CRT_NUMBERS = List.of(
@@ -34,13 +37,28 @@ public final class SceneWorkspace {
     private final Map<ResourceKey, String> objects = new HashMap<>();
     private final Map<String, String> variants = new HashMap<>();
     private long generation = -1;
+    public record Transform(String objectId, float x, float y, float scaleX, float scaleY) {}
+    private record Drag(ProjectDraft before, ResourceKey key, long project, Transform origin, Transform position) {}
+    private Drag drag;
+    private ContentWorkspace.Snapshot dragSnapshot;
 
     public SceneWorkspace(ProjectWorkspace project, Runnable changed) { this.project = project; this.changed = changed; }
     public ContentWorkspace.Snapshot snapshot() {
         if (generation != project.projectGeneration()) {
-            generation = project.projectGeneration(); objects.clear(); variants.clear();
+            generation = project.projectGeneration(); objects.clear(); variants.clear(); drag = null; dragSnapshot = null;
         }
-        return project.content().snapshot();
+        var state = project.content().snapshot();
+        if (drag != null && (drag.before != project.draft() || drag.project != generation || !drag.key.equals(state.key())
+                || !drag.key.equals(project.resources().selection().resource())
+                || !drag.position.objectId.equals(objects.get(drag.key)) || !project.content().active())) drag = null;
+        if (drag == null) { dragSnapshot = null; return state; }
+        if (dragSnapshot != null) return dragSnapshot;
+        JsonObject preview = state.data().deepCopy();
+        var object = part(preview, Part.OBJECT, drag.position.objectId);
+        if (object == null) { drag = null; return state; }
+        writeTransform(object, drag.origin, drag.position);
+        dragSnapshot = new ContentWorkspace.Snapshot(state.key(), preview, state.cursor());
+        return dragSnapshot;
     }
     public boolean active() {
         var state = snapshot();
@@ -58,11 +76,70 @@ public final class SceneWorkspace {
         var state = snapshot(); var map = objectMap();
         if (map == null || map.isEmpty()) return "";
         String selected = objects.get(state.key());
-        return selected != null && map.has(selected) ? selected : map.keySet().iterator().next();
+        return selected != null && (selected.isEmpty() || map.has(selected)) ? selected : map.keySet().iterator().next();
     }
     public void selectObject(String id) {
-        if (!active() || objectMap() == null || !objectMap().has(id)) return;
+        if (!active() || objectMap() == null || (!id.isEmpty() && !objectMap().has(id))) return;
+        drag = null;
         project.endEdit(); objects.put(snapshot().key(), id); changed.run();
+    }
+    public Transform dragPosition() { snapshot(); return drag == null ? null : drag.position; }
+    public boolean beginPositionDrag(String id) {
+        if (!active() || drag != null || !id.equals(objectId())) return false;
+        JsonObject object = part(Part.OBJECT);
+        if (object == null) return false;
+        try {
+            float x = Float.parseFloat(text(object, "x", "0.5")), y = Float.parseFloat(text(object, "y", "0.5"));
+            float scaleX = Float.parseFloat(text(object, "scale_x", "1")), scaleY = Float.parseFloat(text(object, "scale_y", "1"));
+            if (!Float.isFinite(x) || !Float.isFinite(y) || !validScale(scaleX) || !validScale(scaleY)) return false;
+            project.endEdit();
+            var key = snapshot().key(); objects.put(key, id);
+            var origin = new Transform(id, x, y, scaleX, scaleY);
+            drag = new Drag(project.draft(), key, generation, origin, origin);
+            dragSnapshot = null;
+            changed.run(); return true;
+        } catch (NumberFormatException invalid) { return false; }
+    }
+    /** Transient normalized deltas. A gesture does not write drafts or history until it is finished. */
+    public void movePositionDrag(float dx, float dy) {
+        snapshot(); if (drag == null || !Float.isFinite(dx) || !Float.isFinite(dy)) return;
+        float x = drag.origin.x + dx, y = drag.origin.y + dy;
+        if (!Float.isFinite(x) || !Float.isFinite(y)) return;
+        updateDrag(new Transform(drag.origin.objectId, x, y, drag.origin.scaleX, drag.origin.scaleY));
+    }
+    /** Absolute preview transform computed from the gesture's initial pointer and opposite handle. */
+    public void resizeDrag(float x, float y, float scaleX, float scaleY) {
+        snapshot(); if (drag == null || !Float.isFinite(x) || !Float.isFinite(y) || !validScale(scaleX) || !validScale(scaleY)) return;
+        var object = part(object(drag.before.resource(drag.key)), Part.OBJECT, drag.origin.objectId);
+        float scale;
+        try { scale = Float.parseFloat(text(object, "scale", "1")); } catch (NumberFormatException invalid) { return; }
+        if (!validScale(scale * scaleX) || !validScale(scale * scaleY)) return;
+        updateDrag(new Transform(drag.origin.objectId, x, y, scaleX, scaleY));
+    }
+    private static boolean validScale(float value) { return Float.isFinite(value) && value > 0; }
+    private void updateDrag(Transform next) {
+        if (next.equals(drag.position)) return;
+        drag = new Drag(drag.before, drag.key, drag.project, drag.origin, next);
+        dragSnapshot = null;
+        changed.run();
+    }
+    public void endPositionDrag(boolean commit) {
+        snapshot(); Drag finished = drag; drag = null;
+        if (finished == null) return;
+        project.endEdit();
+        if (commit && !finished.origin.equals(finished.position)) {
+            JsonObject data = object(finished.before.resource(finished.key));
+            var object = part(data, Part.OBJECT, finished.position.objectId);
+            writeTransform(object, finished.origin, finished.position);
+            project.editAsset(finished.key, data, null);
+        }
+        project.endEdit(); changed.run();
+    }
+    private static void writeTransform(JsonObject object, Transform origin, Transform next) {
+        if (origin.x != next.x) object.addProperty("x", new java.math.BigDecimal(Float.toString(next.x)));
+        if (origin.y != next.y) object.addProperty("y", new java.math.BigDecimal(Float.toString(next.y)));
+        if (origin.scaleX != next.scaleX) object.addProperty("scale_x", new java.math.BigDecimal(Float.toString(next.scaleX)));
+        if (origin.scaleY != next.scaleY) object.addProperty("scale_y", new java.math.BigDecimal(Float.toString(next.scaleY)));
     }
     public JsonObject part(Part part) { return part(data(), part, objectId()); }
     private static JsonObject part(JsonObject data, Part part, String objectId) {
@@ -231,6 +308,7 @@ public final class SceneWorkspace {
     }
     private void edit(String group, Consumer<JsonObject> mutation) {
         if (!active()) return;
+        drag = null;
         var state = snapshot(); JsonObject next = state.data().deepCopy(); mutation.accept(next);
         if (!next.equals(state.data())) project.editAsset(state.key(), next, group);
     }

@@ -132,6 +132,8 @@ final class EditorPreviewHost {
     AudioPreviewSession audio() { return audio; }
     ScenePreviewSession scenes() { return scenes; }
     EditorPreviewAssets assets() { return assets; }
+    ProjectWorkspace workspace() { return workspace; }
+    void finishSceneDrag(boolean commit) { if (view != null) view.finishSceneDrag(commit); }
     boolean viewingMaterial() {
         ResourceKey key = workspace.resources().opened();
         return key != null && (key.kind() == ResourceKind.IMAGE || key.kind() == ResourceKind.VISUAL_ASSET);
@@ -168,7 +170,7 @@ final class EditorPreviewHost {
         var resources = workspace.resources();
         ProjectDraft draft = workspace.draft();
         ResourceKey opened = resources.opened();
-        scenes.select(workspace.projectGeneration(), draft, opened);
+        if (workspace.scenes().dragPosition() == null) scenes.select(workspace.projectGeneration(), draft, opened);
         ResourceTree.Node selected = resources.selection();
         boolean draftChanged = draft != observedDraft;
         boolean selectionChanged = observedSelectionRevision != resources.selectionRevision()
@@ -361,6 +363,7 @@ final class EditorPreviewHost {
 
     void releaseView() {
         audio.stop();
+        finishSceneDrag(false);
         scenes.select(workspace.projectGeneration(), null, null);
         // FragmentManager destroys child Views before the parent callback; do not start nested transactions here.
         reset();

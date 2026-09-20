@@ -146,8 +146,8 @@ final class SceneContentView extends FrameLayout {
                 .getDisplayMetrics()
                 .density;
         float resolutionScale = height / DESIGN_SCREEN_HEIGHT / density;
-        view.setScaleX(object.scale() * resolutionScale);
-        view.setScaleY(object.scale() * resolutionScale);
+        view.setScaleX(object.scale() * object.scaleX() * resolutionScale);
+        view.setScaleY(object.scale() * object.scaleY() * resolutionScale);
     }
 
     private static float horizontalAnchor(VisualAnchor anchor) {

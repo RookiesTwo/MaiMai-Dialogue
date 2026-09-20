@@ -5,7 +5,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
-import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
 import icyllis.modernui.graphics.Rect;
 import icyllis.modernui.widget.Button;
@@ -28,13 +27,11 @@ import static top.rookiestwo.maimai_dialogue_editor.document.DialogueDraft.*;
 
 /** Field bindings are rebuilt only when the selected object or form shape changes, never while typing. */
 final class ContentPropertiesView extends LinearLayout {
-    private static final int CHOICE_MAX_WIDTH_DP = 280;
     private record Binding(ResourceKey resource, ContentWorkspace.Cursor cursor, String shape) {}
     private final ProjectWorkspace workspace;
     private final ContentWorkspace content;
     private final ChoicePresenter choices;
     private final List<Runnable> bindings = new ArrayList<>();
-    private final List<Button> choiceButtons = new ArrayList<>();
     private ContentWorkspace.Snapshot state;
     private Binding binding;
     private boolean refreshing;
@@ -59,7 +56,6 @@ final class ContentPropertiesView extends LinearLayout {
                 clearFocus();
                 removeAllViews();
                 bindings.clear();
-                choiceButtons.clear();
                 fields.clear();
                 build();
             }
@@ -138,7 +134,7 @@ final class ContentPropertiesView extends LinearLayout {
             return;
         }
         if (state.key().kind() != ResourceKind.DIALOGUE) return;
-        var heading = EditorWidgets.paragraph(getContext(), "");
+        var heading = EditorWidgets.compactParagraph(getContext(), "");
         heading.setText(EditorWidgets.tr(state.cursor().step() == END ? "edit.end" : "edit.step")
                 + (state.cursor().step() == END ? "" : " " + (state.cursor().step() + 1)));
         addView(heading);
@@ -215,9 +211,8 @@ final class ContentPropertiesView extends LinearLayout {
     }
 
     private void field(String label, Supplier<String> value, Consumer<String> setter, boolean multiline) {
-        EditorWidgets.formLabel(this, label);
         Binding expected = binding;
-        EditText input = EditorWidgets.input(getContext(), value.get(), text -> {
+        EditText input = EditorWidgets.compactInput(getContext(), value.get(), text -> {
             if (accepts(expected)) setter.accept(text);
         }, workspace::endEdit);
         if (multiline) {
@@ -226,10 +221,10 @@ final class ContentPropertiesView extends LinearLayout {
             EditorWidgets.bindMetrics(input, () -> {
                 input.setMinLines(4);
                 input.setMaxLines(10);
-                input.setMinimumHeight(dp(112));
+                input.setMinimumHeight(dp(96));
             });
         }
-        addView(input, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        EditorWidgets.propertyRow(this, label, input, multiline);
         fields.put(label, input);
         bindings.add(() -> {
             String text = value.get();
@@ -253,7 +248,6 @@ final class ContentPropertiesView extends LinearLayout {
     }
 
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
-        if (label != null) EditorWidgets.formLabel(this, label);
         Binding expected = binding;
         Button button = EditorWidgets.button(getContext(), "", () -> {});
         button.setOnClickListener(view -> {
@@ -261,14 +255,12 @@ final class ContentPropertiesView extends LinearLayout {
                 if (accepts(expected)) setter.accept(selected);
             });
         });
-        addView(button);
-        choiceButtons.add(button);
+        EditorWidgets.propertyRow(this, label, button, false);
         if (label != null) fields.put(label, button);
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         EditorWidgets.bindMetrics(button, () -> {
             button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP),
                     0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
-            button.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(26)));
         });
         bindings.add(() -> {
             String text = label == null ? EditorWidgets.tr("edit.choose_resource") : items.get().stream()
@@ -284,16 +276,7 @@ final class ContentPropertiesView extends LinearLayout {
         return Arrays.stream(values).map(value -> new ChoicePresenter.Item(value, EditorWidgets.tr(prefix + value))).toList();
     }
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int availableWidth = MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED
-                ? dp(CHOICE_MAX_WIDTH_DP)
-                : Math.max(0, MeasureSpec.getSize(widthMeasureSpec) - getPaddingLeft() - getPaddingRight());
-        int choiceWidth = Math.min(dp(CHOICE_MAX_WIDTH_DP), availableWidth);
-        for (Button button : choiceButtons) button.getLayoutParams().width = choiceWidth;
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-    }
-    private void warning(String key) { addView(EditorWidgets.paragraph(getContext(), key)); }
+    private void warning(String key) { addView(EditorWidgets.compactParagraph(getContext(), key)); }
     private LinearLayout row() {
         LinearLayout row = new LinearLayout(getContext());
         addView(row, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
@@ -303,7 +286,11 @@ final class ContentPropertiesView extends LinearLayout {
         Binding expected = binding;
         Button button = EditorWidgets.button(getContext(), label, () -> { if (accepts(expected)) action.run(); });
         row.addView(button);
-        EditorWidgets.bindMetrics(button, () -> button.setLayoutParams(new LayoutParams(0, dp(32), 1)));
+        EditorWidgets.bindMetrics(button, () -> {
+            button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0,
+                    dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
+            button.setLayoutParams(new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1));
+        });
         bindings.add(() -> EditorWidgets.enabled(button, canEdit() && enabled.getAsBoolean()));
     }
 }

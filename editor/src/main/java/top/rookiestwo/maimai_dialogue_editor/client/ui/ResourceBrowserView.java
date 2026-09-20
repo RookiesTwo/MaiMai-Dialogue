@@ -20,8 +20,8 @@ import java.nio.file.Path;
 
 /** Search and tree bindings. Resource data and navigation survive outside this View. */
 final class ResourceBrowserView extends LinearLayout {
-    private static final int INDENT_DP = 12;
-    private static final int TOGGLE_WIDTH_DP = 22;
+    private static final int INDENT_DP = 10;
+    private static final int TOGGLE_WIDTH_DP = 18;
     private record Controls(ResourceTree.Row row, LinearLayout line, Button label, Button toggle) {}
     private final ProjectWorkspace workspace;
     private final ResourceWorkspace resources;
@@ -53,7 +53,7 @@ final class ResourceBrowserView extends LinearLayout {
         this.workspace = workspace;
         resources = workspace.resources();
         setOrientation(VERTICAL);
-        search = EditorWidgets.input(context, resources.query(), value -> {
+        search = EditorWidgets.compactInput(context, resources.query(), value -> {
             if (!refreshing) resources.setQuery(value);
         }, () -> {});
         search.setHint(EditorWidgets.tr("browser.search"));
@@ -73,7 +73,11 @@ final class ResourceBrowserView extends LinearLayout {
         });
         for (Button button : new Button[]{create, copy, delete}) {
             actions.addView(button);
-            EditorWidgets.bindMetrics(button, () -> button.setLayoutParams(new LayoutParams(0, dp(30), 1)));
+            EditorWidgets.bindMetrics(button, () -> {
+                button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0,
+                        dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
+                button.setLayoutParams(new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1));
+            });
         }
         addView(actions);
         importMaterial = EditorWidgets.button(context, "material.import", () -> workspace.materials().begin(null));
@@ -84,7 +88,7 @@ final class ResourceBrowserView extends LinearLayout {
         scroll = EditorWidgets.formScroll(context, rows);
         scroll.setVerticalScrollBarEnabled(true);
         addView(scroll, new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1));
-        empty = EditorWidgets.paragraph(context, "browser.no_results");
+        empty = EditorWidgets.compactParagraph(context, "browser.no_results");
         addView(empty);
         refresh();
     }

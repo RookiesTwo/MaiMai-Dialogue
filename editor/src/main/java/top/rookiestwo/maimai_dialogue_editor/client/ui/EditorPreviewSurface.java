@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
+import icyllis.modernui.graphics.RectF;
 import icyllis.modernui.fragment.FragmentContainerView;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
@@ -34,6 +35,14 @@ final class EditorPreviewSurface extends FrameLayout {
         referenceHeight = next;
         requestLayout();
     }
+
+    void mapContentBounds(RectF bounds) {
+        if (!content.hasIdentityMatrix()) content.getMatrix().mapRect(bounds);
+        bounds.offset(content.getLeft() + getLeft(), content.getTop() + getTop());
+    }
+
+    float normalizedDeltaX(float distance) { return distance / Math.max(1, content.getWidth() * content.getScaleX()); }
+    float normalizedDeltaY(float distance) { return distance / Math.max(1, content.getHeight() * content.getScaleY()); }
 
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
         int width = MeasureSpec.getSize(widthSpec);

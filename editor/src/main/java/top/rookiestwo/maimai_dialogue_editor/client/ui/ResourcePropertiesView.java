@@ -17,21 +17,21 @@ final class ResourcePropertiesView extends LinearLayout {
     private final MaterialPropertiesView materials;
     private final ScenePropertiesView scenes;
 
-    ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices) {
+    ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, EditorLayoutState layout) {
         super(context);
         this.workspace = workspace;
         setOrientation(VERTICAL);
-        EditorWidgets.bindMetrics(this, () -> setPadding(dp(12), dp(8), dp(12), dp(8)));
-        details = EditorWidgets.paragraph(context, "no_selection");
+        EditorWidgets.bindMetrics(this, () -> setPadding(dp(6), dp(4), dp(6), dp(4)));
+        details = EditorWidgets.compactParagraph(context, "no_selection");
         addView(details, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        diagnostic = EditorWidgets.paragraph(context, "");
+        diagnostic = EditorWidgets.compactParagraph(context, "");
         diagnostic.setTextIsSelectable(true);
         addView(diagnostic);
         content = new ContentPropertiesView(context, workspace, choices);
         addView(content, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         materials = new MaterialPropertiesView(context, workspace, choices);
         addView(materials, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        scenes = new ScenePropertiesView(context, workspace, choices);
+        scenes = new ScenePropertiesView(context, workspace, choices, layout);
         addView(scenes, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         refresh();
     }
@@ -51,21 +51,22 @@ final class ResourcePropertiesView extends LinearLayout {
         } else {
             String text = EditorWidgets.tr("resource." + node.kind().key());
             if (key != null) {
-                text += "\n\n" + EditorWidgets.tr("browser.id") + "\n" + key.id(workspace.draft().namespace());
+                text += " · " + key.id(workspace.draft().namespace());
                 if (!editing) {
                     String name = workspace.resources().catalog().displayName(key);
-                    if (!name.isBlank()) text += "\n\n" + EditorWidgets.tr("browser.display_name") + "\n" + name;
-                    text += "\n\n" + EditorWidgets.tr("browser.references") + " " + workspace.resources().catalog().users(key).size();
+                    if (!name.isBlank()) text += "\n" + EditorWidgets.tr("browser.display_name") + ": " + name;
+                    text += "\n" + EditorWidgets.tr("browser.references") + " " + workspace.resources().catalog().users(key).size();
                 }
             } else {
-                if (node.type() == ResourceTree.Type.FOLDER) text += "\n\n" + node.path();
+                if (node.type() == ResourceTree.Type.FOLDER) text += "\n" + node.path();
                 long count = workspace.resources().catalog().keys().stream().filter(item -> item.kind() == node.kind()
                         && (node.path().isEmpty() || item.path().startsWith(node.path() + "/"))).count();
-                text += "\n\n" + EditorWidgets.tr("browser.count") + " " + count;
+                text += "\n" + EditorWidgets.tr("browser.count") + " " + count;
             }
-            if (!node.kind().available()) text += "\n\n" + EditorWidgets.tr("unavailable");
+            if (!node.kind().available()) text += "\n" + EditorWidgets.tr("unavailable");
             details.setText(text);
         }
+        details.setTooltipText(details.getText());
         content.setVisibility(editing ? VISIBLE : GONE);
         content.refresh();
         materials.setVisibility(editingMaterial ? VISIBLE : GONE);

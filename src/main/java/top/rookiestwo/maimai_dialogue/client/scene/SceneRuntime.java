@@ -220,7 +220,8 @@ public final class SceneRuntime {
         float finalScale = initial.scale() + action.scale()
                 .map(track -> track.finalValue())
                 .orElse(0.0F);
-        if (finalScale <= 0.0F) {
+        if (finalScale <= 0.0F || !Float.isFinite(finalScale * initial.scaleX()) || !Float.isFinite(finalScale * initial.scaleY())
+                || finalScale * initial.scaleX() <= 0 || finalScale * initial.scaleY() <= 0) {
             errors.add("SceneAction leaves " + target
                     + " with non-positive scale.");
             return false;

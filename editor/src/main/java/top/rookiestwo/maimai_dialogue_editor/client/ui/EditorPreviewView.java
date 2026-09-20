@@ -61,7 +61,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         materialImage = new ImageView(context);
         materialImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
         canvas.addView(materialImage, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        scene = new EditorScenePreviewView(context, host.assets());
+        scene = new EditorScenePreviewView(context, host.assets(), host.workspace());
         canvas.addView(scene, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         message = EditorWidgets.paragraph(context, "preview.idle");
         message.setTextIsSelectable(true);
@@ -143,6 +143,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         surface.setReferenceHeight(height);
         scene.setReferenceHeight(height);
     }
+    void finishSceneDrag(boolean commit) { scene.endDrag(commit); }
 
     void refreshContentAfterLayout() {
         if (!isAttachedToWindow()) return;

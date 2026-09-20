@@ -19,13 +19,16 @@ final class ScenePropertiesView extends LinearLayout {
     private final ProjectWorkspace project;
     private final SceneWorkspace model;
     private final ChoicePresenter choices;
+    private final EditorLayoutState layout;
     private final List<Runnable> bindings = new ArrayList<>();
-    private final List<Button> dropdowns = new ArrayList<>();
+    private final List<EditorPropertySection> sections = new ArrayList<>();
+    private LinearLayout group;
     private String binding = "";
     private boolean refreshing;
 
-    ScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices) {
+    ScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
         super(context); this.project = project; model = project.scenes(); this.choices = choices; setOrientation(VERTICAL);
+        this.layout = layout;
     }
     void refresh() {
         var state = model.snapshot();
@@ -36,8 +39,9 @@ final class ScenePropertiesView extends LinearLayout {
                 + "/" + model.data().has("filter") + "/" + component(model.part(Part.FILTER)) + "/" + text(model.part(Part.FILTER), "type", "none"));
         refreshing = true;
         try {
-            if (!binding.equals(next)) { binding = next; clearFocus(); removeAllViews(); bindings.clear(); dropdowns.clear(); build(); }
+            if (!binding.equals(next)) { binding = next; clearFocus(); removeAllViews(); bindings.clear(); sections.clear(); group = this; build(); }
             bindings.forEach(Runnable::run);
+            sections.forEach(EditorPropertySection::refresh);
         } finally { refreshing = false; }
     }
     private static String shape(JsonObject data) { return data == null ? "absent" : data.keySet().toString(); }
@@ -70,8 +74,10 @@ final class ScenePropertiesView extends LinearLayout {
         action(actions, "browser.copy", () -> model.addObject(true), () -> !model.objectId().isEmpty());
         action(actions, "browser.delete", model::deleteObject, () -> !model.objectId().isEmpty());
         if (model.data().has("visual_objects") && model.objectMap() == null) warning();
-        if (!model.objectId().isEmpty()) {
+        if (model.objectMap() != null && !model.objectMap().isEmpty()) {
             choice("scene.object", model::objectId, () -> names(model.objectMap()), model::selectObject);
+        }
+        if (!model.objectId().isEmpty()) {
             field("scene.object_id", model::objectId, model::renameObject, false);
             if (model.part(Part.OBJECT) == null) warning();
             else {
@@ -132,10 +138,10 @@ final class ScenePropertiesView extends LinearLayout {
         field("scene." + field.name(), () -> value(part, field.name(), fallback), value -> model.setNumber(part, field, value), true);
     }
     private void field(String label, Supplier<String> value, Function<String, String> setter, boolean live) {
-        EditorWidgets.formLabel(this, label); String expected = binding;
-        TextView error = EditorWidgets.paragraph(getContext(), ""); error.setTextColor(EditorWidgets.ERROR); error.setVisibility(GONE);
+        String expected = binding;
+        TextView error = EditorWidgets.compactParagraph(getContext(), ""); error.setTextColor(EditorWidgets.ERROR); error.setVisibility(GONE);
         boolean[] invalid = {false};
-        EditText input = EditorWidgets.input(getContext(), value.get(), text -> {
+        EditText input = EditorWidgets.compactInput(getContext(), value.get(), text -> {
             if (live && accepts(expected) && !text.isBlank()) setter.apply(text);
         }, () -> {});
         input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
@@ -148,7 +154,7 @@ final class ScenePropertiesView extends LinearLayout {
                 error.setVisibility(invalid[0] ? VISIBLE : GONE); project.endEdit();
             }
         });
-        addView(input); addView(error);
+        EditorWidgets.propertyRow(group, label, input, false); group.addView(error);
         bindings.add(() -> {
             if (!input.isFocused() && !invalid[0] && !input.getText().toString().equals(value.get())) input.setText(value.get());
             input.setEnabled(model.active());
@@ -163,7 +169,6 @@ final class ScenePropertiesView extends LinearLayout {
                 }).toList(), setter);
     }
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
-        if (label != null) EditorWidgets.formLabel(this, label);
         String expected = binding;
         Button button = EditorWidgets.button(getContext(), "", null);
         button.setOnClickListener(view -> { if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> {
@@ -172,20 +177,20 @@ final class ScenePropertiesView extends LinearLayout {
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         EditorWidgets.bindMetrics(button, () -> {
             button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
-            button.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP)));
         });
-        addView(button); dropdowns.add(button);
+        EditorWidgets.propertyRow(group, label, button, false);
         bindings.add(() -> {
             String current = value.get();
             String text = label == null ? EditorWidgets.tr("edit.choose_resource") : items.get().stream()
-                    .filter(item -> item.value().equals(current)).map(ChoicePresenter.Item::label).findFirst().orElse(current);
+                    .filter(item -> item.value().equals(current)).map(ChoicePresenter.Item::label).findFirst()
+                    .orElse(current.isEmpty() ? EditorWidgets.tr("no_selection") : current);
             button.setText(text + " ▾"); button.setTooltipText(text); EditorWidgets.enabled(button, model.active());
         });
     }
     private void action(LinearLayout row, String label, Runnable action, BooleanSupplier enabled) {
         String expected = binding;
         Button button = EditorWidgets.button(getContext(), label, () -> { if (accepts(expected)) action.run(); });
-        EditorWidgets.bindMetrics(button, () -> button.setLayoutParams(new LayoutParams(0, dp(28), 1)));
+        EditorWidgets.bindMetrics(button, () -> button.setLayoutParams(new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1)));
         row.addView(button); bindings.add(() -> EditorWidgets.enabled(button, model.active() && enabled.getAsBoolean()));
     }
     private static List<ChoicePresenter.Item> names(JsonObject data) {
@@ -194,11 +199,12 @@ final class ScenePropertiesView extends LinearLayout {
     private static List<ChoicePresenter.Item> items(String prefix, String... values) {
         return Arrays.stream(values).map(value -> new ChoicePresenter.Item(value, EditorWidgets.tr(prefix + value))).toList();
     }
-    private void title(String key) { addView(EditorWidgets.label(getContext(), key, 14, EditorWidgets.ACCENT)); }
-    private void warning() { addView(EditorWidgets.paragraph(getContext(), "edit.invalid_object")); }
-    private LinearLayout row() { var row = new LinearLayout(getContext()); addView(row); return row; }
-    @Override protected void onMeasure(int widthSpec, int heightSpec) {
-        int width = Math.min(dp(280), Math.max(0, MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight()));
-        dropdowns.forEach(button -> button.getLayoutParams().width = width); super.onMeasure(widthSpec, heightSpec);
+    private void title(String key) {
+        var section = new EditorPropertySection(getContext(), key, layout);
+        addView(section, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        sections.add(section);
+        group = section.body();
     }
+    private void warning() { group.addView(EditorWidgets.compactParagraph(getContext(), "edit.invalid_object")); }
+    private LinearLayout row() { var row = new LinearLayout(getContext()); group.addView(row); return row; }
 }

@@ -114,12 +114,15 @@ bottom_left   bottom_center   bottom_right
 | `x`、`y` | 否 | `0.5`；允许超出 `[0,1]` |
 | `anchor` | 否 | `center` |
 | `scale` | 否 | `1.0`，必须大于 0 |
+| `scale_x`、`scale_y` | 否 | 均为 `1.0`；水平／垂直缩放系数，必须为有限正数 |
 | `sampling` | 否 | 引用时继承 VisualAsset；显式设置会覆盖它。inline 时默认 `linear` |
 | `opacity` | 否 | `1.0`，范围 `[0,1]` |
 | `visible` | 否 | `true` |
 | `z_index` | 否 | `0`，数值越大越靠前 |
 
 VisualAsset 只提供差分和 sampling；位置、缩放、透明度、可见性、层级与初始差分仍由每个 VisualObject 实例决定。
+
+水平方向使用 `scale × scale_x`，垂直方向使用 `scale × scale_y`。例如 `scale: 2.0`、`scale_x: 1.5`、`scale_y: 0.5` 会得到水平 3 倍、垂直 1 倍的尺寸；`anchor` 继续指定哪个点对准 `x/y`。省略两个轴向字段时，旧内容的等比缩放行为不变。SceneAction 的 `scale` 动画仍作用于统一缩放，保留这两个轴向系数。
 
 对象必须在 `visual_objects` 中预先声明。`background` 和 `dialogue` 是保留名称。旧的 inline `variants` 写法保持兼容，例如：
 

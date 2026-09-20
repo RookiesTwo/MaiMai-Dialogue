@@ -5,6 +5,7 @@ import top.rookiestwo.maimai_dialogue.client.ui.scene.SceneContentView.ObjectBin
 import top.rookiestwo.maimai_dialogue.client.ui.animation.PlaybackTimeline;
 
 import icyllis.modernui.core.Context;
+import icyllis.modernui.graphics.RectF;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
 import icyllis.modernui.widget.FrameLayout;
@@ -57,6 +58,50 @@ public final class DialogueSceneView extends FrameLayout {
 
     public void setDialogueBoxStateConsumer(Consumer<DialogueBoxState> consumer) {
         dialogueBoxStateConsumer = consumer;
+    }
+
+    /**
+     * Current visible image bounds in this View's coordinates, in back-to-front drawing order.
+     * Includes ImageView fit, pivot and View transforms. Returned rectangles are detached snapshots.
+     * Call on the UI thread after layout; this does not change scene or playback state.
+     */
+    public Map<String, RectF> visualObjectBounds() {
+        Map<String, RectF> result = new LinkedHashMap<>();
+        objectBindings.forEach((id, binding) -> {
+            ImageView image = binding.layers.primary;
+            if (image.getVisibility() != VISIBLE || binding.state.opacity() <= 0 || image.getDrawable() == null
+                    || image.getWidth() <= 0 || image.getHeight() <= 0) return;
+            var drawable = image.getDrawable().getBounds();
+            RectF bounds = new RectF(drawable.left, drawable.top, drawable.right, drawable.bottom);
+            image.getImageMatrix().mapRect(bounds);
+            bounds.offset(image.getPaddingLeft() - image.getScrollX(), image.getPaddingTop() - image.getScrollY());
+            View node = image;
+            while (node != this) {
+                if (!node.hasIdentityMatrix()) node.getMatrix().mapRect(bounds);
+                bounds.offset(node.getLeft(), node.getTop());
+                if (!(node.getParent() instanceof View parent)) return;
+                bounds.offset(-parent.getScrollX(), -parent.getScrollY());
+                node = parent;
+            }
+            if (!bounds.isEmpty()) result.put(id, bounds);
+        });
+        return java.util.Collections.unmodifiableMap(result);
+    }
+
+    /** Actual transform pivot, including layout rounding, in this View's coordinates. UI thread only. */
+    public java.util.Optional<icyllis.modernui.graphics.PointF> visualObjectAnchor(String id) {
+        var binding = objectBindings.get(id);
+        if (binding == null || binding.layers.primary.getWidth() <= 0 || binding.layers.primary.getHeight() <= 0)
+            return java.util.Optional.empty();
+        View node = binding.layers.primary;
+        float[] point = {node.getPivotX(), node.getPivotY()};
+        while (node != this) {
+            if (!node.hasIdentityMatrix()) node.getMatrix().mapPoint(point);
+            point[0] += node.getLeft(); point[1] += node.getTop();
+            if (!(node.getParent() instanceof View parent)) return java.util.Optional.empty();
+            point[0] -= parent.getScrollX(); point[1] -= parent.getScrollY(); node = parent;
+        }
+        return java.util.Optional.of(new icyllis.modernui.graphics.PointF(point[0], point[1]));
     }
 
     // 根据新的 Presentation 重建背景、对象和滤镜视图。

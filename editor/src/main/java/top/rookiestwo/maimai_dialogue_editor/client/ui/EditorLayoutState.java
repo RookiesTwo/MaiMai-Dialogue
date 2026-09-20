@@ -1,5 +1,8 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import java.util.HashSet;
+import java.util.Set;
+
 // 仅在当前 Fragment 内保留用户偏好，临时折叠与窗口钳制不回写这些值。
 final class EditorLayoutState {
     double leftFraction = 0.20;
@@ -7,6 +10,7 @@ final class EditorLayoutState {
     double actionsDp = 160;
     boolean leftCollapsed;
     boolean rightCollapsed;
+    final Set<String> collapsedPropertySections = new HashSet<>();
 
     void reset() {
         leftFraction = 0.20;
@@ -14,5 +18,6 @@ final class EditorLayoutState {
         actionsDp = 160;
         leftCollapsed = false;
         rightCollapsed = false;
+        collapsedPropertySections.clear();
     }
 }

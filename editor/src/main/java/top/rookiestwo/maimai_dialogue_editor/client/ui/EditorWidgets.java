@@ -22,8 +22,9 @@ import java.util.function.Consumer;
 
 final class EditorWidgets {
     // 单行资源列表与属性下拉菜单共用的紧凑密度。
-    static final int COMPACT_ROW_DP = 24;
-    static final int COMPACT_HORIZONTAL_PADDING_DP = 6;
+    static final int COMPACT_ROW_DP = 22;
+    static final int COMPACT_HORIZONTAL_PADDING_DP = 4;
+    static final int COMPACT_CONTROL_DP = 24;
 
     // 白色内容区、浅灰框架和亮蓝交互反馈；文字使用深灰以保持可读性。
     static final int BACKGROUND = 0xFFF2F4F7;
@@ -153,6 +154,28 @@ final class EditorWidgets {
             label.setLayoutParams(new LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, label.dp(30)));
         });
+    }
+
+    static EditText compactInput(Context context, String value, Consumer<String> changed, Runnable endEdit) {
+        EditText input = input(context, value, changed, endEdit);
+        bindMetrics(input, () -> {
+            input.setTextSize(13);
+            input.setPadding(input.dp(COMPACT_HORIZONTAL_PADDING_DP), input.dp(2),
+                    input.dp(COMPACT_HORIZONTAL_PADDING_DP), input.dp(2));
+            input.setMinimumHeight(input.dp(COMPACT_CONTROL_DP));
+        });
+        return input;
+    }
+
+    static void propertyRow(LinearLayout container, String key, View control, boolean multiline) {
+        container.addView(new EditorPropertyRow(key, control, multiline),
+                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+
+    static TextView compactParagraph(Context context, String key) {
+        TextView text = paragraph(context, key);
+        bindMetrics(text, () -> text.setPadding(0, text.dp(2), 0, text.dp(2)));
+        return text;
     }
 
     static TextView paragraph(Context context, String key) {

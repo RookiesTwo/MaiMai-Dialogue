@@ -20,7 +20,9 @@ public record VisualObject(
         Optional<VisualSampling> samplingOverride,
         float opacity,
         boolean visible,
-        int zIndex
+        int zIndex,
+        float scaleX,
+        float scaleY
 ) {
     private static final Codec<Float> SCALE_CODEC = Codec.FLOAT.validate(
             value -> value > 0.0F
@@ -36,6 +38,9 @@ public record VisualObject(
                             () -> "VisualObject opacity must be between 0 and 1."
                     )
     );
+    private static final Codec<Float> AXIS_SCALE_CODEC = Codec.FLOAT.validate(value ->
+            Float.isFinite(value) && value > 0 ? DataResult.success(value)
+                    : DataResult.error(() -> "VisualObject axis scale must be finite and greater than 0."));
     private static final Codec<Map<String, ResourceLocation>> VARIANTS_CODEC =
             Codec.unboundedMap(Codec.STRING, ResourceLocation.CODEC);
 
@@ -67,7 +72,9 @@ public record VisualObject(
                     Codec.BOOL.optionalFieldOf("visible", true)
                             .forGetter(VisualObject::visible),
                     Codec.INT.optionalFieldOf("z_index", 0)
-                            .forGetter(VisualObject::zIndex)
+                            .forGetter(VisualObject::zIndex),
+                    AXIS_SCALE_CODEC.optionalFieldOf("scale_x", 1.0F).forGetter(VisualObject::scaleX),
+                    AXIS_SCALE_CODEC.optionalFieldOf("scale_y", 1.0F).forGetter(VisualObject::scaleY)
             ).apply(instance, VisualObject::decode));
 
     public static final Codec<VisualObject> CODEC = BASE_CODEC.flatXmap(
@@ -82,6 +89,15 @@ public record VisualObject(
         Objects.requireNonNull(anchor, "anchor");
         Objects.requireNonNull(samplingOverride, "samplingOverride");
         variants = Map.copyOf(variants);
+    }
+
+    /**
+     * Existing uniform-scale construction remains equivalent to scale_x = scale_y = 1.
+     */
+    public VisualObject(Optional<ResourceLocation> asset, Map<String, ResourceLocation> variants, String initialVariant,
+                        float x, float y, VisualAnchor anchor, float scale, Optional<VisualSampling> samplingOverride,
+                        float opacity, boolean visible, int zIndex) {
+        this(asset, variants, initialVariant, x, y, anchor, scale, samplingOverride, opacity, visible, zIndex, 1, 1);
     }
 
     /**
@@ -144,7 +160,9 @@ public record VisualObject(
                 Optional.of(samplingOverride.orElse(definition.sampling())),
                 opacity,
                 visible,
-                zIndex
+                zIndex,
+                scaleX,
+                scaleY
         );
         return validate(resolved);
     }
@@ -160,7 +178,9 @@ public record VisualObject(
             Optional<VisualSampling> sampling,
             float opacity,
             boolean visible,
-            int zIndex
+            int zIndex,
+            float scaleX,
+            float scaleY
     ) {
         Optional<VisualSampling> normalizedSampling = asset.isPresent()
                 ? sampling
@@ -176,11 +196,18 @@ public record VisualObject(
                 normalizedSampling,
                 opacity,
                 visible,
-                zIndex
+                zIndex,
+                scaleX,
+                scaleY
         );
     }
 
     private static DataResult<VisualObject> validate(VisualObject object) {
+        float effectiveX = object.scale * object.scaleX, effectiveY = object.scale * object.scaleY;
+        if (!Float.isFinite(object.scaleX) || !Float.isFinite(object.scaleY) || object.scaleX <= 0 || object.scaleY <= 0
+                || !Float.isFinite(effectiveX) || !Float.isFinite(effectiveY) || effectiveX <= 0 || effectiveY <= 0) {
+            return DataResult.error(() -> "VisualObject effective axis scales must be finite and greater than 0.");
+        }
         boolean hasAsset = object.asset().isPresent();
         boolean hasVariants = !object.variants().isEmpty();
         if (hasAsset == hasVariants) {

@@ -105,6 +105,10 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     }
 
     void escape() {
+        if (workspace.scenes().dragPosition() != null) {
+            workspace.scenes().endPositionDrag(false);
+            return;
+        }
         finishDeferredInput();
         if (choices != null) dismissChoices();
         else workspace.escape();
