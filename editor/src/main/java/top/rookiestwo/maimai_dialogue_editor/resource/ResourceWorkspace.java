@@ -28,6 +28,8 @@ public final class ResourceWorkspace {
     private Form form = Form.NONE;
     private ResourceKind formKind = ResourceKind.DIALOGUE;
     private String formPath = "";
+    private String createFolder = "";
+    private boolean suggestFormPath;
     private ResourceKey source;
     private String error;
     private long revealRevision;
@@ -174,12 +176,13 @@ public final class ResourceWorkspace {
         navigationRequest++;
         form = Form.CREATE;
         formKind = selection.kind() == null ? ResourceKind.DIALOGUE : selection.kind();
-        String folder = switch (selection.type()) {
+        createFolder = switch (selection.type()) {
             case FOLDER -> selection.path();
             case RESOURCE -> selection.resource().folder();
             default -> "";
         };
-        formPath = catalog().unusedPath(formKind, (folder.isEmpty() ? "" : folder + "/") + "new_" + formKind.key());
+        suggestFormPath = true;
+        formPath = suggestedCreatePath();
         source = null;
         error = null;
         changed.run();
@@ -202,12 +205,19 @@ public final class ResourceWorkspace {
     public void setFormKind(ResourceKind kind) {
         if (!active() || form != Form.CREATE || !kind.creatable()) return;
         formKind = kind;
+        if (suggestFormPath) formPath = suggestedCreatePath();
         error = null;
         changed.run();
     }
 
+    private String suggestedCreatePath() {
+        return catalog().unusedPath(formKind, (createFolder.isEmpty() ? "" : createFolder + "/") + "new_" + formKind.key());
+    }
+
     public void setFormPath(String path) {
         if (!active() || (form != Form.CREATE && form != Form.COPY)) return;
+        // Once edited, keep the user's value even if it later matches a suggested name again.
+        if (!formPath.equals(path)) suggestFormPath = false;
         formPath = path;
         error = null;
         changed.run();
