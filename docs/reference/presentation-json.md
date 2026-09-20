@@ -143,18 +143,20 @@ VisualAsset 只提供差分和 sampling；位置、缩放、透明度、可见�
 {
   "type": "color_adjust",
   "brightness": 0.0,
-  "contrast": 1.0,
-  "saturation": 1.0,
+  "contrast": 0.0,
+  "saturation": 0.0,
   "tint": "#30A0C8FF"
 }
 ```
 
 | 字段 | 默认值 | 范围 |
 |---|---:|---:|
-| `brightness` | `0` | `[-1,1]` |
-| `contrast` | `1` | `[0,2]` |
-| `saturation` | `1` | `[0,2]` |
+| `brightness` | `0` | `[-100,100]` |
+| `contrast` | `0` | `[-100,100]` |
+| `saturation` | `0` | `[-100,100]` |
 | `tint` | 无 | `#RRGGBB` 或 `#AARRGGBB` |
+
+三个数值的 `0` 均表示不调整，不使用旧的 0～2 倍率语义。饱和度 `-100` 为黑白，正值增强颜色；对比度围绕中灰调整，`-100` 将图片颜色压到中灰。亮度为通道偏移，`-100` 变黑、`100` 变白；染色最后应用，其 alpha 控制混入颜色的强度。原图片透明度始终保留。
 
 ## CRT Filter
 

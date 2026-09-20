@@ -57,13 +57,13 @@ final class EditorNumberField extends LinearLayout {
         error.setVisibility(GONE);
 
         boolean scale = field.name().equals("scale");
-        boolean bounded = !integer && field.minimum() >= -1 && field.maximum() <= 4;
+        boolean bounded = !integer && field.minimum() >= -100 && field.maximum() <= 100;
         // Scale has no upper data limit. This interval is only a convenient slider range.
         sliderMinimum = scale ? 1 : bounded ? Math.round(field.minimum() * 1000) : 0;
         slider = scale || bounded ? new EditorSeekBar(context) : null;
         if (slider != null) {
             slider.setMax((scale ? 4000 : Math.round(field.maximum() * 1000)) - sliderMinimum);
-            slider.setKeyProgressIncrement(10);
+            slider.setKeyProgressIncrement(field.maximum() - field.minimum() > 10 ? 1000 : 10);
             slider.setTooltipText(EditorWidgets.tr("scene." + field.name()));
             line.addView(slider, new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1));
             EditorWidgets.bindMetrics(slider, () -> slider.setLayoutParams(

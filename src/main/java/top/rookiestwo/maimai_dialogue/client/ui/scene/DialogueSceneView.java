@@ -15,6 +15,8 @@ import top.rookiestwo.maimai_dialogue.presentation.scene.BackgroundFit;
 import top.rookiestwo.maimai_dialogue.presentation.Presentation;
 import top.rookiestwo.maimai_dialogue.presentation.scene.SceneBackground;
 import top.rookiestwo.maimai_dialogue.presentation.filter.SceneFilter;
+import top.rookiestwo.maimai_dialogue.presentation.filter.ColorAdjustFilter;
+import top.rookiestwo.maimai_dialogue.presentation.filter.CrtFilter;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualObject;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneObjectState;
 import top.rookiestwo.maimai_dialogue.client.scene.DialogueBoxState;
@@ -106,6 +108,16 @@ public final class DialogueSceneView extends FrameLayout {
 
     // 根据新的 Presentation 重建背景、对象和滤镜视图。
     public void apply(Presentation presentation) {
+        if (transition.current() != null && renderedPresentation != null
+                && renderedPresentation.background().equals(presentation.background())
+                && renderedPresentation.visualObjects().equals(presentation.visualObjects())
+                && !renderedPresentation.filter().equals(presentation.filter())
+                && !(renderedPresentation.filter().orElse(null) instanceof CrtFilter)
+                && !(presentation.filter().orElse(null) instanceof CrtFilter)) {
+            renderedPresentation = presentation;
+            setColorAdjustment(presentation.filter().orElse(null) instanceof ColorAdjustFilter color ? color : null);
+            return;
+        }
         cancelSceneAnimator();
         playbackToken = Long.MIN_VALUE;
         transition.finish();
@@ -400,7 +412,8 @@ public final class DialogueSceneView extends FrameLayout {
     }
 
     private void applyFilter(SceneFilter filter) {
-        if (filter != null) {
+        setColorAdjustment(filter instanceof ColorAdjustFilter adjustment ? adjustment : null);
+        if (filter instanceof CrtFilter) {
             SceneFilterView filterView = new SceneFilterView(getContext());
             filterView.apply(filter);
             addSceneView(filterView, new LayoutParams(
@@ -408,12 +421,13 @@ public final class DialogueSceneView extends FrameLayout {
                     LayoutParams.MATCH_PARENT
             ));
         }
+    }
+
+    /** Change the live scene's GPU uniforms without changing images, geometry or playback state; null disables adjustment. */
+    @icyllis.modernui.annotation.UiThread
+    public void setColorAdjustment(ColorAdjustFilter adjustment) {
         SceneContentView scene = transition.current();
-        for (int index = 0; index < scene.getChildCount(); index++) {
-            if (scene.getChildAt(index) instanceof ImageView imageView) {
-                imageView.setColorFilter(null);
-            }
-        }
+        if (scene != null) scene.setColorAdjustment(adjustment);
     }
 
     // 释放当前和过渡场景持有的全部图片资源。

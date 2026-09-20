@@ -10,9 +10,8 @@ import top.rookiestwo.maimai_dialogue.presentation.filter.CrtFilter;
 /**
  * Lightweight CRT decoration drawn inside the scene layer.
  *
- * <p>This deliberately avoids Arc3D RenderTargets and color filters. Those
- * paths are unstable in Arc3D 2026.2.0, while ordinary ModernUI drawing keeps
- * the scene responsive and still leaves the DialogueBox unaffected.
+ * <p>CRT decorations use ordinary ModernUI drawing rather than an offscreen
+ * scene render target. ColorAdjust uses a separate GPU pass on the scene content.
  */
 final class CrtOverlayView extends View {
     private static final long FRAME_DELAY_MS = 100L;

@@ -97,9 +97,9 @@ Dialogue 的双端 reference 不需要修改。
   },
   "filter": {
     "type": "color_adjust",
-    "brightness": -0.03,
-    "contrast": 1.08,
-    "saturation": 0.6,
+    "brightness": -3,
+    "contrast": 8,
+    "saturation": -40,
     "tint": "#30A0C8FF"
   }
 }

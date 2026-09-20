@@ -6,6 +6,7 @@
   "mixins": [
   ],
   "client": [
+    "SceneColorRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -13,33 +13,28 @@ public record ColorAdjustFilter(
         float saturation,
         Optional<SceneColor> tint
 ) implements SceneFilter {
-    private static final Codec<Float> BRIGHTNESS_CODEC = range(
-            -1.0F,
-            1.0F,
-            "brightness"
-    );
-    private static final Codec<Float> MULTIPLIER_CODEC = range(
-            0.0F,
-            2.0F,
-            "contrast/saturation"
+    private static final Codec<Float> ADJUSTMENT_CODEC = range(
+            -100.0F,
+            100.0F,
+            "brightness/contrast/saturation"
     );
 
     public static final MapCodec<ColorAdjustFilter> CODEC =
             RecordCodecBuilder.mapCodec(instance ->
                     instance.group(
-                            BRIGHTNESS_CODEC.optionalFieldOf(
+                            ADJUSTMENT_CODEC.optionalFieldOf(
                                             "brightness",
                                             0.0F
                                     )
                                     .forGetter(ColorAdjustFilter::brightness),
-                            MULTIPLIER_CODEC.optionalFieldOf(
+                            ADJUSTMENT_CODEC.optionalFieldOf(
                                             "contrast",
-                                            1.0F
+                                            0.0F
                                     )
                                     .forGetter(ColorAdjustFilter::contrast),
-                            MULTIPLIER_CODEC.optionalFieldOf(
+                            ADJUSTMENT_CODEC.optionalFieldOf(
                                             "saturation",
-                                            1.0F
+                                            0.0F
                                     )
                                     .forGetter(ColorAdjustFilter::saturation),
                             SceneColor.CODEC.optionalFieldOf("tint")

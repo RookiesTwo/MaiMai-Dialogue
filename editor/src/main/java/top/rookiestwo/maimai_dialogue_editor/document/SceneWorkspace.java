@@ -26,7 +26,7 @@ public final class SceneWorkspace {
             new NumberField("scale_x", 1, Float.MIN_VALUE, Float.MAX_VALUE),
             new NumberField("scale_y", 1, Float.MIN_VALUE, Float.MAX_VALUE));
     public static final List<NumberField> COLOR_NUMBERS = List.of(
-            new NumberField("brightness", 0, -1, 1), new NumberField("contrast", 1, 0, 2), new NumberField("saturation", 1, 0, 2));
+            new NumberField("brightness", 0, -100, 100), new NumberField("contrast", 0, -100, 100), new NumberField("saturation", 0, -100, 100));
     public static final List<NumberField> CRT_NUMBERS = List.of(
             new NumberField("curvature", .08f, 0, 1), new NumberField("scanline_strength", .22f, 0, 1),
             new NumberField("mask_strength", .12f, 0, 1), new NumberField("chromatic_aberration", 1, 0, 4),

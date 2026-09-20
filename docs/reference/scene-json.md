@@ -52,7 +52,7 @@ Scene 文件不需要复制到 Data Pack，但引用它的 Dialogue 仍然需要
   },
   "filter": {
     "type": "color_adjust",
-    "saturation": 0.9
+    "saturation": -10
   }
 }
 ```
@@ -121,4 +121,3 @@ Scene 不继承其他 Scene，避免形成循环引用。需要另一种舞台�
 
 - Background 与 VisualObject 的完整字段在 [Presentation JSON](./presentation-json.md)。
 - 给图片起代号见 [VisualAsset JSON](./visual-asset-json.md)。
-

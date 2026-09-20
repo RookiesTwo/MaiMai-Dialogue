@@ -1,6 +1,9 @@
 package top.rookiestwo.maimai_dialogue.client.ui.scene;
 
 import icyllis.modernui.core.Context;
+import icyllis.modernui.graphics.Canvas;
+import top.rookiestwo.maimai_dialogue.presentation.filter.ColorAdjustFilter;
+import top.rookiestwo.maimai_dialogue.client.ui.scene.gpu.SceneColorLayer;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.ImageView;
@@ -12,6 +15,8 @@ import java.util.Map;
 
 final class SceneContentView extends FrameLayout {
     private final DialogueImageSource images;
+    private ColorAdjustFilter colorAdjustment;
+    private SceneColorLayer colorLayer;
     private final Map<String, ObjectBinding> objectBindings =
             new LinkedHashMap<>();
 
@@ -23,6 +28,19 @@ final class SceneContentView extends FrameLayout {
 
     void addObjectBinding(ObjectBinding binding) {
         objectBindings.put(binding.owner, binding);
+    }
+
+    void setColorAdjustment(ColorAdjustFilter adjustment) {
+        if (java.util.Objects.equals(colorAdjustment, adjustment)) return;
+        colorAdjustment = adjustment;
+        // Retain allocated surfaces while toggling neutral values; only uniforms change during adjustment.
+        invalidate();
+    }
+
+    @Override protected void dispatchDraw(Canvas canvas) {
+        if (SceneColorLayer.isNeutral(colorAdjustment)) { super.dispatchDraw(canvas); return; }
+        if (colorLayer == null) colorLayer = new SceneColorLayer();
+        colorLayer.draw(canvas, getWidth(), getHeight(), colorAdjustment, super::dispatchDraw);
     }
 
     @Override
@@ -92,8 +110,14 @@ final class SceneContentView extends FrameLayout {
     }
 
     void releaseImages() {
+        if (colorLayer != null) { colorLayer.close(); colorLayer = null; }
         SceneImageRenderer.releaseImages(this);
         images.close();
+    }
+
+    @Override protected void onDetachedFromWindow() {
+        if (colorLayer != null) { colorLayer.close(); colorLayer = null; }
+        super.onDetachedFromWindow();
     }
 
     private static final float DESIGN_SCREEN_HEIGHT = 1080.0F;
