@@ -25,6 +25,7 @@ import top.rookiestwo.maimai_dialogue.content.resolve.VisualAssetResolver;
 import top.rookiestwo.maimai_dialogue.presentation.Presentation;
 import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
 import top.rookiestwo.maimai_dialogue.presentation.filter.ColorAdjustFilter;
+import top.rookiestwo.maimai_dialogue.presentation.filter.CrtFilter;
 
 /** A disposable diagnostic screen, deliberately separate from the editor's production viewport. */
 public final class GpuProbeFragment extends Fragment implements ScreenCallback {
@@ -32,7 +33,16 @@ public final class GpuProbeFragment extends Fragment implements ScreenCallback {
     private DialogueSceneView scene;
     private final long startNanos = System.nanoTime();
     private TextView timing;
-    private final SeekBar[] sliders = new SeekBar[3];
+    private final boolean crtMode;
+    private final SeekBar[] sliders;
+    private float[] crtDefaults;
+    private float[] crtValues;
+
+    public GpuProbeFragment() { this(false); }
+    public GpuProbeFragment(boolean crtMode) {
+        this.crtMode = crtMode;
+        sliders = new SeekBar[crtMode ? 8 : 3];
+    }
     private final Runnable updateTiming = new Runnable() {
         @Override public void run() {
             if (timing == null || session == null) return;
@@ -46,13 +56,13 @@ public final class GpuProbeFragment extends Fragment implements ScreenCallback {
     @Override public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, DataSet savedInstanceState) {
         Context context = requireContext();
         session = GpuColorProbe.open();
-        if ("1".equals(System.getenv("MAIMAI_GPU_PROBE"))) {
+        if (!crtMode && "1".equals(System.getenv("MAIMAI_GPU_PROBE"))) {
             var s = session.settings;
             session.settings = new GpuColorProbe.Settings(s.brightness(), s.contrast(), s.saturation(), true, true);
         }
         var root = new LinearLayout(context); root.setOrientation(LinearLayout.VERTICAL);
         var toolbar = new LinearLayout(context); background(toolbar);
-        var title = label(context, tr("title"));
+        var title = label(context, tr(crtMode ? "crt_title" : "title"));
         toolbar.addView(title, new LinearLayout.LayoutParams(0, dp(context, 36), 1));
         var enabled = button(context, tr("bypass"));
         enabled.setOnClickListener(view -> {
@@ -67,11 +77,14 @@ public final class GpuProbeFragment extends Fragment implements ScreenCallback {
             session.settings = new GpuColorProbe.Settings(s.brightness(), s.contrast(), s.saturation(), s.enabled(), !s.animate());
             animate.setText(tr(s.animate() ? "animate" : "stop_animation"));
         });
-        toolbar.addView(animate);
+        if (!crtMode) toolbar.addView(animate);
         var reset = button(context, tr("reset"));
         reset.setOnClickListener(view -> {
             session.settings = new GpuColorProbe.Settings(0, 0, 0, true, false);
-            for (var slider : sliders) slider.setProgress(100);
+            if (crtMode) {
+                crtValues = crtDefaults.clone();
+                for (int i = 0; i < sliders.length; i++) sliders[i].setProgress(Math.round(crtValues[i] * 1000));
+            } else for (var slider : sliders) slider.setProgress(100);
             enabled.setText(tr("bypass")); animate.setText(tr("animate"));
         });
         toolbar.addView(reset);
@@ -84,17 +97,23 @@ public final class GpuProbeFragment extends Fragment implements ScreenCallback {
         viewport.addView(overlay, overlayParams);
         root.addView(viewport, new LinearLayout.LayoutParams(-1, 0, 1));
         var controls = new LinearLayout(context); controls.setOrientation(LinearLayout.VERTICAL); background(controls);
-        String[] names = {"brightness", "contrast", "saturation"};
+        String[] names = crtMode
+                ? new String[]{"curvature", "scanlines", "mask", "aberration", "vignette", "noise", "flicker", "bloom"}
+                : new String[]{"brightness", "contrast", "saturation"};
         for (int i = 0; i < names.length; i++) {
             int index = i;
             var row = new LinearLayout(context);
-            int initial = Math.round(i == 0 ? session.settings.brightness() : i == 1 ? session.settings.contrast() : session.settings.saturation());
+            float initial = crtMode ? crtValues[i] : i == 0 ? session.settings.brightness() : i == 1 ? session.settings.contrast() : session.settings.saturation();
             var name = label(context, tr(names[i]) + " " + initial); row.addView(name, new LinearLayout.LayoutParams(dp(context, 160), -1));
-            var slider = new SeekBar(context); sliders[i] = slider; slider.setMax(200); slider.setProgress(100 + initial);
+            var slider = new SeekBar(context); sliders[i] = slider;
+            slider.setMax(crtMode ? i == 3 ? 4000 : 1000 : 200);
+            slider.setProgress(crtMode ? Math.round(initial * 1000) : 100 + Math.round(initial));
             slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
                 @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
-                    int value = progress - 100; name.setText(tr(names[index]) + " " + value);
+                    float value = crtMode ? progress / 1000f : progress - 100;
+                    name.setText(tr(names[index]) + " " + value);
                     if (!fromUser) return;
+                    if (crtMode) { crtValues[index] = value; applySettings(); return; }
                     var s = session.settings;
                     session.settings = new GpuColorProbe.Settings(index == 0 ? value : s.brightness(),
                             index == 1 ? value : s.contrast(), index == 2 ? value : s.saturation(), s.enabled(), s.animate());
@@ -103,7 +122,7 @@ public final class GpuProbeFragment extends Fragment implements ScreenCallback {
                 @Override public void onStopTrackingTouch(SeekBar bar) { }
             });
             row.addView(slider, new LinearLayout.LayoutParams(0, -1, 1));
-            controls.addView(row, new LinearLayout.LayoutParams(-1, dp(context, 32)));
+            controls.addView(row, new LinearLayout.LayoutParams(-1, dp(context, crtMode ? 24 : 32)));
         }
         timing = label(context, tr("waiting")); controls.addView(timing, new LinearLayout.LayoutParams(-1, dp(context, 28)));
         root.addView(controls, new LinearLayout.LayoutParams(-1, -2));
@@ -114,6 +133,11 @@ public final class GpuProbeFragment extends Fragment implements ScreenCallback {
     private void applySettings() {
         if (scene == null) return;
         var settings = session.settings;
+        if (crtMode) {
+            scene.setSceneFilter(settings.enabled() ? new CrtFilter(crtValues[0], crtValues[1], crtValues[2], crtValues[3],
+                    crtValues[4], crtValues[5], crtValues[6], crtValues[7]) : null);
+            return;
+        }
         float saturation = settings.animate() ? (float) (100 * Math.sin((System.nanoTime() - startNanos) / 1_000_000_000.0)) : settings.saturation();
         scene.setColorAdjustment(settings.enabled()
                 ? new ColorAdjustFilter(settings.brightness(), settings.contrast(), saturation, Optional.empty()) : null);
@@ -125,7 +149,13 @@ public final class GpuProbeFragment extends Fragment implements ScreenCallback {
             super(context); setWillNotDraw(false);
             scene = new DialogueSceneView(context);
             var content = ClientServices.get().content().current();
-            var definition = content.scenes().find(ResourceLocation.fromNamespaceAndPath("maimai_dialogue", "debug/root")).orElseThrow();
+            var definition = content.scenes().find(ResourceLocation.fromNamespaceAndPath("maimai_dialogue", crtMode ? "debug/crt" : "debug/root")).orElseThrow();
+            if (crtMode) {
+                var crt = (CrtFilter) definition.filter().orElseThrow();
+                crtDefaults = new float[]{crt.curvature(), crt.scanlineStrength(), crt.maskStrength(), crt.chromaticAberration(),
+                        crt.vignette(), crt.noise(), crt.flicker(), crt.bloom()};
+                crtValues = crtDefaults.clone();
+            }
             var presentation = new Presentation(Presentation.DEFAULT_THEME_ID, definition.background(), DialogueBoxLayout.DEFAULT,
                     definition.visualObjects(), definition.filter());
             presentation = VisualAssetResolver.resolve(presentation, content.visualAssets()::find).presentation();

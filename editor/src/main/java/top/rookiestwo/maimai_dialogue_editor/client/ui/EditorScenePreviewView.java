@@ -7,8 +7,6 @@ import icyllis.modernui.widget.*;
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.client.scene.*;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.*;
-import top.rookiestwo.maimai_dialogue.presentation.filter.ColorAdjustFilter;
-import top.rookiestwo.maimai_dialogue.presentation.filter.CrtFilter;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets;
 import top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewSession;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
@@ -49,9 +47,9 @@ final class EditorScenePreviewView extends FrameLayout {
             requested = next; loadError = ""; long expected = ++revision;
             if (pendingImages != null) { pendingImages.close(); pendingImages = null; }
             if (next == null) clearRendered();
-            else if (canUpdateColorOnly(next)) {
+            else if (canUpdateFilterOnly(next)) {
                 var filter = next.presentation().filter().orElse(null);
-                renderer.setColorAdjustment(filter instanceof ColorAdjustFilter color ? color : null);
+                renderer.setSceneFilter(filter);
                 displayed = next;
             }
             else {
@@ -76,12 +74,10 @@ final class EditorScenePreviewView extends FrameLayout {
         showError(session.error());
         updatePosition(); overlay.synchronize();
     }
-    private boolean canUpdateColorOnly(ScenePreviewSession.Prepared next) {
+    private boolean canUpdateFilterOnly(ScenePreviewSession.Prepared next) {
         if (renderer == null || displayed == null || !displayed.images().equals(next.images())) return false;
         var before = displayed.presentation(); var after = next.presentation();
-        return before.background().equals(after.background()) && before.visualObjects().equals(after.visualObjects())
-                && !(before.filter().orElse(null) instanceof CrtFilter)
-                && !(after.filter().orElse(null) instanceof CrtFilter);
+        return before.background().equals(after.background()) && before.visualObjects().equals(after.visualObjects());
     }
     private void publish(ScenePreviewSession.Prepared prepared, DialogueImageSource images, Map<ResourceLocation, Image> loaded) {
         // Keep preloaded handles alive even when this Scene exceeds the shared image-cache budget.

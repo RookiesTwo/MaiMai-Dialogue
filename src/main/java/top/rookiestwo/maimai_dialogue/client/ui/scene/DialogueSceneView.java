@@ -16,7 +16,6 @@ import top.rookiestwo.maimai_dialogue.presentation.Presentation;
 import top.rookiestwo.maimai_dialogue.presentation.scene.SceneBackground;
 import top.rookiestwo.maimai_dialogue.presentation.filter.SceneFilter;
 import top.rookiestwo.maimai_dialogue.presentation.filter.ColorAdjustFilter;
-import top.rookiestwo.maimai_dialogue.presentation.filter.CrtFilter;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualObject;
 import top.rookiestwo.maimai_dialogue.client.scene.SceneObjectState;
 import top.rookiestwo.maimai_dialogue.client.scene.DialogueBoxState;
@@ -111,11 +110,9 @@ public final class DialogueSceneView extends FrameLayout {
         if (transition.current() != null && renderedPresentation != null
                 && renderedPresentation.background().equals(presentation.background())
                 && renderedPresentation.visualObjects().equals(presentation.visualObjects())
-                && !renderedPresentation.filter().equals(presentation.filter())
-                && !(renderedPresentation.filter().orElse(null) instanceof CrtFilter)
-                && !(presentation.filter().orElse(null) instanceof CrtFilter)) {
+                && !renderedPresentation.filter().equals(presentation.filter())) {
             renderedPresentation = presentation;
-            setColorAdjustment(presentation.filter().orElse(null) instanceof ColorAdjustFilter color ? color : null);
+            setSceneFilter(presentation.filter().orElse(null));
             return;
         }
         cancelSceneAnimator();
@@ -147,7 +144,7 @@ public final class DialogueSceneView extends FrameLayout {
                         entry.getKey(),
                         entry.getValue()
                 ));
-        applyFilter(presentation.filter().orElse(null));
+        setSceneFilter(presentation.filter().orElse(null));
         initializeDetachedScene(transition.current());
         transition.current().setAlpha(0.0F);
         addView(
@@ -411,23 +408,17 @@ public final class DialogueSceneView extends FrameLayout {
         sceneTimeline.cancel();
     }
 
-    private void applyFilter(SceneFilter filter) {
-        setColorAdjustment(filter instanceof ColorAdjustFilter adjustment ? adjustment : null);
-        if (filter instanceof CrtFilter) {
-            SceneFilterView filterView = new SceneFilterView(getContext());
-            filterView.apply(filter);
-            addSceneView(filterView, new LayoutParams(
-                    LayoutParams.MATCH_PARENT,
-                    LayoutParams.MATCH_PARENT
-            ));
-        }
-    }
-
     /** Change the live scene's GPU uniforms without changing images, geometry or playback state; null disables adjustment. */
     @icyllis.modernui.annotation.UiThread
     public void setColorAdjustment(ColorAdjustFilter adjustment) {
+        setSceneFilter(adjustment);
+    }
+
+    /** Update the current scene's ColorAdjust or CRT parameters without replacing its images or restarting playback. */
+    @icyllis.modernui.annotation.UiThread
+    public void setSceneFilter(SceneFilter filter) {
         SceneContentView scene = transition.current();
-        if (scene != null) scene.setColorAdjustment(adjustment);
+        if (scene != null) scene.setSceneFilter(filter);
     }
 
     // 释放当前和过渡场景持有的全部图片资源。

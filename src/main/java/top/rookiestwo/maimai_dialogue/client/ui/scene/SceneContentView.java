@@ -2,7 +2,9 @@ package top.rookiestwo.maimai_dialogue.client.ui.scene;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.Canvas;
-import top.rookiestwo.maimai_dialogue.presentation.filter.ColorAdjustFilter;
+import icyllis.modernui.graphics.Paint;
+import top.rookiestwo.maimai_dialogue.presentation.filter.SceneFilter;
+import top.rookiestwo.maimai_dialogue.presentation.filter.CrtFilter;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.gpu.SceneColorLayer;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.widget.FrameLayout;
@@ -15,7 +17,9 @@ import java.util.Map;
 
 final class SceneContentView extends FrameLayout {
     private final DialogueImageSource images;
-    private ColorAdjustFilter colorAdjustment;
+    private final Paint crtBackdrop = new Paint();
+    private SceneFilter filter;
+    private final long filterStartNanos = System.nanoTime();
     private SceneColorLayer colorLayer;
     private final Map<String, ObjectBinding> objectBindings =
             new LinkedHashMap<>();
@@ -23,6 +27,7 @@ final class SceneContentView extends FrameLayout {
     SceneContentView(Context context, DialogueImageSource images) {
         super(context);
         this.images = images;
+        crtBackdrop.setColor(0xff000000);
         setClickable(false);
     }
 
@@ -30,17 +35,22 @@ final class SceneContentView extends FrameLayout {
         objectBindings.put(binding.owner, binding);
     }
 
-    void setColorAdjustment(ColorAdjustFilter adjustment) {
-        if (java.util.Objects.equals(colorAdjustment, adjustment)) return;
-        colorAdjustment = adjustment;
+    void setSceneFilter(SceneFilter value) {
+        if (java.util.Objects.equals(filter, value)) return;
+        filter = value;
         // Retain allocated surfaces while toggling neutral values; only uniforms change during adjustment.
         invalidate();
     }
 
     @Override protected void dispatchDraw(Canvas canvas) {
-        if (SceneColorLayer.isNeutral(colorAdjustment)) { super.dispatchDraw(canvas); return; }
+        // Keep the CRT screen opaque within its own bounds, including warped corners and transparent artwork.
+        // Draw outside the filter source so the backdrop stays black and follows the Scene's transform/alpha.
+        if (filter instanceof CrtFilter) canvas.drawRect(0, 0, getWidth(), getHeight(), crtBackdrop);
+        if (SceneColorLayer.isNeutral(filter)) { super.dispatchDraw(canvas); return; }
         if (colorLayer == null) colorLayer = new SceneColorLayer();
-        colorLayer.draw(canvas, getWidth(), getHeight(), colorAdjustment, super::dispatchDraw);
+        float time = (float) (((System.nanoTime() - filterStartNanos) / 1_000_000_000.0) % 4096);
+        colorLayer.draw(canvas, getWidth(), getHeight(), filter, time, super::dispatchDraw);
+        if (filter instanceof CrtFilter crt && crt.animated()) postInvalidateOnAnimation();
     }
 
     @Override

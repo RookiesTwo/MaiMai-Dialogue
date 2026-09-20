@@ -79,6 +79,12 @@ MuiModApi.postToUiThread(() -> sceneView.setColorAdjustment(
 
 CRT 还支持 curvature、scanline、RGB mask、chromatic aberration、vignette、noise、flicker 和 bloom 参数；完整字段见 [Presentation JSON](../reference/presentation-json.md#crt-filter)。
 
+CRT 在编辑器预览与正式播放中使用同一条 GPU 管线：曲率改变场景采样坐标，色差分别偏移红蓝通道，扫描线、RGB 栅格、暗角、噪点和闪烁在合成时处理。CRT 视口默认铺黑色底，曲率收缩后的边角和素材透明区域合成到黑底上，不露出后方游戏画面或编辑器方格。黑底不参与滤镜计算，随场景一起变换和淡入淡出，Dialogue UI 保持在其上方。
+
+`bloom` 从场景亮部提取辉光，使用宽高各为场景四分之一的两张纹理进行横向、纵向模糊，再合成回场景。设为 `0` 时跳过提取与两次模糊，只执行 CRT 主 pass。`noise` 与 `flicker` 同时为 `0` 时不主动请求动画刷新；八个参数全为 `0` 时绕过滤镜处理，但仍保留 CRT 黑底。关闭 CRT 或切换为其他滤镜后移除黑底。参数修改不会重新解码或上传素材。
+
+代码中可在 ModernUI UI 线程调用 `DialogueSceneView.setSceneFilter(new CrtFilter(...))` 实时更新八个参数，传入 `null` 关闭滤镜。客户端命令 `/maimai_dialogue_gpu_probe crt` 可打开真实场景诊断页，调整参数、旁路对比并查看 GPU pass 耗时。这个耗时只涵盖滤镜处理，不代表整帧开销。
+
 ## 进入游戏验证
 
 按 `F3 + T` 后重新打开 Dialogue。背景和 VisualObject 应出现冷色、低饱和效果，DialogueBox、文字、Options 与后方 Minecraft 世界不受 Filter 影响。
@@ -88,7 +94,7 @@ CRT 还支持 curvature、scanline、RGB mask、chromatic aberration、vignette�
 - 完全没有变化：确认 Filter 写在演出配置文件中，而不是 Theme 中。
 - DialogueBox 也被染色：这不是预期行为，请检查是否使用了额外 shader MOD。
 - 画面过暗：把 `brightness` 调回接近 `0`，并降低 `contrast`。
-- CRT 开销或效果过强：改用 `color_adjust`，或降低动态参数。
+- CRT 开销或效果过强：先将 `bloom` 设为 `0`，再按需要减少其他效果；将 `noise` 与 `flicker` 设为 `0` 可停止滤镜自身的动画刷新。
 
 ## 下一步
 

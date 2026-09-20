@@ -17,29 +17,34 @@ public final class GpuProbeEvents {
     private GpuProbeEvents() { }
 
     @SubscribeEvent public static void commands(RegisterClientCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("maimai_dialogue_gpu_probe").executes(context -> {
-            Minecraft minecraft = Minecraft.getInstance();
-            var level = minecraft.level;
-            minecraft.tell(() -> {
-                if (minecraft.level == level && minecraft.screen == null) open();
-            });
-            return 1;
-        }));
+        event.getDispatcher().register(Commands.literal("maimai_dialogue_gpu_probe")
+                .executes(context -> scheduleOpen(false))
+                .then(Commands.literal("crt").executes(context -> scheduleOpen(true))));
+    }
+
+    private static int scheduleOpen(boolean crt) {
+        Minecraft minecraft = Minecraft.getInstance();
+        var level = minecraft.level;
+        minecraft.tell(() -> {
+            if (minecraft.level == level && minecraft.screen == null) open(crt);
+        });
+        return 1;
     }
 
     /** One-run diagnostic launch option, never changes the user's saved Client configuration. */
     @SubscribeEvent public static void tick(ClientTickEvent.Post event) {
-        if (!autoOpened && "1".equals(System.getenv("MAIMAI_GPU_PROBE"))) {
+        String mode = System.getenv("MAIMAI_GPU_PROBE");
+        if (!autoOpened && ("1".equals(mode) || "crt".equals(mode))) {
             var minecraft = Minecraft.getInstance();
             if (minecraft.screen instanceof TitleScreen && minecraft.getOverlay() == null) {
-                autoOpened = true; open();
+                autoOpened = true; open("crt".equals(mode));
             }
         }
     }
 
-    private static void open() {
+    private static void open(boolean crt) {
         var minecraft = Minecraft.getInstance();
-        var fragment = new GpuProbeFragment();
+        var fragment = new GpuProbeFragment(crt);
         minecraft.setScreen(MuiForgeApi.get().createScreen(fragment, fragment, minecraft.screen));
     }
 }
