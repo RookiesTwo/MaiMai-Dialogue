@@ -48,6 +48,8 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
                     .resolve("maimai-dialogue-projects")), io,
                     task -> Core.getUiHandler().post(task), () -> EditorScreens.close(this));
             workspace.windowFocusChanged(gameWindowFocused);
+            workspace.materials().setFilePicker(new top.rookiestwo.maimai_dialogue_editor.client.NativeMaterialFilePicker(
+                    () -> EditorScreens.restoreFocus(this)));
             var assets = new top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets(
                     io, task -> Core.getUiHandler().post(task));
             assets.setLoadFailure(workspace.materials()::reportLoadFailure);

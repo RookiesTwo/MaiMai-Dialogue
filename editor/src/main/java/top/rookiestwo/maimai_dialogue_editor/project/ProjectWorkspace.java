@@ -254,6 +254,7 @@ public final class ProjectWorkspace {
 
     public void request(Action action) {
         if (busy || disposed) return;
+        materials.cancelSelection();
         endEdit();
         clearError();
         if (dirty()) {
@@ -273,6 +274,7 @@ public final class ProjectWorkspace {
 
     public void cancel() {
         if (busy || disposed) return;
+        materials.cancelSelection();
         endEdit();
         pending = null;
         page = Page.NONE;

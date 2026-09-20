@@ -19,6 +19,19 @@ public final class EditorScreens {
         return MuiForgeApi.get().createScreen(new EditorFragment(), null, previousScreen);
     }
 
+    /** Native file dialogs can iconify an exclusive-fullscreen window. Restore only their original editor. */
+    public static void restoreFocus(Fragment owner) {
+        Minecraft minecraft = Minecraft.getInstance();
+        minecraft.execute(() -> {
+            if (minecraft.screen instanceof MuiScreen screen && screen.getFragment() == owner) {
+                long window = minecraft.getWindow().getWindow();
+                if (org.lwjgl.glfw.GLFW.glfwGetWindowAttrib(window, org.lwjgl.glfw.GLFW.GLFW_ICONIFIED) != 0)
+                    org.lwjgl.glfw.GLFW.glfwRestoreWindow(window);
+                org.lwjgl.glfw.GLFW.glfwFocusWindow(window);
+            }
+        });
+    }
+
     public static void registerCommands(RegisterClientCommandsEvent event) {
         event.getDispatcher().register(Commands.literal("maimai_dialogue_editor")
                 .executes(context -> {

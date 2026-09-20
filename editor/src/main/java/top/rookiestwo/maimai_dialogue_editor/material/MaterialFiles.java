@@ -11,7 +11,6 @@ import java.util.*;
 
 /** Source-file IO and format probing. All calls run on the editor IO executor. */
 public final class MaterialFiles {
-    public record Entry(Path path, boolean directory) {}
     public record Imported(ProjectBlob blob, JsonObject data) {}
     public record ImportRequest(Path source, ResourceKey key) {
         public ImportRequest { Objects.requireNonNull(source); Objects.requireNonNull(key); }
@@ -56,18 +55,18 @@ public final class MaterialFiles {
         }
         return result;
     }
-    public static List<Entry> list(Path directory) throws IOException {
-        if (directory == null) {
-            List<Entry> roots = new ArrayList<>();
-            FileSystems.getDefault().getRootDirectories().forEach(path -> roots.add(new Entry(path, true)));
-            return List.copyOf(roots);
+    /** Native filters are a convenience, not validation. Check paths off the UI thread before confirmation. */
+    public static List<Path> validateSelection(List<Path> paths, ResourceKind replacementKind) throws IOException {
+        if (paths.isEmpty()) return List.of();
+        Set<Path> files = new LinkedHashSet<>();
+        for (Path source : paths) {
+            Path path = source.toAbsolutePath().normalize();
+            if (!Files.isRegularFile(path) || !supported(path)) throw new IOException("PNG / OGG Vorbis: " + path.getFileName());
+            if (replacementKind != null && kind(path) != replacementKind) throw new IOException("Invalid replacement type: " + path.getFileName());
+            files.add(path);
         }
-        try (var children = Files.list(directory)) {
-            return children.filter(path -> Files.isDirectory(path) || supported(path))
-                    .map(path -> new Entry(path, Files.isDirectory(path)))
-                    .sorted(Comparator.comparing(Entry::directory).reversed()
-                            .thenComparing(e -> e.path().getFileName().toString(), String.CASE_INSENSITIVE_ORDER)).toList();
-        }
+        if (replacementKind != null && files.size() != 1) throw new IOException("Select one replacement file");
+        return List.copyOf(files);
     }
     public static boolean supported(Path path) { return Set.of("png", "ogg").contains(extension(path)); }
     public static String extension(Path path) {

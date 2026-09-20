@@ -179,9 +179,8 @@
   "gui.maimai_dialogue_editor.project.error.io": "文件操作失败，请检查项目文件是否存在，以及存储目录的访问权限。",
   "gui.maimai_dialogue_editor.material.import": "导入素材…",
   "gui.maimai_dialogue_editor.material.replace": "替换文件…",
-  "gui.maimai_dialogue_editor.material.drives": "磁盘",
-  "gui.maimai_dialogue_editor.material.parent": "上一级",
-  "gui.maimai_dialogue_editor.material.choose_file": "选择 PNG 图片或 OGG Vorbis 声音",
+  "gui.maimai_dialogue_editor.material.choose_files": "选择文件…",
+  "gui.maimai_dialogue_editor.material.picker_busy": "已有文件选择窗口打开，请先完成或取消选择。",
   "gui.maimai_dialogue_editor.material.import_confirm": "导入",
   "gui.maimai_dialogue_editor.material.importing": "正在导入素材…",
   "gui.maimai_dialogue_editor.material.imported": "素材已导入",
@@ -205,8 +204,6 @@
   "gui.maimai_dialogue_editor.material.failed": "素材加载失败",
   "gui.maimai_dialogue_editor.material.empty": "无导入素材",
   "gui.maimai_dialogue_editor.export.issue.material": "素材文件或配置无效",
-  "gui.maimai_dialogue_editor.material.select_all": "全选",
-  "gui.maimai_dialogue_editor.material.clear_selection": "清空选择",
   "gui.maimai_dialogue_editor.material.selected_count": "已选文件：",
   "gui.maimai_dialogue_editor.material.target_folder": "资源文件夹（可留空）"
 }

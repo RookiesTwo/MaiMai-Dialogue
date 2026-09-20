@@ -18,32 +18,30 @@ public final class MaterialWorkspace {
     private final ProjectWorkspace project;
     private final Executor io, ui;
     private final Runnable changed;
-    private final Path initialDirectory;
     private PreviewAssets preview;
-    private Path browsing, projectDirectory;
+    private MaterialFilePicker picker;
+    private Path lastDirectory, projectDirectory;
     private final Set<Path> selected = new LinkedHashSet<>();
-    private List<MaterialFiles.Entry> files = List.of();
     private String target = "", error = "", loadedSignature = "", previewNamespace = "";
     private String folder = "";
     private String refreshError = "";
     private String attemptedSignature = "";
     private boolean refreshQueued;
     private ResourceKey replacement;
-    private long browseRevision, refreshRevision, loadedRevision;
+    private long pickerRevision, refreshRevision, loadedRevision;
     private long projectGeneration;
-    private boolean browsingBusy, refreshing, disposed;
+    private boolean selectingFiles, refreshing, disposed;
     private final Map<ResourceKey, String> variants = new HashMap<>();
 
     public MaterialWorkspace(ProjectWorkspace project, Executor io, Executor ui, Runnable changed, Path initialDirectory) {
-        this.project = project; this.io = io; this.ui = ui; this.changed = changed; this.initialDirectory = initialDirectory;
+        this.project = project; this.io = io; this.ui = ui; this.changed = changed; lastDirectory = initialDirectory;
     }
     public void setPreview(PreviewAssets preview) { this.preview = preview; synchronize(); }
     public boolean choosing() { return project.page() == ProjectWorkspace.Page.IMPORT; }
-    public Path browsing() { return browsing; }
+    public void setFilePicker(MaterialFilePicker picker) { this.picker = Objects.requireNonNull(picker); }
+    public boolean selectingFiles() { return selectingFiles; }
     public List<Path> selectedFiles() { return List.copyOf(selected); }
-    public boolean isSelected(Path path) { return selected.contains(path); }
     public boolean batch() { return selected.size() > 1; }
-    public List<MaterialFiles.Entry> files() { return files; }
     public String target() { return batch() ? folder : target; }
     public String error() { return error; }
     public String refreshError() { return refreshError; }
@@ -52,7 +50,6 @@ public final class MaterialWorkspace {
         refreshError = message;
         changed.run();
     }
-    public boolean browsingBusy() { return browsingBusy; }
     public boolean replacing() { return replacement != null; }
     public String previewNamespace() { return previewNamespace; }
     public long loadedRevision() { return loadedRevision; }
@@ -74,7 +71,7 @@ public final class MaterialWorkspace {
         if (!Objects.equals(projectDirectory, project.directory()) || projectGeneration != project.projectGeneration()) {
             projectDirectory = project.directory();
             projectGeneration = project.projectGeneration();
-            ++refreshRevision; ++browseRevision;
+            ++refreshRevision; cancelSelection(); selected.clear();
             loadedSignature = ""; attemptedSignature = ""; previewNamespace = ""; loadedRevision++;
             refreshing = false; error = ""; refreshError = ""; variants.clear();
             if (preview != null) preview.clear();
@@ -90,57 +87,59 @@ public final class MaterialWorkspace {
         });
     }
     public void begin(ResourceKey replace) {
-        if (disposed || project.busy() || project.draft() == null) return;
+        if (!canSelectFiles() || project.page() != ProjectWorkspace.Page.NONE) return;
         if (replace != null && !replace.kind().material()) return;
         replacement = replace; selected.clear(); target = replace == null ? "" : replace.path(); folder = ""; error = "";
-        project.showImport();
-        browse(browsing == null ? initialDirectory : browsing);
+        chooseFiles();
     }
-    public void browse(Path path) {
-        if (!choosing() || project.busy() || disposed) return;
-        long expected = ++browseRevision;
-        Path destination = path == null ? null : path.toAbsolutePath().normalize();
-        browsingBusy = true;
-        io.execute(() -> {
-            List<MaterialFiles.Entry> entries = List.of(); String failure = "";
-            try { entries = MaterialFiles.list(destination); } catch (Exception exception) { failure = String.valueOf(exception.getMessage()); }
-            var result = entries; String message = failure;
-            ui.execute(() -> {
-                if (disposed || expected != browseRevision || !choosing()) return;
-                browsingBusy = false;
-                if (message.isEmpty()) { browsing = destination; files = result; }
-                error = message; changed.run();
-            });
-        });
+    public boolean canSelectFiles() {
+        return !disposed && picker != null && !selectingFiles && !project.busy() && project.draft() != null
+                && project.resources().form() == ResourceWorkspace.Form.NONE
+                && (project.page() == ProjectWorkspace.Page.NONE || choosing());
     }
-    public void choose(MaterialFiles.Entry entry) {
-        if (!choosing() || project.busy() || !files.contains(entry)) return;
-        if (entry.directory()) { browse(entry.path()); return; }
-        if (replacement != null && MaterialFiles.kind(entry.path()) != replacement.kind()) {
-            error = "PNG / OGG Vorbis"; changed.run(); return;
-        }
-        if (replacement != null) { selected.clear(); selected.add(entry.path()); }
-        else if (!selected.remove(entry.path())) selected.add(entry.path());
-        selectionChanged();
-    }
-    public void selectAll() {
-        if (!choosing() || project.busy() || replacing()) return;
-        boolean modified = false;
-        for (MaterialFiles.Entry entry : files) if (!entry.directory()) modified |= selected.add(entry.path());
-        if (modified) selectionChanged();
-    }
-    public void clearSelection() {
-        if (!choosing() || project.busy() || selected.isEmpty()) return;
-        selected.clear(); selectionChanged();
-    }
-    private void selectionChanged() {
-        error = "";
-        if (!replacing() && selected.size() == 1) {
-            Path source = selected.iterator().next();
-            target = project.resources().catalog().unusedPath(MaterialFiles.kind(source), suggestedPath(source));
-        } else if (!replacing() && selected.isEmpty()) target = "";
+    public void chooseFiles() {
+        if (!canSelectFiles()) return;
+        long expected = ++pickerRevision;
+        long generation = project.projectGeneration();
+        Path directory = project.directory();
+        ProjectWorkspace.Page page = project.page();
+        ResourceKind kind = replacement == null ? null : replacement.kind();
+        selectingFiles = true;
         changed.run();
+        CompletableFuture<List<Path>> pending;
+        try { pending = picker.choose(new MaterialFilePicker.Request(lastDirectory, kind)); }
+        catch (RuntimeException failure) { pending = CompletableFuture.failedFuture(failure); }
+        pending.thenApplyAsync(paths -> {
+            try { return MaterialFiles.validateSelection(paths, kind); }
+            catch (java.io.IOException failure) { throw new CompletionException(failure); }
+        }, io).whenComplete((files, failure) -> ui.execute(() -> {
+            if (disposed || expected != pickerRevision) return;
+            selectingFiles = false;
+            if (generation != project.projectGeneration() || !Objects.equals(directory, project.directory())
+                    || project.busy() || project.page() != page || project.resources().form() != ResourceWorkspace.Form.NONE) {
+                changed.run(); return;
+            }
+            if (failure != null) {
+                Throwable cause = failure;
+                while (cause instanceof CompletionException && cause.getCause() != null) cause = cause.getCause();
+                error = String.valueOf(cause.getMessage());
+                LOGGER.error("Failed to choose editor material files", cause);
+                project.showImport();
+            } else if (!files.isEmpty()) {
+                boolean different = !List.copyOf(selected).equals(files);
+                selected.clear(); selected.addAll(files);
+                lastDirectory = files.getFirst().getParent();
+                error = "";
+                if (!replacing() && !batch() && different) {
+                    Path source = files.getFirst();
+                    target = project.resources().catalog().unusedPath(MaterialFiles.kind(source), suggestedPath(source));
+                }
+                project.showImport();
+            } else changed.run();
+        }));
     }
+    /** Native dialogs cannot be dismissed from the model; their eventual result must not affect another operation. */
+    public void cancelSelection() { ++pickerRevision; selectingFiles = false; }
     private static String suggestedPath(Path source) {
         String filename = source.getFileName().toString();
         return ProjectNames.suggestNamespace(filename.substring(0, filename.lastIndexOf('.')));
@@ -151,7 +150,7 @@ public final class MaterialWorkspace {
         changed.run();
     }
     public void submit() {
-        if (!choosing() || selected.isEmpty() || project.busy()) return;
+        if (!choosing() || selected.isEmpty() || project.busy() || selectingFiles) return;
         if (batch() ? !folder.isEmpty() && !MaterialPack.portable(folder) : !MaterialPack.portable(target)) {
             error = "Invalid resource path"; changed.run(); return;
         }
@@ -267,7 +266,7 @@ public final class MaterialWorkspace {
         project.editAsset(key, data, group);
     }
     public void dispose() {
-        disposed = true; ++browseRevision; ++refreshRevision;
+        disposed = true; cancelSelection(); ++refreshRevision;
         if (preview != null) preview.clear();
     }
 }

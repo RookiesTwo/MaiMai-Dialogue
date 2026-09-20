@@ -93,7 +93,7 @@ final class ResourceBrowserView extends LinearLayout {
         workspace.content().snapshot();
         ResourceTree.Node selection = resources.selection();
         boolean step = selection.isStep();
-        EditorWidgets.enabled(importMaterial, workspace.draft() != null && resources.active() && resources.form() == ResourceWorkspace.Form.NONE);
+        EditorWidgets.enabled(importMaterial, workspace.materials().canSelectFiles() && resources.active());
         refreshing = true;
         try {
             if (!search.getText().toString().equals(resources.query())) search.setText(resources.query());

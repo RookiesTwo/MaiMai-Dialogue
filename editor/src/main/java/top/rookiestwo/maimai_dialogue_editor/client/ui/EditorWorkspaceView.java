@@ -29,7 +29,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     private ResourceWorkspace.Form shownResourceForm = ResourceWorkspace.Form.NONE;
     private ResourceDialog resourceDialog;
     private EditorDropdownMenu choices;
-    private MaterialImportDialog materialDialog;
+    private MaterialImportConfirmation materialDialog;
 
     EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace, EditorPreviewHost preview,
                         ExportWorkspace exports) {
@@ -69,7 +69,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
                 addView(dropdown, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
                 dropdown.requestFocus();
             } else if (page == ProjectWorkspace.Page.IMPORT) {
-                materialDialog = new MaterialImportDialog(getContext(), workspace);
+                materialDialog = new MaterialImportConfirmation(getContext(), workspace);
                 addView(materialDialog, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
                 materialDialog.requestFocus();
             } else if (page != ProjectWorkspace.Page.NONE) {

@@ -179,9 +179,8 @@
   "gui.maimai_dialogue_editor.project.error.io": "File operation failed. Check that the project files exist and the storage folder is accessible.",
   "gui.maimai_dialogue_editor.material.import": "Import media…",
   "gui.maimai_dialogue_editor.material.replace": "Replace file…",
-  "gui.maimai_dialogue_editor.material.drives": "Drives",
-  "gui.maimai_dialogue_editor.material.parent": "Parent folder",
-  "gui.maimai_dialogue_editor.material.choose_file": "Select a PNG image or OGG Vorbis sound",
+  "gui.maimai_dialogue_editor.material.choose_files": "Choose files…",
+  "gui.maimai_dialogue_editor.material.picker_busy": "A file chooser is already open. Complete or cancel it first.",
   "gui.maimai_dialogue_editor.material.import_confirm": "Import",
   "gui.maimai_dialogue_editor.material.importing": "Importing media…",
   "gui.maimai_dialogue_editor.material.imported": "Media imported",
@@ -205,8 +204,6 @@
   "gui.maimai_dialogue_editor.material.failed": "Media load failed",
   "gui.maimai_dialogue_editor.material.empty": "No imported media",
   "gui.maimai_dialogue_editor.export.issue.material": "Invalid media file or configuration",
-  "gui.maimai_dialogue_editor.material.select_all": "Select all",
-  "gui.maimai_dialogue_editor.material.clear_selection": "Clear selection",
   "gui.maimai_dialogue_editor.material.selected_count": "Selected files:",
   "gui.maimai_dialogue_editor.material.target_folder": "Resource folder (optional)"
 }
