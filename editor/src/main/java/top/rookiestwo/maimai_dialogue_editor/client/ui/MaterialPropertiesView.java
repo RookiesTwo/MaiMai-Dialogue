@@ -96,6 +96,7 @@ final class MaterialPropertiesView extends LinearLayout {
         EditText input = EditorWidgets.input(getContext(), variant(), ignored -> {}, () -> {});
         input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
         TextView error = EditorWidgets.paragraph(getContext(), "");
+        error.setTextColor(EditorWidgets.ERROR);
         error.setVisibility(GONE);
         input.setOnFocusChangeListener((view, focused) -> {
             if (focused) {

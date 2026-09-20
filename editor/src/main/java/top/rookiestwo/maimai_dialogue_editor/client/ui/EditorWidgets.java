@@ -34,6 +34,7 @@ final class EditorWidgets {
     static final int ACCENT = 0xFF0088FF;
     static final int TEXT = 0xFF2F3742;
     static final int MUTED = 0xFF6B7280;
+    static final int ERROR = 0xFFC62828;
     static final int SPLITTER_HOVER = 0xFF70B8FF;
     private static final int BUTTON_HOVER = 0xFFE5F2FF;
     static final int SELECTION = 0xFFCDE6FF;
