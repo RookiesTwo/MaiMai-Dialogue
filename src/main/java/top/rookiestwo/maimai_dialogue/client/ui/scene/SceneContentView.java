@@ -71,6 +71,10 @@ final class SceneContentView extends FrameLayout {
     }
 
     void applyObjectLayout(ObjectBinding binding) {
+        // 异步图片到达后先消费其测量请求；直接 layout 会清除请求并沿用旧的零尺寸。
+        if (binding.layers.primary.isLayoutRequested() || binding.layers.underlay.isLayoutRequested()) {
+            measureObjectImages(binding);
+        }
         applyObjectLayout(binding, getWidth(), getHeight());
     }
 
