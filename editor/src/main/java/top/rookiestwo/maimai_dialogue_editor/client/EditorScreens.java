@@ -33,11 +33,13 @@ public final class EditorScreens {
     }
 
     public static void registerCommands(RegisterClientCommandsEvent event) {
-        event.getDispatcher().register(Commands.literal("maimai_dialogue_editor")
-                .executes(context -> {
-                    openAfterChat();
-                    return 1;
-                }));
+        // NeoForge merges client subcommands with server suggestions; only this branch executes locally.
+        event.getDispatcher().register(Commands.literal("maimai_dialogue")
+                .then(Commands.literal("editor")
+                        .executes(context -> {
+                            openAfterChat();
+                            return 1;
+                        })));
     }
 
     // ModernUI 的 View 焦点回调不等同于 Minecraft 窗口焦点，显式同步当前编辑器。

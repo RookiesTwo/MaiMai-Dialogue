@@ -15,18 +15,10 @@ import static org.lwjgl.opengl.GL33C.*;
 public final class SceneColorRenderer {
     private static int program, vertexArray, framebuffer, adjustmentsLocation, tintLocation;
     private static volatile boolean hookReady;
-    private static volatile boolean diagnostics;
-    public static volatile double gpuMicros;
-    public static volatile long samples;
-    private static final int[] queries = new int[4];
-    private static final boolean[] pending = new boolean[4];
-    private static int cursor;
-    private static String reported = "";
     private static final SceneCrtProgram crtProgram = new SceneCrtProgram();
     private SceneColorRenderer() { }
 
     public static void beginFrame() { hookReady = true; }
-    public static void diagnostics(boolean enabled) { diagnostics = enabled; }
 
     static void draw(GLTexture source, GLTexture target, GLTexture bloomA, GLTexture bloomB, SceneFilter settings, float time) {
         RenderSystem.assertOnRenderThread();
@@ -42,30 +34,15 @@ public final class SceneColorRenderer {
                 glDisable(GL_BLEND); glDisable(GL_CULL_FACE); glDisable(GL_SCISSOR_TEST); glDisable(GL_FRAMEBUFFER_SRGB);
                 glColorMask(true, true, true, true);
                 glBindVertexArray(vertexArray);
-                collectTimings();
-                boolean measure = diagnostics && !pending[cursor] && glGetQueryi(GL_TIME_ELAPSED, GL_CURRENT_QUERY) == 0;
-                if (measure) glBeginQuery(GL_TIME_ELAPSED, queries[cursor]);
-                try {
-                    if (settings instanceof ColorAdjustFilter color) {
-                        bindTarget(target); glUseProgram(program);
-                        glUniform3f(adjustmentsLocation, color.brightness(), color.contrast(), color.saturation());
-                        int tint = color.tint().map(value -> value.argb()).orElse(0);
-                        glUniform4f(tintLocation, (tint >> 16 & 255) / 255f, (tint >> 8 & 255) / 255f,
-                                (tint & 255) / 255f, (tint >>> 24) / 255f);
-                        glDrawArrays(GL_TRIANGLES, 0, 3);
-                    } else if (settings instanceof CrtFilter crt) {
-                        crtProgram.draw(source, target, bloomA, bloomB, crt, time);
-                    }
-                }
-                finally {
-                    if (measure) { glEndQuery(GL_TIME_ELAPSED); pending[cursor] = true; cursor = (cursor + 1) % queries.length; }
-                }
-                String mode = settings.type() + (bloomA == null ? ":1" : ":4");
-                if (!reported.equals(mode)) {
-                    reported = mode;
-                    MaiMaiDialogue.LOGGER.info("Scene GPU filter: pipeline={}, source={}x{}, output={}x{}, bloom={}x{}, settings={}",
-                            mode, source.getWidth(), source.getHeight(), target.getWidth(), target.getHeight(),
-                            bloomA == null ? 0 : bloomA.getWidth(), bloomA == null ? 0 : bloomA.getHeight(), settings);
+                if (settings instanceof ColorAdjustFilter color) {
+                    bindTarget(target); glUseProgram(program);
+                    glUniform3f(adjustmentsLocation, color.brightness(), color.contrast(), color.saturation());
+                    int tint = color.tint().map(value -> value.argb()).orElse(0);
+                    glUniform4f(tintLocation, (tint >> 16 & 255) / 255f, (tint >> 8 & 255) / 255f,
+                            (tint & 255) / 255f, (tint >>> 24) / 255f);
+                    glDrawArrays(GL_TRIANGLES, 0, 3);
+                } else if (settings instanceof CrtFilter crt) {
+                    crtProgram.draw(source, target, bloomA, bloomB, crt, time);
                 }
             } finally {
                 glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
@@ -85,18 +62,7 @@ public final class SceneColorRenderer {
         adjustmentsLocation = glGetUniformLocation(program, "Adjustments"); tintLocation = glGetUniformLocation(program, "Tint");
         glUseProgram(program); glUniform1i(glGetUniformLocation(program, "Scene"), 0);
         vertexArray = glGenVertexArrays(); framebuffer = glGenFramebuffers();
-        for (int i = 0; i < queries.length; i++) queries[i] = glGenQueries();
         MaiMaiDialogue.LOGGER.info("Scene GPU ColorAdjust: shader compile/link OK, GL {}", glGetString(GL_VERSION));
-    }
-
-    private static void collectTimings() {
-        for (int i = 0; i < queries.length; i++) {
-            if (!pending[i] || glGetQueryObjecti(queries[i], GL_QUERY_RESULT_AVAILABLE) == GL_FALSE) continue;
-            double micros = glGetQueryObjectui64(queries[i], GL_QUERY_RESULT) / 1000.0;
-            pending[i] = false;
-            gpuMicros = samples == 0 ? micros : gpuMicros * .95 + micros * .05;
-            if (++samples % 300 == 0 && diagnostics) MaiMaiDialogue.LOGGER.info("Scene GPU filter: pipeline={}, pass avg={} us, samples={}", reported, Math.round(gpuMicros), samples);
-        }
     }
 
     /** The program is shared across scenes; large surfaces are owned and released by each SceneColorLayer. */
@@ -106,8 +72,7 @@ public final class SceneColorRenderer {
         if (vertexArray != 0) glDeleteVertexArrays(vertexArray);
         if (program != 0) glDeleteProgram(program);
         crtProgram.close();
-        for (int i = 0; i < queries.length; i++) { if (queries[i] != 0) glDeleteQueries(queries[i]); queries[i] = 0; pending[i] = false; }
-        framebuffer = vertexArray = program = 0; hookReady = false; reported = "";
+        framebuffer = vertexArray = program = 0; hookReady = false;
     }
     private static String source(String file) {
         try (var stream = SceneColorRenderer.class.getResourceAsStream("/assets/maimai_dialogue/shaders/" + file)) {

@@ -11,13 +11,23 @@ description: 使用 /maimai_dialogue 打开对话并管理在线玩家的 Progre
 
 ## 开始前
 
-所有 `/maimai_dialogue` 命令默认要求 permission level 2。`<player>` 必须解析为一个在线玩家，可使用 `@s`，不能用 `@a` 批量修改。
+服务端的 `/maimai_dialogue open` 和 `/maimai_dialogue progress` 要求 permission level 2。`<player>` 必须解析为一个在线玩家，可使用 `@s`，不能用 `@a` 批量修改。安装编辑器附属 MOD 后，客户端还提供无需 OP 的 `/maimai_dialogue editor`。
 
 ## 需要修改的文件
 
 本章不修改资源文件，只在游戏或服务器控制台中执行命令。
 
 ## 跟着做
+
+### 打开编辑器
+
+安装编辑器附属 MOD 后，在客户端聊天栏执行：
+
+```text
+/maimai_dialogue editor
+```
+
+命令打开本地编辑器，关闭后返回游戏。也可以从 MOD 列表的编辑器配置按钮进入。
 
 ### 打开 Dialogue
 

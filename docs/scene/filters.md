@@ -83,7 +83,7 @@ CRT 在编辑器预览与正式播放中使用同一条 GPU 管线：曲率改�
 
 `bloom` 从场景亮部提取辉光，使用宽高各为场景四分之一的两张纹理进行横向、纵向模糊，再合成回场景。设为 `0` 时跳过提取与两次模糊，只执行 CRT 主 pass。`noise` 与 `flicker` 同时为 `0` 时不主动请求动画刷新；八个参数全为 `0` 时绕过滤镜处理，但仍保留 CRT 黑底。关闭 CRT 或切换为其他滤镜后移除黑底。参数修改不会重新解码或上传素材。
 
-代码中可在 ModernUI UI 线程调用 `DialogueSceneView.setSceneFilter(new CrtFilter(...))` 实时更新八个参数，传入 `null` 关闭滤镜。客户端命令 `/maimai_dialogue_gpu_probe crt` 可打开真实场景诊断页，调整参数、旁路对比并查看 GPU pass 耗时。这个耗时只涵盖滤镜处理，不代表整帧开销。
+代码中可在 ModernUI UI 线程调用 `DialogueSceneView.setSceneFilter(new CrtFilter(...))` 实时更新八个参数，传入 `null` 关闭滤镜。编辑器预览和正式播放均复用这条 GPU 渲染路径。
 
 ## 进入游戏验证
 
