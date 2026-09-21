@@ -74,6 +74,8 @@ assets/example/textures/characters/guide/happy.png
 
 `initial_variant` 必须存在于被引用 VisualAsset 的 `variants` 中。VisualObject 可以额外声明 `sampling` 来覆盖 VisualAsset 的设置；省略时继承 VisualAsset。
 
+背景通过 Scene 的 `background.asset` 引用 VisualAsset，并继承其采样方式；初始差分在 `background.initial_variant` 中选择。
+
 VisualAsset 只复用图片集合与 sampling，不保存位置等场景状态。因此同一角色可以在不同 [Scene](./scene-json.md) 中使用不同位置、大小、初始表情和层级。
 
 ## 直接声明图片差分

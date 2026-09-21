@@ -1,8 +1,6 @@
 {
   "background": {
-    "variants": {
-      "default": "minecraft:gui/title/background/panorama_2.png"
-    },
+    "asset": "maimai_dialogue:backgrounds/debug/fast_forward",
     "fit": "cover",
     "opacity": 0.82
   },

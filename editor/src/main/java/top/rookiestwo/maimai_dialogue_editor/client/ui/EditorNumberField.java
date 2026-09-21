@@ -9,6 +9,7 @@ import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.SeekBar;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.NumberField;
+import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.NumberDrag;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -33,9 +34,11 @@ final class EditorNumberField extends LinearLayout {
     private boolean edited;
     private boolean invalid;
     private boolean tracking;
+    private NumberDrag gesture;
 
     EditorNumberField(Context context, NumberField field, Supplier<String> value,
-                      Function<String, String> setter, BooleanSupplier accepts, Runnable endEdit) {
+                      Function<String, String> setter, BooleanSupplier accepts, Runnable endEdit,
+                      Supplier<NumberDrag> beginDrag) {
         super(context);
         this.value = value;
         this.setter = setter;
@@ -74,6 +77,7 @@ final class EditorNumberField extends LinearLayout {
                     input.clearFocus();
                     endEdit.run();
                     tracking = true;
+                    gesture = accepts.getAsBoolean() ? beginDrag.get() : null;
                 }
 
                 @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -82,15 +86,23 @@ final class EditorNumberField extends LinearLayout {
                     invalid = false;
                     edited = false;
                     error.setVisibility(GONE);
-                    setter.apply(BigDecimal.valueOf((long) sliderMinimum + progress, 3).toPlainString());
-                    writeText(display(value.get()));
+                    String next = BigDecimal.valueOf((long) sliderMinimum + progress, 3).toPlainString();
+                    if (tracking) {
+                        if (gesture == null || !gesture.update(next)) return;
+                    } else setter.apply(next);
+                    writeText(display(next));
+                    syncReset(true, next);
                     if (!tracking) endEdit.run();
                 }
 
                 @Override public void onStopTrackingTouch(SeekBar seekBar) {
                     tracking = false;
+                    NumberDrag finished = gesture; gesture = null;
+                    if (finished != null) finished.finish(true);
                     endEdit.run();
+                    writeText(display(value.get()));
                     syncSlider();
+                    syncReset(input.isEnabled());
                 }
             });
         }
@@ -137,9 +149,9 @@ final class EditorNumberField extends LinearLayout {
         if (!enabled && slider != null) slider.cancelGesture();
         input.setEnabled(enabled);
         if (slider != null) slider.setEnabled(enabled);
-        if (!input.isFocused() && !invalid) writeText(display(value.get()));
+        if (!tracking && !input.isFocused() && !invalid) writeText(display(value.get()));
         syncSlider();
-        syncReset(enabled);
+        if (!tracking) syncReset(enabled);
     }
 
     private void resetValue() {
@@ -160,9 +172,12 @@ final class EditorNumberField extends LinearLayout {
     }
 
     private void syncReset(boolean enabled) {
+        syncReset(enabled, value.get());
+    }
+    private void syncReset(boolean enabled, String current) {
         if (reset == null) return;
         boolean changed;
-        try { changed = new BigDecimal(value.get().strip()).compareTo(defaultValue) != 0; }
+        try { changed = new BigDecimal(current.strip()).compareTo(defaultValue) != 0; }
         catch (NumberFormatException ignored) { changed = true; }
         // INVISIBLE reserves the slot between slider and input before editing and after resetting.
         reset.setVisibility(changed || invalid ? VISIBLE : INVISIBLE);

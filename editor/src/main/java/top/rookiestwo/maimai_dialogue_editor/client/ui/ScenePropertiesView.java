@@ -68,7 +68,9 @@ final class ScenePropertiesView extends LinearLayout {
         if (model.data().has("background")) {
             if (model.part(Part.BACKGROUND) == null) warning();
             else {
-                variants(Part.BACKGROUND);
+                reference("scene.asset", ResourceKind.VISUAL_ASSET, () -> value(Part.BACKGROUND, "asset", ""),
+                        value -> model.setAsset(Part.BACKGROUND, value));
+                initialVariant(Part.BACKGROUND);
                 choice("scene.fit", () -> value(Part.BACKGROUND, "fit", "cover"),
                         () -> items("scene.fit.", "cover", "contain", "stretch"), value -> model.setText(Part.BACKGROUND, "fit", value));
                 number(Part.BACKGROUND, new NumberField("opacity", 1, 0, 1));
@@ -134,41 +136,35 @@ final class ScenePropertiesView extends LinearLayout {
         initialVariant(part);
     }
     private void initialVariant(Part part) {
-        if (part == Part.OBJECT) {
-            String expected = binding;
-            Button button = choice("scene.initial_variant", () -> value(part, "initial_variant", ""),
-                    this::objectVariantItems, value -> model.setText(part, "initial_variant", value));
-            button.setOnClickListener(view -> showObjectVariants(button, expected));
-            return;
-        }
-        choice("scene.initial_variant", () -> value(part, "initial_variant", "default"),
-                () -> names(model.variantMap(part)), value -> model.setText(part, "initial_variant", value));
+        String expected = binding;
+        Button button = choice("scene.initial_variant", () -> value(part, "initial_variant", part == Part.BACKGROUND ? "default" : ""),
+                () -> variantItems(part), value -> model.setText(part, "initial_variant", value));
+        button.setOnClickListener(view -> showVariants(button, expected, part));
     }
-    private List<ChoicePresenter.Item> objectVariantItems() {
-        ResourceLocation asset = ResourceLocation.tryParse(value(Part.OBJECT, "asset", ""));
+    private List<ChoicePresenter.Item> variantItems(Part part) {
+        ResourceLocation asset = ResourceLocation.tryParse(value(part, "asset", ""));
         if (asset != null && project.draft() != null && !asset.getNamespace().equals(project.draft().namespace())) {
-            // The repository publishes immutable snapshots; external assets remain read-only.
             return ClientServices.get().content().current().visualAssets().find(asset)
-                    .map(definition -> definition.variants().keySet().stream()
+                    .map(definition -> definition.variants().keySet().stream().sorted()
                             .map(name -> new ChoicePresenter.Item(name, name)).toList()).orElse(List.of());
         }
-        return names(model.variantMap(Part.OBJECT));
+        return names(model.variantMap(part));
     }
-    private void showObjectVariants(Button button, String expected) {
+    private void showVariants(Button button, String expected, Part part) {
         if (!accepts(expected) || !button.isAttachedToWindow()) return;
-        String source = value(Part.OBJECT, "asset", "");
+        String source = value(part, "asset", "");
         ResourceLocation asset = ResourceLocation.tryParse(source);
         if (asset != null && asset.getNamespace().equals(project.draft().namespace())) {
             ResourceKey key = new ResourceKey(ResourceKind.VISUAL_ASSET, asset.getPath());
             if (project.draft().revision(key) != null && !project.draft().isLoaded(key)
                     && !project.resources().whenLoaded(key, () -> {
-                        if (source.equals(value(Part.OBJECT, "asset", ""))) showObjectVariants(button, expected);
+                        if (source.equals(value(part, "asset", ""))) showVariants(button, expected, part);
                     })) return;
         }
-        choices.show(button, objectVariantItems(), value(Part.OBJECT, "initial_variant", ""), selected -> {
-            if (accepts(expected) && source.equals(value(Part.OBJECT, "asset", ""))
-                    && objectVariantItems().stream().anyMatch(item -> item.value().equals(selected))) {
-                model.setText(Part.OBJECT, "initial_variant", selected);
+        choices.show(button, variantItems(part), value(part, "initial_variant", part == Part.BACKGROUND ? "default" : ""), selected -> {
+            if (accepts(expected) && source.equals(value(part, "asset", ""))
+                    && variantItems(part).stream().anyMatch(item -> item.value().equals(selected))) {
+                model.setText(part, "initial_variant", selected);
             }
         });
     }
@@ -176,7 +172,8 @@ final class ScenePropertiesView extends LinearLayout {
         String fallback = field.integer() ? Integer.toString((int)field.fallback()) : Float.toString(field.fallback());
         String expected = binding;
         var control = new EditorNumberField(getContext(), field, () -> value(part, field.name(), fallback),
-                value -> model.setNumber(part, field, value), () -> accepts(expected), project::endEdit);
+                value -> model.setNumber(part, field, value), () -> accepts(expected), project::endEdit,
+                () -> model.beginNumberDrag(part, field));
         EditorWidgets.propertyRow(group, "scene." + field.name(), control, false);
         bindings.add(() -> control.refresh(model.active()));
     }
@@ -205,11 +202,16 @@ final class ScenePropertiesView extends LinearLayout {
     }
     private void reference(String label, ResourceKind kind, Supplier<String> value, Consumer<String> setter) {
         field(label, value, text -> { setter.accept(text); return ""; }, false);
-        choice(null, value, () -> project.resources().catalog().keys().stream().filter(key -> key.kind() == kind)
-                .sorted(Comparator.comparing(ResourceKey::path)).map(key -> {
-                    String id = kind == ResourceKind.IMAGE ? MaterialPack.imageId(key, project.draft().namespace()) : key.id(project.draft().namespace());
-                    return new ChoicePresenter.Item(id, id);
-                }).toList(), setter);
+        choice(null, value, () -> resourceItems(kind), setter);
+    }
+    private List<ChoicePresenter.Item> resourceItems(ResourceKind kind) {
+        if (project.draft() == null) return List.of();
+        var ids = new TreeSet<String>();
+        project.resources().catalog().keys().stream().filter(key -> key.kind() == kind).forEach(key -> ids.add(
+                kind == ResourceKind.IMAGE ? MaterialPack.imageId(key, project.draft().namespace()) : key.id(project.draft().namespace())));
+        if (kind == ResourceKind.VISUAL_ASSET) ClientServices.get().content().current().visualAssets().ids().stream()
+                .filter(id -> !id.getNamespace().equals(project.draft().namespace())).forEach(id -> ids.add(id.toString()));
+        return ids.stream().map(id -> new ChoicePresenter.Item(id, id)).toList();
     }
     private Button choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;

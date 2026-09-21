@@ -258,6 +258,17 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                 });
     }
 
+    /** Static authoring updates keep text, Theme, image bindings and GPU resources mounted. */
+    public void renderScenePreview(top.rookiestwo.maimai_dialogue.client.scene.SceneState state,
+                                   DialogueBoxLayout layout,
+                                   top.rookiestwo.maimai_dialogue.presentation.filter.SceneFilter filter) {
+        DialogueRootLayout root = rootLayout;
+        DialogueSceneView scene = sceneView;
+        if (root == null || scene == null || cornerControls != CornerControls.DISPLAY_ONLY) return;
+        DialogueUiDispatch.toView(root, () -> rootLayout == root && sceneView == scene,
+                () -> { root.setDialogueBoxLayout(layout); scene.renderPreview(state, filter); });
+    }
+
     /** Refresh the current View's metrics/layout without restarting its session or playback. */
     public void refreshViewport() {
         DialogueRootLayout root = rootLayout;

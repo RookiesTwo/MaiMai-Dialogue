@@ -96,6 +96,7 @@ final class DialogueRootLayout extends ResponsiveFrameLayout {
     }
 
     void setDialogueBoxLayout(DialogueBoxLayout layout) {
+        if (Objects.equals(dialogueBoxLayout, layout)) return;
         dialogueBoxLayout = Objects.requireNonNull(layout, "layout");
         requestLayout();
     }

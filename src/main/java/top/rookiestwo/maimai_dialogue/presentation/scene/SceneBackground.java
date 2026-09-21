@@ -4,15 +4,21 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.resources.ResourceLocation;
+import top.rookiestwo.maimai_dialogue.content.DefinitionCodecs;
+import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAssetDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.visual.VisualSampling;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
+/** Only the VisualAsset reference is serialized; resolved images belong to a content snapshot. */
 public record SceneBackground(
-        Map<String, ResourceLocation> variants,
+        ResourceLocation asset,
         String initialVariant,
         BackgroundFit fit,
-        float opacity
+        float opacity,
+        Optional<VisualAssetDefinition> resolvedAsset
 ) {
     private static final Codec<Float> OPACITY_CODEC = Codec.FLOAT.validate(
             value -> value >= 0.0F && value <= 1.0F
@@ -22,14 +28,11 @@ public record SceneBackground(
                     )
     );
 
-    private static final Codec<Map<String, ResourceLocation>> VARIANTS_CODEC =
-            Codec.unboundedMap(Codec.STRING, ResourceLocation.CODEC);
-
     private static final Codec<SceneBackground> BASE_CODEC =
             RecordCodecBuilder.create(instance ->
                     instance.group(
-                            VARIANTS_CODEC.fieldOf("variants")
-                                    .forGetter(SceneBackground::variants),
+                            ResourceLocation.CODEC.fieldOf("asset")
+                                    .forGetter(SceneBackground::asset),
                             Codec.STRING.optionalFieldOf(
                                             "initial_variant",
                                             "default"
@@ -46,43 +49,48 @@ public record SceneBackground(
                     ).apply(instance, SceneBackground::new)
             );
 
-    public static final Codec<SceneBackground> CODEC = BASE_CODEC.flatXmap(
+    public static final Codec<SceneBackground> CODEC = DefinitionCodecs.rejectFields(BASE_CODEC.flatXmap(
             SceneBackground::validate,
-            DataResult::success
-    );
+            SceneBackground::validate
+    ), "variants", "sampling");
+
+    public SceneBackground(ResourceLocation asset, String initialVariant, BackgroundFit fit, float opacity) {
+        this(asset, initialVariant, fit, opacity, Optional.empty());
+    }
 
     public SceneBackground {
-        Objects.requireNonNull(variants, "variants");
+        Objects.requireNonNull(asset, "asset");
         Objects.requireNonNull(initialVariant, "initialVariant");
         Objects.requireNonNull(fit, "fit");
-        variants = Map.copyOf(variants);
+        Objects.requireNonNull(resolvedAsset, "resolvedAsset");
+    }
+
+    public Map<String, ResourceLocation> variants() {
+        return resolvedAsset.map(VisualAssetDefinition::variants).orElse(Map.of());
+    }
+
+    public VisualSampling sampling() {
+        return resolvedAsset.map(VisualAssetDefinition::sampling).orElse(VisualSampling.LINEAR);
     }
 
     public ResourceLocation initialImage() {
-        return variants.get(initialVariant);
+        return Objects.requireNonNull(variants().get(initialVariant), "Resolve Background VisualAsset before rendering");
+    }
+
+    public DataResult<SceneBackground> resolve(VisualAssetDefinition definition) {
+        if (!definition.variants().containsKey(initialVariant)) {
+            return DataResult.error(() -> "Background initial_variant '" + initialVariant
+                    + "' is not present in VisualAsset " + asset + ".");
+        }
+        return DataResult.success(new SceneBackground(asset, initialVariant, fit, opacity, Optional.of(definition)));
     }
 
     private static DataResult<SceneBackground> validate(
             SceneBackground background
     ) {
-        if (background.variants.isEmpty()) {
+        if (!background.initialVariant.matches("[a-z0-9_-]+")) {
             return DataResult.error(
-                    () -> "Background variants must not be empty."
-            );
-        }
-        for (String variant : background.variants.keySet()) {
-            if (!variant.matches("[a-z0-9_-]+")) {
-                return DataResult.error(
-                        () -> "Invalid Background variant ID '"
-                                + variant + "'."
-                );
-            }
-        }
-        if (!background.variants.containsKey(background.initialVariant)) {
-            return DataResult.error(
-                    () -> "Background initial_variant '"
-                            + background.initialVariant
-                            + "' is not present in variants."
+                    () -> "Invalid Background initial_variant '" + background.initialVariant + "'."
             );
         }
         return DataResult.success(background);

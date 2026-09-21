@@ -32,24 +32,34 @@ Dialogue 使用必填字符串引用它，两份 Dialogue JSON 保持一致：
 
 ## Background
 
+背景仅引用 VisualAsset，不在 Scene 中直接声明图片列表：
+
 ```json
 {
-  "variants": {
-    "default": "example:dialogue/day.png",
-    "night": "example:dialogue/night.png"
-  },
-  "initial_variant": "default",
+  "asset": "example:backgrounds/room",
+  "initial_variant": "day",
   "fit": "cover",
   "opacity": 1.0
 }
 ```
 
+对应 `assets/example/visual_assets/backgrounds/room.json`：
+
+```json
+{
+  "variants": {"day": "example:dialogue/day.png", "night": "example:dialogue/night.png"},
+  "sampling": "linear"
+}
+```
+
 | 字段 | 必填 | 默认值/约束 |
 |---|---:|---|
-| `variants` | 是 | 非空图片映射；key 使用 `[a-z0-9_-]+` |
-| `initial_variant` | 否 | `default`，必须存在于 `variants` |
+| `asset` | 是 | VisualAsset ID |
+| `initial_variant` | 否 | `default`，必须存在于引用素材的差分列表 |
 | `fit` | 否 | `cover`；可用 `contain`、`stretch` |
 | `opacity` | 否 | `1.0`，范围 `[0,1]` |
+
+背景继承 VisualAsset 的 `sampling`；差分切换和交叉淡入继续使用同一素材的图片列表。背景不接受 `variants` 或独立 `sampling` 字段。旧草稿可以保存，但需重新选择视觉素材后才能预览、导出；不自动改写已有工程。
 
 `fit` 三种取值的差别（图片与画面区域形状不同时看得出来）：
 

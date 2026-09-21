@@ -7,6 +7,20 @@ description: 在 Scene 中配置背景，并让 Dialogue 引用它。
 
 完成前面的正文、选项与进度教程后，创建一个自有 Scene，为对话配置背景。本章使用 Minecraft 自带图片，无需导入 PNG。
 
+## 创建背景素材
+
+先新增资源包文件 `assets/example/visual_assets/backgrounds/guide/welcome.json`：
+
+```json
+{
+  "variants": {
+    "default": "minecraft:gui/title/background/panorama_0.png",
+    "alternate": "minecraft:gui/title/background/panorama_1.png"
+  },
+  "sampling": "linear"
+}
+```
+
 ## 创建 Scene
 
 新增资源包文件 `assets/example/scenes/guide/welcome.json`。Scene 只需要资源包副本：
@@ -15,10 +29,7 @@ description: 在 Scene 中配置背景，并让 Dialogue 引用它。
 {
   "theme": "maimai_dialogue:default",
   "background": {
-    "variants": {
-      "default": "minecraft:gui/title/background/panorama_0.png",
-      "alternate": "minecraft:gui/title/background/panorama_1.png"
-    },
+    "asset": "example:backgrounds/guide/welcome",
     "initial_variant": "default",
     "fit": "cover",
     "opacity": 0.82
@@ -26,7 +37,7 @@ description: 在 Scene 中配置背景，并让 Dialogue 引用它。
 }
 ```
 
-`variants` 声明两个背景差分，`initial_variant` 选择开始显示的图片。`cover` 等比铺满视口并裁切多余部分；`contain` 完整显示图片；`stretch` 拉伸铺满。`opacity` 的范围为 0～1。
+背景的 `asset` 引用上述 VisualAsset，`initial_variant` 从素材差分中选择开始显示的图片。差分图片与 `sampling` 在 VisualAsset 中维护。`cover` 等比铺满视口并裁切多余部分；`contain` 完整显示图片；`stretch` 拉伸铺满。`opacity` 的范围为 0～1。
 
 ## 让 Dialogue 引用 Scene
 

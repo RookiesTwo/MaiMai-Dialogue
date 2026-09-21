@@ -31,6 +31,16 @@ public final class VisualAssetResolver {
 
         Map<String, VisualObject> resolvedObjects = new LinkedHashMap<>();
         List<String> errors = new ArrayList<>();
+        var background = sceneDefinition.background().flatMap(source -> {
+            var asset = lookup.apply(source.asset());
+            if (asset.isEmpty()) {
+                errors.add("Background references missing VisualAsset " + source.asset() + ".");
+                return Optional.empty();
+            }
+            var resolved = source.resolve(asset.orElseThrow());
+            resolved.error().ifPresent(error -> errors.add(error.message()));
+            return resolved.result();
+        });
         sceneDefinition.visualObjects().forEach((objectId, object) -> {
             if (!object.referencesAsset()) {
                 resolvedObjects.put(objectId, object);
@@ -57,7 +67,7 @@ public final class VisualAssetResolver {
 
         SceneDefinition resolvedScene = new SceneDefinition(
                 sceneDefinition.theme(),
-                sceneDefinition.background(),
+                background,
                 sceneDefinition.dialogueBox(),
                 resolvedObjects,
                 sceneDefinition.filter()

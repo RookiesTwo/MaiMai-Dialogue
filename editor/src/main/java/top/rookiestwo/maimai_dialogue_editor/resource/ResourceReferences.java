@@ -59,7 +59,8 @@ public final class ResourceReferences {
     }
 
     private void visualObjects(JsonElement value, String path) {
-        variants(get(value, "background"), (path.isEmpty() ? "" : path + ".") + "background.");
+        add(ResourceKind.VISUAL_ASSET, get(get(value, "background"), "asset"),
+                (path.isEmpty() ? "" : path + ".") + "background.asset");
         JsonElement objects = get(value, "visual_objects");
         if (objects != null && objects.isJsonObject()) {
             objects.getAsJsonObject().entrySet().forEach(entry -> {

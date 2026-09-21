@@ -56,7 +56,8 @@ final class SceneLayoutPropertiesView extends LinearLayout {
             String expected = binding;
             var input = new EditorNumberField(getContext(), field,
                     () -> SceneWorkspace.text(model.box(), field.name(), Float.toString(field.fallback())),
-                    value -> model.setBoxNumber(field, value), () -> accepts(expected), project::endEdit);
+                    value -> model.setBoxNumber(field, value), () -> accepts(expected), project::endEdit,
+                    () -> model.beginNumberDrag(SceneWorkspace.Part.BOX, field));
             EditorWidgets.propertyRow(group, "scene.box." + field.name(), input, false);
             bindings.add(() -> input.refresh(model.active()));
         }

@@ -118,6 +118,10 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     }
 
     void escape() {
+        if (workspace.scenes().numberPreview() != null) {
+            workspace.scenes().endNumberDrag(false);
+            return;
+        }
         if (workspace.scenes().dragPosition() != null) {
             workspace.scenes().endPositionDrag(false);
             return;

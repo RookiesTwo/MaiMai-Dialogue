@@ -25,6 +25,7 @@ flowchart TD
     S --> V[VisualObject 视觉对象]
     S --> F[Filter 滤镜]
     V --> A[VisualAsset 图片差分]
+    B --> A
     A --> I[图片 PNG]
 ```
 

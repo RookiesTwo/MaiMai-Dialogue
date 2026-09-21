@@ -87,10 +87,7 @@ Dialogue 的双端 reference 不需要修改。
 ```json:line-numbers  [scenes/guide/welcome.json]
 {
   "background": {
-    "variants": {
-      "default": "minecraft:gui/title/background/panorama_0.png",
-      "alternate": "minecraft:gui/title/background/panorama_1.png"
-    },
+    "asset": "example:backgrounds/guide/welcome",
     "initial_variant": "default",
     "fit": "cover",
     "opacity": 0.82

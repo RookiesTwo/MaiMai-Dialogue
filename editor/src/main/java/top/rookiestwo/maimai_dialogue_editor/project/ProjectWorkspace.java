@@ -251,12 +251,14 @@ public final class ProjectWorkspace {
 
     public void windowFocusChanged(boolean focused) {
         if (disposed) return;
+        if (!focused) scenes.endNumberDrag(true);
         windowFocused = focused;
         if (!focused) dismissMenu();
     }
 
     public void request(Action action) {
         if (busy || disposed) return;
+        scenes.endNumberDrag(true);
         materials.cancelSelection();
         endEdit();
         clearError();
@@ -416,6 +418,7 @@ public final class ProjectWorkspace {
     }
 
     public void undo() {
+        scenes.endNumberDrag(false);
         if (canUndo() && !disposed) {
             history.undo();
             edited();
@@ -423,6 +426,7 @@ public final class ProjectWorkspace {
     }
 
     public void redo() {
+        scenes.endNumberDrag(false);
         if (canRedo() && !disposed) {
             history.redo();
             edited();
@@ -432,6 +436,7 @@ public final class ProjectWorkspace {
     public void save() { save(null); }
 
     private void save(Action afterSave) {
+        scenes.endNumberDrag(true);
         if (history == null || busy || disposed) return;
         endEdit();
         ProjectHistory owner = history;

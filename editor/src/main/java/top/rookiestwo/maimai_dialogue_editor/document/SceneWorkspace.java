@@ -19,7 +19,7 @@ public final class SceneWorkspace {
             new NumberField("width", DialogueBoxLayout.DEFAULT.width(), Float.MIN_VALUE, 1),
             new NumberField("max_height", DialogueBoxLayout.DEFAULT.maxHeight(), Float.MIN_VALUE, 1));
 
-    public enum Part { BACKGROUND, OBJECT, FILTER }
+    public enum Part { BACKGROUND, OBJECT, FILTER, BOX }
     public record NumberField(String name, float fallback, float minimum, float maximum, boolean integer) {
         public NumberField(String name, float fallback, float minimum, float maximum) {
             this(name, fallback, minimum, maximum, false);
@@ -46,10 +46,78 @@ public final class SceneWorkspace {
     private final Map<ResourceKey, String> objects = new HashMap<>();
     private final Map<String, String> variants = new HashMap<>();
     private long generation = -1;
+    private long assetRequest;
+    private final Map<Part, Long> assetRequests = new EnumMap<>(Part.class);
     public record Transform(String objectId, float x, float y, float scaleX, float scaleY) {}
     private record Drag(ProjectDraft before, ResourceKey key, long project, Transform origin, Transform position) {}
     private Drag drag;
     private ContentWorkspace.Snapshot dragSnapshot;
+    private Consumer<Boolean> liveChanged = immediate -> {};
+    private NumberDrag numberDrag;
+    public record NumberPreview(Part part, String objectId, String field, float value) {}
+
+    /** Preview-only changes never notify the project or create draft/history revisions. */
+    public void setLiveListener(Consumer<Boolean> listener) { liveChanged = Objects.requireNonNull(listener); }
+    public NumberPreview numberPreview() {
+        if (numberDrag != null && !numberDrag.valid()) numberDrag = null;
+        return numberDrag == null || numberDrag.value == null ? null : new NumberPreview(numberDrag.part,
+                numberDrag.object, numberDrag.field.name(), numberDrag.value.floatValue());
+    }
+    public NumberDrag beginNumberDrag(Part part, NumberField field) {
+        endNumberDrag(false);
+        if (!active() || drag != null || field.integer()) return null;
+        if (part != Part.BOX && part(part) == null) return null;
+        project.endEdit();
+        return numberDrag = new NumberDrag(part, field);
+    }
+    public void endNumberDrag(boolean commit) { if (numberDrag != null) numberDrag.finish(commit); }
+
+    /** Bound to the original document and object; stale View callbacks cannot edit a new selection. */
+    public final class NumberDrag {
+        private final ProjectDraft before = project.draft();
+        private final long owner = project.projectGeneration();
+        private final ResourceKey key = snapshot().key();
+        private final String object = objectId();
+        private final Part part;
+        private final NumberField field;
+        private final String original;
+        private java.math.BigDecimal value;
+        private NumberDrag(Part part, NumberField field) {
+            this.part = part; this.field = field;
+            original = text(part == Part.BOX ? box() : part(part), field.name(), Float.toString(field.fallback()));
+        }
+        private boolean valid() {
+            return numberDrag == this && owner == project.projectGeneration() && before == project.draft()
+                    && active() && key.equals(snapshot().key()) && (part != Part.OBJECT || object.equals(objectId()));
+        }
+        public boolean update(String text) {
+            if (!valid()) return false;
+            try {
+                var next = new java.math.BigDecimal(text);
+                float value = next.floatValue();
+                if (!Float.isFinite(value) || value < field.minimum() || value > field.maximum()) return false;
+                this.value = next;
+                liveChanged.accept(false); return true;
+            } catch (NumberFormatException invalid) { return false; }
+        }
+        public void finish(boolean commit) {
+            if (numberDrag != this) return;
+            boolean valid = valid();
+            // Flush the pointer's final value before the committed draft starts asynchronous validation.
+            if (commit && valid && value != null) liveChanged.accept(true);
+            numberDrag = null;
+            if (commit && valid && value != null && !sameNumber(original, value)) {
+                if (part == Part.BOX) setBoxNumber(field, value.toPlainString());
+                else setNumber(part, field, value.toPlainString());
+                project.endEdit();
+            }
+            liveChanged.accept(false);
+        }
+    }
+    private static boolean sameNumber(String original, java.math.BigDecimal value) {
+        try { return value.compareTo(new java.math.BigDecimal(original)) == 0; }
+        catch (NumberFormatException invalid) { return false; }
+    }
 
     public SceneWorkspace(ProjectWorkspace project, Runnable changed) {
         this.project = project; this.changed = changed;
@@ -92,12 +160,14 @@ public final class SceneWorkspace {
     }
     public void selectObject(String id) {
         if (!active() || objectMap() == null || (!id.isEmpty() && !objectMap().has(id))) return;
+        endNumberDrag(false);
         drag = null;
         project.endEdit(); objects.put(snapshot().key(), id); changed.run();
     }
     public Transform dragPosition() { snapshot(); return drag == null ? null : drag.position; }
     public boolean beginPositionDrag(String id) {
         if (!active() || drag != null || !id.equals(objectId())) return false;
+        endNumberDrag(false);
         JsonObject object = part(Part.OBJECT);
         if (object == null) return false;
         try {
@@ -159,6 +229,7 @@ public final class SceneWorkspace {
         return switch (part) {
             case BACKGROUND -> object(data.get("background"));
             case FILTER -> object(data.get("filter"));
+            case BOX -> object(data.get("dialogue_box"));
             case OBJECT -> { var map = object(data.get("visual_objects")); yield map == null ? null : object(map.get(objectId)); }
         };
     }
@@ -172,7 +243,11 @@ public final class SceneWorkspace {
         data.add("variants", values); data.addProperty("initial_variant", "default"); return data;
     }
     public void setBackground(boolean enabled) {
-        edit(null, data -> { if (enabled) { if (!data.has("background")) data.add("background", inlineSource()); }
+        assetRequests.put(Part.BACKGROUND, ++assetRequest);
+        edit(null, data -> { if (enabled) { if (!data.has("background")) {
+                var background = new JsonObject(); background.addProperty("asset", "");
+                background.addProperty("initial_variant", "default"); data.add("background", background);
+            } }
             else data.remove("background"); });
     }
     public void addObject(boolean copy) {
@@ -210,18 +285,30 @@ public final class SceneWorkspace {
         });
     }
     public void setAsset(String id) {
+        setAsset(Part.OBJECT, id);
+    }
+    public void setAsset(Part part, String id) {
+        if (part != Part.OBJECT && part != Part.BACKGROUND) return;
         if (!active()) return;
+        long request = ++assetRequest;
+        assetRequests.put(part, request);
+        long projectGeneration = project.projectGeneration();
+        id = id.strip();
+        String requested = id;
         ResourceLocation location = ResourceLocation.tryParse(id);
         if (location != null && location.getNamespace().equals(project.draft().namespace())) {
             var asset = new ResourceKey(ResourceKind.VISUAL_ASSET, location.getPath());
             var owner = snapshot().key(); String selected = objectId();
             if (project.draft().revision(asset) != null && !project.resources().whenLoaded(asset, () -> {
-                if (active() && owner.equals(snapshot().key()) && selected.equals(objectId())) setAsset(id);
+                if (Objects.equals(assetRequests.get(part), request) && projectGeneration == project.projectGeneration()
+                        && active() && owner.equals(snapshot().key()) && (part == Part.BACKGROUND || selected.equals(objectId())))
+                    setAsset(part, requested);
             })) return;
         }
-        editPart(Part.OBJECT, "asset", data -> {
-            data.remove("variants"); data.addProperty("asset", id);
-            JsonObject values = assetVariants(id);
+        editPart(part, "asset", data -> {
+            data.remove("variants"); if (part == Part.BACKGROUND) data.remove("sampling");
+            data.addProperty("asset", requested);
+            JsonObject values = assetVariants(requested);
             if (values != null && !values.isEmpty() && !values.has(text(data, "initial_variant", "")))
                 data.addProperty("initial_variant", values.keySet().iterator().next());
         });

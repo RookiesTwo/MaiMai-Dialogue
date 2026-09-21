@@ -105,8 +105,26 @@ public final class DialogueSceneView extends FrameLayout {
         return java.util.Optional.of(new icyllis.modernui.graphics.PointF(point[0], point[1]));
     }
 
+    private SceneState previewState;
+    private SceneFilter previewFilter;
+
+    /** Update an already mounted static preview without rebuilding image bindings or playing actions. UI thread only. */
+    public void renderPreview(SceneState state, SceneFilter filter) {
+        if (transition.current() == null) return;
+        cancelSceneAnimator();
+        transition.finish();
+        if (!java.util.Objects.equals(previewFilter, filter)) {
+            setSceneFilter(filter); previewFilter = filter;
+        }
+        if (!state.equals(previewState)) {
+            applyState(state, Map.of()); previewState = state;
+        }
+    }
+
     // 根据新的 SceneDefinition 重建背景、对象和滤镜视图。
     public void apply(SceneDefinition sceneDefinition) {
+        previewState = null;
+        previewFilter = sceneDefinition.filter().orElse(null);
         if (transition.current() != null && renderedScene != null
                 && renderedScene.background().equals(sceneDefinition.background())
                 && renderedScene.visualObjects().equals(sceneDefinition.visualObjects())
@@ -184,6 +202,7 @@ public final class DialogueSceneView extends FrameLayout {
 
     // 取消动画并释放当前场景持有的全部视图和图片。
     public void clearScene() {
+        previewState = null; previewFilter = null;
         cancelSceneAnimator();
         playbackToken = Long.MIN_VALUE;
         transition.releaseImages();
@@ -225,7 +244,8 @@ public final class DialogueSceneView extends FrameLayout {
         backgroundLayers = new SceneImageRenderer.ImageLayers(
                 primary,
                 underlay,
-                null
+                null,
+                background.sampling()
         );
         imageRenderer.initialize(backgroundLayers, imageId, "background");
     }

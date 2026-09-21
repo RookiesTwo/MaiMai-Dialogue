@@ -1,0 +1,6 @@
+{
+  "variants": {
+    "default": "minecraft:gui/title/background/panorama_3.png"
+  },
+  "sampling": "linear"
+}

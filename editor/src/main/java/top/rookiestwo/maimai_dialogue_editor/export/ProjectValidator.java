@@ -105,7 +105,8 @@ public final class ProjectValidator {
                         if (resolved.missingTheme()) issue(key, dialogue ? field : "theme", "missing_reference", resolved.source().theme().toString());
                         if (!resolved.source().theme().getNamespace().equals(draft.namespace())) dependencies.add(resolved.source().theme().toString());
                         for (String error : resolved.sceneErrors()) issue(key, field, "invalid_reference", error);
-                        for (String error : resolved.visualErrors()) issue(key, dialogue ? field : "visual_objects", "invalid_reference", error);
+                        for (String error : resolved.visualErrors()) issue(key, dialogue ? field
+                                : error.startsWith("Background") ? "background" : "visual_objects", "invalid_reference", error);
                     } catch (RuntimeException failure) { issue(key, field, "invalid_reference", failure.getMessage()); }
                 }
             }
@@ -131,6 +132,8 @@ public final class ProjectValidator {
         if (key.kind() == ResourceKind.SPEAKER) {
             requiredText(key, object.get("name"), "name");
         } else if (key.kind() == ResourceKind.SCENE) {
+            if (object.has("background")) check(key, object.get("background"), "background",
+                    top.rookiestwo.maimai_dialogue.presentation.scene.SceneBackground.CODEC);
             if (object.has("theme")) check(key, object.get("theme"), "theme", ResourceLocation.CODEC);
             if (object.has("dialogue_box")) check(key, object.get("dialogue_box"), "dialogue_box",
                     top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout.CODEC);

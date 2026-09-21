@@ -9,6 +9,7 @@ import top.rookiestwo.maimai_dialogue.client.scene.*;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.*;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets;
 import top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewSession;
+import top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewFrame;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace;
 import java.util.*;
@@ -25,8 +26,14 @@ final class EditorScenePreviewView extends FrameLayout {
     private ScenePreviewSession.Prepared requested;
     private ScenePreviewSession.Prepared displayed;
     private ScenePreviewSession session;
-    private SceneState renderedState;
-    private long playbackToken;
+    private ScenePreviewFrame renderedFrame;
+    private ScenePreviewFrame baseFrame;
+    private boolean framePending;
+    private final Runnable frameCallback = this::drawFrame;
+    private void drawFrame() {
+        framePending = false;
+        if (isAttachedToWindow()) { updatePosition(); overlay.invalidate(); }
+    }
     private String loadError = "";
     private long revision;
     private boolean detaching;
@@ -47,7 +54,9 @@ final class EditorScenePreviewView extends FrameLayout {
             requested = next; loadError = ""; long expected = ++revision;
             if (pendingImages != null) { pendingImages.close(); pendingImages = null; }
             if (next == null) clearRendered();
-            else {
+            else if (host.updateScene(next)) {
+                displayed = next; baseFrame = renderedFrame = ScenePreviewFrame.initial(next.scene()); overlay.invalidate();
+            } else {
                 var images = assets.openImages(next.images()); pendingImages = images;
                 var ids = ScenePreviewSession.initialImageIds(next.scene());
                 Map<ResourceLocation, Image> loaded = new LinkedHashMap<>();
@@ -71,7 +80,7 @@ final class EditorScenePreviewView extends FrameLayout {
         // The Fragment owns a fork of preloaded handles, so a replacement never clears the old scene mid-load.
         try (var ready = new ReadyImages(loaded)) {
             if (host.showScene(prepared, ready)) {
-                displayed = prepared; renderedState = SceneState.initial(prepared.scene()); overlay.invalidate();
+                displayed = prepared; baseFrame = renderedFrame = ScenePreviewFrame.initial(prepared.scene()); overlay.invalidate();
             } else requested = null;
         } catch (RuntimeException failure) {
             loadError = String.valueOf(failure.getMessage()); showError("");
@@ -112,27 +121,40 @@ final class EditorScenePreviewView extends FrameLayout {
                 origin.y() + surface.normalizedDeltaY(anchorDeltaY), scaleX, scaleY);
     }
     void endDrag(boolean commit) { overlay.finish(commit); }
+    void requestFrame(boolean immediate) {
+        if (immediate) { removeCallbacks(frameCallback); drawFrame(); return; }
+        if (framePending || !isAttachedToWindow()) return;
+        framePending = true;
+        postOnAnimation(frameCallback);
+    }
     private void updatePosition() {
         if (host.sceneFragment() == null || displayed == null) return;
-        SceneState state = SceneState.initial(displayed.scene());
+        ScenePreviewFrame frame = baseFrame;
         var position = workspace.scenes().dragPosition();
+        var number = workspace.scenes().numberPreview();
         // After release, retain the final position while its freshly committed snapshot is prepared.
-        if (position == null && session != null && !session.current() && renderedState != null) return;
+        if (session != null && !session.current() && renderedFrame != null) {
+            if (session.error().isEmpty()) return;
+        }
+        SceneState state = frame.state();
         if (position != null) {
             var object = state.objects().get(position.objectId());
             if (object != null) state = state.with(position.objectId(), object.withAnimated(position.x(), position.y(),
                     object.scale(), object.opacity(), object.variant(), object.visible()).withAxisScale(position.scaleX(), position.scaleY()));
         }
-        if (!state.equals(renderedState)) {
-            renderedState = state;
-            host.renderSceneTransform(state, ++playbackToken);
+        frame = frame.withState(state);
+        if (number != null) frame = frame.withNumber(number);
+        if (!frame.equals(renderedFrame)) {
+            renderedFrame = frame;
+            host.renderSceneFrame(frame);
         }
     }
     private void clearRendered() {
         if (!detaching) host.clearScenePreview();
-        displayed = null; renderedState = null;
+        displayed = null; baseFrame = renderedFrame = null;
     }
     void release() {
+        removeCallbacks(frameCallback); framePending = false;
         overlay.finish(false);
         ++revision; requested = null; clearRendered(); loadError = "";
         if (pendingImages != null) { pendingImages.close(); pendingImages = null; }

@@ -92,6 +92,7 @@ final class EditorPreviewHost {
     EditorPreviewView createView(Context context) {
         releasingView = false;
         view = new EditorPreviewView(context, this, containerId);
+        workspace.scenes().setLiveListener(immediate -> { if (view != null) view.requestSceneFrame(immediate); });
         return view;
     }
 
@@ -397,10 +398,20 @@ final class EditorPreviewHost {
         return true;
     }
 
-    void renderSceneTransform(top.rookiestwo.maimai_dialogue.client.scene.SceneState scene, long token) {
+    boolean updateScene(ScenePreviewSession.Prepared prepared) {
+        if (sceneActions == null || fragment == null || displayedScene == null || releasingView || disposed
+                || sceneProject != workspace.projectGeneration() || !Objects.equals(sceneDocument, workspace.resources().opened())
+                || !displayedScene.images().equals(prepared.images()) || !displayedScene.theme().equals(prepared.theme())
+                || !top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewFrame.sameBindings(displayedScene.scene(), prepared.scene())) return false;
+        displayedScene = prepared;
+        sceneActions.state = staticSceneState(prepared, top.rookiestwo.maimai_dialogue.client.scene.SceneState.initial(prepared.scene()), sceneGeneration, 0);
+        renderSceneFrame(top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewFrame.initial(prepared.scene()));
+        return true;
+    }
+
+    void renderSceneFrame(top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewFrame frame) {
         if (sceneActions == null || fragment == null || displayedScene == null) return;
-        sceneActions.state = staticSceneState(displayedScene, scene, sceneGeneration, token);
-        fragment.render(sceneActions.state);
+        fragment.renderScenePreview(frame.state(), frame.layout(), frame.filter().orElse(null));
     }
 
     private static DialogueScreenState staticSceneState(ScenePreviewSession.Prepared prepared,
@@ -427,6 +438,8 @@ final class EditorPreviewHost {
     }
 
     void releaseView() {
+        workspace.scenes().endNumberDrag(true);
+        workspace.scenes().setLiveListener(immediate -> {});
         releasingView = true;
         audio.stop();
         finishSceneDrag(false);

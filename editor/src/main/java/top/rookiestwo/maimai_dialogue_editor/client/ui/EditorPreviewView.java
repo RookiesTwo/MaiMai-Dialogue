@@ -144,6 +144,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         scene.setReferenceHeight(height);
     }
     void finishSceneDrag(boolean commit) { scene.endDrag(commit); }
+    void requestSceneFrame(boolean immediate) { if (mode == EditorPreviewHost.Mode.SCENE) scene.requestFrame(immediate); }
 
     void refreshContentAfterLayout() {
         if (!isAttachedToWindow()) return;

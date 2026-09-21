@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "default": "maimai_dialogue:bg01.png",
+    "dusk": "maimai_dialogue:bg02.png"
+  },
+  "sampling": "linear"
+}
