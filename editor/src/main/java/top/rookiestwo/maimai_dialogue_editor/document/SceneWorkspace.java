@@ -31,7 +31,8 @@ public final class SceneWorkspace {
             new NumberField("curvature", .08f, 0, 1), new NumberField("scanline_strength", .22f, 0, 1),
             new NumberField("mask_strength", .12f, 0, 1), new NumberField("chromatic_aberration", 1, 0, 4),
             new NumberField("vignette", .18f, 0, 1), new NumberField("noise", .025f, 0, 1),
-            new NumberField("flicker", .01f, 0, 1), new NumberField("bloom", .1f, 0, 1));
+            new NumberField("flicker", .01f, 0, 1), new NumberField("bloom", .1f, 0, 1),
+            new NumberField("edge_feather", 0, 0, 1));
     private final ProjectWorkspace project;
     private final Runnable changed;
     private final Map<ResourceKey, String> objects = new HashMap<>();

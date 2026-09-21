@@ -13,8 +13,15 @@ public record CrtFilter(
         float vignette,
         float noise,
         float flicker,
-        float bloom
+        float bloom,
+        float edgeFeather
 ) implements SceneFilter {
+    /** Preserve existing callers; omitted feathering keeps the original hard edge. */
+    public CrtFilter(float curvature, float scanlineStrength, float maskStrength, float chromaticAberration,
+                     float vignette, float noise, float flicker, float bloom) {
+        this(curvature, scanlineStrength, maskStrength, chromaticAberration, vignette, noise, flicker, bloom, 0);
+    }
+
     private static final Codec<Float> UNIT_CODEC = Codec.FLOAT.validate(
             value -> value >= 0.0F && value <= 1.0F
                     ? DataResult.success(value)
@@ -57,7 +64,9 @@ public record CrtFilter(
                             UNIT_CODEC.optionalFieldOf("flicker", 0.01F)
                                     .forGetter(CrtFilter::flicker),
                             UNIT_CODEC.optionalFieldOf("bloom", 0.1F)
-                                    .forGetter(CrtFilter::bloom)
+                                    .forGetter(CrtFilter::bloom),
+                            UNIT_CODEC.optionalFieldOf("edge_feather", 0.0F)
+                                    .forGetter(CrtFilter::edgeFeather)
                     ).apply(instance, CrtFilter::new)
             );
 

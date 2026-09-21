@@ -5,6 +5,7 @@ uniform vec4 Geometry; // curvature, scanline strength, mask strength, chromatic
 uniform vec4 Effects;  // vignette, noise, flicker, bloom
 uniform vec2 SceneSize;
 uniform float Time;
+uniform float EdgeFeather;
 in vec2 uv;
 out vec4 fragColor;
 
@@ -19,8 +20,18 @@ void main() {
     vec2 p = uv * 2.0 - 1.0;
     vec2 warped = p * (vec2(1.0) + Geometry.x * 0.35 * p.yx * p.yx);
     vec2 sampleUV = warped * 0.5 + 0.5;
+    float edgeCoverage = 1.0;
+    if (EdgeFeather > 0.0) {
+        // Approximate inward distance to the curved boundary in output pixels.
+        // Evaluate derivatives before any per-fragment return so edge quads remain well-defined.
+        vec2 dx = dFdx(sampleUV), dy = dFdy(sampleUV);
+        vec2 edgeDistance = min(sampleUV, vec2(1.0) - sampleUV)
+                / max(sqrt(dx * dx + dy * dy), vec2(0.000001));
+        float featherPixels = max(EdgeFeather * 0.1 * min(SceneSize.x, SceneSize.y), 0.0001);
+        edgeCoverage = smoothstep(0.0, featherPixels, min(edgeDistance.x, edgeDistance.y));
+    }
     vec4 center = sceneAt(sampleUV);
-    if (center.a <= 0.0) { fragColor = vec4(0.0); return; }
+    if (center.a <= 0.0 || edgeCoverage <= 0.0) { fragColor = vec4(0.0); return; }
     vec3 rgb = straight(center);
     if (Geometry.w > 0.0) {
         vec2 offset = vec2(Geometry.w / SceneSize.x, 0.0);
@@ -37,5 +48,6 @@ void main() {
     if (Effects.z > 0.0) rgb *= 1.0 + sin(Time * 31.0) * Effects.z * 0.08;
     if (Effects.w > 0.0) rgb += texture(Bloom, sampleUV).rgb * Effects.w * 1.5;
     // Keep the warped scene's alpha; SceneContentView supplies the black CRT backdrop outside this pass.
-    fragColor = vec4(clamp(rgb, 0.0, 1.0) * center.a, center.a);
+    float alpha = center.a * edgeCoverage;
+    fragColor = vec4(clamp(rgb, 0.0, 1.0) * alpha, alpha);
 }

@@ -267,6 +267,7 @@
   "gui.maimai_dialogue_editor.scene.noise": "噪点（0～1）",
   "gui.maimai_dialogue_editor.scene.flicker": "闪烁（0～1）",
   "gui.maimai_dialogue_editor.scene.bloom": "辉光（0～1）",
+  "gui.maimai_dialogue_editor.scene.edge_feather": "边缘羽化（0～1）",
   "gui.maimai_dialogue_editor.scene.invalid_id": "仅允许小写字母、数字、下划线和连字符；对象 ID 不可使用 background 或 dialogue。",
   "gui.maimai_dialogue_editor.scene.duplicate_id": "此名称已存在。",
   "gui.maimai_dialogue_editor.scene.invalid_number": "请输入有效范围内的数字；缩放须大于 0，显示层级须为整数。",

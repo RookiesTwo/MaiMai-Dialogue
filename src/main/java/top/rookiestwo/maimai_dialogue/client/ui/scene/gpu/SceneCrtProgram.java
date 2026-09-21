@@ -8,13 +8,14 @@ import static org.lwjgl.opengl.GL33C.*;
 /** CRT sampling and optional quarter-resolution bloom, sharing the scene renderer's GL state guard and FBO. */
 final class SceneCrtProgram implements AutoCloseable {
     private int crt, extract, blur, sampler;
-    private int geometryLocation, effectsLocation, sizeLocation, timeLocation, directionLocation;
+    private int geometryLocation, effectsLocation, sizeLocation, timeLocation, directionLocation, featherLocation;
 
     void prepare(boolean bloom) {
         if (crt == 0) {
             crt = SceneColorRenderer.program("scene_crt/crt.frag");
             geometryLocation = glGetUniformLocation(crt, "Geometry"); effectsLocation = glGetUniformLocation(crt, "Effects");
             sizeLocation = glGetUniformLocation(crt, "SceneSize"); timeLocation = glGetUniformLocation(crt, "Time");
+            featherLocation = glGetUniformLocation(crt, "EdgeFeather");
             glUseProgram(crt); glUniform1i(glGetUniformLocation(crt, "Scene"), 0); glUniform1i(glGetUniformLocation(crt, "Bloom"), 1);
             sampler = glGenSamplers();
             glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR); glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -48,6 +49,7 @@ final class SceneCrtProgram implements AutoCloseable {
         glUniform4f(geometryLocation, settings.curvature(), settings.scanlineStrength(), settings.maskStrength(), settings.chromaticAberration());
         glUniform4f(effectsLocation, settings.vignette(), settings.noise(), settings.flicker(), settings.bloom());
         glUniform2f(sizeLocation, source.getWidth(), source.getHeight()); glUniform1f(timeLocation, time);
+        glUniform1f(featherLocation, settings.edgeFeather());
         draw();
     }
 

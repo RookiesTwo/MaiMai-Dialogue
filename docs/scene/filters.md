@@ -77,13 +77,15 @@ MuiModApi.postToUiThread(() -> sceneView.setColorAdjustment(
 }
 ```
 
-CRT 还支持 curvature、scanline、RGB mask、chromatic aberration、vignette、noise、flicker 和 bloom 参数；完整字段见 [Presentation JSON](../reference/presentation-json.md#crt-filter)。
+CRT 还支持 curvature、scanline、RGB mask、chromatic aberration、vignette、noise、flicker、bloom 和 edge_feather 参数；完整字段见 [Presentation JSON](../reference/presentation-json.md#crt-filter)。
 
 CRT 在编辑器预览与正式播放中使用同一条 GPU 管线：曲率改变场景采样坐标，色差分别偏移红蓝通道，扫描线、RGB 栅格、暗角、噪点和闪烁在合成时处理。CRT 视口默认铺黑色底，曲率收缩后的边角和素材透明区域合成到黑底上，不露出后方游戏画面或编辑器方格。黑底不参与滤镜计算，随场景一起变换和淡入淡出，Dialogue UI 保持在其上方。
 
-`bloom` 从场景亮部提取辉光，使用宽高各为场景四分之一的两张纹理进行横向、纵向模糊，再合成回场景。设为 `0` 时跳过提取与两次模糊，只执行 CRT 主 pass。`noise` 与 `flicker` 同时为 `0` 时不主动请求动画刷新；八个参数全为 `0` 时绕过滤镜处理，但仍保留 CRT 黑底。关闭 CRT 或切换为其他滤镜后移除黑底。参数修改不会重新解码或上传素材。
+编辑器的「边缘羽化」对应 `edge_feather`，范围为 `0～1`，默认 `0` 保留硬边。提高它会让弯曲边缘向内平滑过渡到黑底；例如 `0.2` 对应约为视口短边 2% 的过渡宽度。羽化直接在 CRT 主 pass 内完成，预览与正式播放一致。
 
-代码中可在 ModernUI UI 线程调用 `DialogueSceneView.setSceneFilter(new CrtFilter(...))` 实时更新八个参数，传入 `null` 关闭滤镜。编辑器预览和正式播放均复用这条 GPU 渲染路径。
+`bloom` 从场景亮部提取辉光，使用宽高各为场景四分之一的两张纹理进行横向、纵向模糊，再合成回场景。设为 `0` 时跳过提取与两次模糊，只执行 CRT 主 pass。`noise` 与 `flicker` 同时为 `0` 时不主动请求动画刷新；所有参数全为 `0` 时绕过滤镜处理，但仍保留 CRT 黑底。关闭 CRT 或切换为其他滤镜后移除黑底。参数修改不会重新解码或上传素材。
+
+代码中可在 ModernUI UI 线程调用 `DialogueSceneView.setSceneFilter(new CrtFilter(...))` 实时更新参数，九参数构造器的最后一项为 `edgeFeather`；原八参数构造器默认不羽化。传入 `null` 关闭滤镜。编辑器预览和正式播放均复用这条 GPU 渲染路径。
 
 ## 进入游戏验证
 

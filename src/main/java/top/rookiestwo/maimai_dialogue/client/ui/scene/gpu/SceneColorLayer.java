@@ -26,7 +26,8 @@ public final class SceneColorLayer implements AutoCloseable {
         if (value instanceof ColorAdjustFilter color) return color.brightness() == 0 && color.contrast() == 0 && color.saturation() == 0
                 && color.tint().map(tint -> tint.argb() >>> 24 == 0).orElse(true);
         if (value instanceof CrtFilter crt) return crt.curvature() == 0 && crt.scanlineStrength() == 0 && crt.maskStrength() == 0
-                && crt.chromaticAberration() == 0 && crt.vignette() == 0 && crt.noise() == 0 && crt.flicker() == 0 && crt.bloom() == 0;
+                && crt.chromaticAberration() == 0 && crt.vignette() == 0 && crt.noise() == 0 && crt.flicker() == 0
+                && crt.bloom() == 0 && crt.edgeFeather() == 0;
         return true;
     }
 

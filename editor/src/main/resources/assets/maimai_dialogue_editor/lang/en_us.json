@@ -267,6 +267,7 @@
   "gui.maimai_dialogue_editor.scene.noise": "Noise (0–1)",
   "gui.maimai_dialogue_editor.scene.flicker": "Flicker (0–1)",
   "gui.maimai_dialogue_editor.scene.bloom": "Bloom (0–1)",
+  "gui.maimai_dialogue_editor.scene.edge_feather": "Edge feathering (0–1)",
   "gui.maimai_dialogue_editor.scene.invalid_id": "Use lowercase letters, digits, underscores or hyphens; object IDs cannot be background or dialogue.",
   "gui.maimai_dialogue_editor.scene.duplicate_id": "This name already exists.",
   "gui.maimai_dialogue_editor.scene.invalid_number": "Enter a number within the valid range; scale must be positive and Z index must be an integer.",
