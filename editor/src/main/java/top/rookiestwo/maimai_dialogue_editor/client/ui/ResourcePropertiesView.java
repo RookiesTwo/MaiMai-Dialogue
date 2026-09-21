@@ -16,6 +16,8 @@ final class ResourcePropertiesView extends LinearLayout {
     private final TextView diagnostic;
     private final MaterialPropertiesView materials;
     private final ScenePropertiesView scenes;
+    private final SceneLayoutPropertiesView sceneLayout;
+    private final DialogueScenePropertiesView dialogueScene;
 
     ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, EditorLayoutState layout) {
         super(context);
@@ -33,6 +35,10 @@ final class ResourcePropertiesView extends LinearLayout {
         addView(materials, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         scenes = new ScenePropertiesView(context, workspace, choices, layout);
         addView(scenes, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        sceneLayout = new SceneLayoutPropertiesView(context, workspace, choices, layout);
+        addView(sceneLayout, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        dialogueScene = new DialogueScenePropertiesView(context, workspace, choices, layout);
+        addView(dialogueScene, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         refresh();
     }
 
@@ -73,5 +79,9 @@ final class ResourcePropertiesView extends LinearLayout {
         materials.refresh();
         scenes.setVisibility(opened && key.kind() == ResourceKind.SCENE ? VISIBLE : GONE);
         scenes.refresh();
+        sceneLayout.setVisibility(opened && key.kind() == ResourceKind.SCENE ? VISIBLE : GONE);
+        sceneLayout.refresh();
+        dialogueScene.setVisibility(opened && node.type() == ResourceTree.Type.RESOURCE && key.kind() == ResourceKind.DIALOGUE ? VISIBLE : GONE);
+        dialogueScene.refresh();
     }
 }

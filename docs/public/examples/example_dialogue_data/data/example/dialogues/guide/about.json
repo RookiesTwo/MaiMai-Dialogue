@@ -1,7 +1,5 @@
 {
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "end": {
     "speaker": {
       "type": "set",

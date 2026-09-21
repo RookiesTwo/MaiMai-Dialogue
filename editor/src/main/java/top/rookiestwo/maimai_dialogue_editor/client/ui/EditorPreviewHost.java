@@ -57,6 +57,12 @@ final class EditorPreviewHost {
     private ResourceTree.Node observedSelection;
     private long observedSelectionRevision = -1;
     private boolean publishingPosition;
+    private SceneActions sceneActions;
+    private ScenePreviewSession.Prepared displayedScene;
+    private ResourceKey sceneDocument;
+    private long sceneProject = -1;
+    private long sceneGeneration;
+    private boolean releasingView;
 
     EditorPreviewHost(Fragment owner, ProjectWorkspace workspace, EditorPreviewAssets assets, AudioPreviewSession.Backend audioBackend) {
         this.owner = owner;
@@ -84,6 +90,7 @@ final class EditorPreviewHost {
     }
 
     EditorPreviewView createView(Context context) {
+        releasingView = false;
         view = new EditorPreviewView(context, this, containerId);
         return view;
     }
@@ -286,6 +293,7 @@ final class EditorPreviewHost {
 
     private void showIdleControls() {
         if (disposed || view == null || !view.isAttachedToWindow()) return;
+        if (mode() == Mode.SCENE) return;
         if (mode() != Mode.DIALOGUE) { clearFragments(); return; }
         FragmentManager manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return;
@@ -310,6 +318,7 @@ final class EditorPreviewHost {
 
     private void clearFragments() {
         fragment = null;
+        sceneActions = null; displayedScene = null; sceneDocument = null; sceneProject = -1;
         showingIdle = false;
         FragmentManager manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return;
@@ -361,13 +370,71 @@ final class EditorPreviewHost {
         changed.run();
     }
 
+    DialogueFragment sceneFragment() { return sceneActions == null ? null : fragment; }
+
+    void clearScenePreview() {
+        if (sceneActions != null && !releasingView) clearFragments();
+    }
+
+    boolean showScene(ScenePreviewSession.Prepared prepared, DialogueImageSource images) {
+        if (disposed || releasingView || mode() != Mode.SCENE || view == null || !view.isAttachedToWindow()) return false;
+        var manager = owner.getChildFragmentManager();
+        if (manager.isDestroyed() || manager.isStateSaved()) return false;
+        var initial = top.rookiestwo.maimai_dialogue.client.scene.SceneState.initial(prepared.scene());
+        var state = staticSceneState(prepared, initial, ++sceneGeneration, 0);
+        boolean reuse = sceneActions != null && fragment != null && displayedScene != null
+                && displayedScene.images().equals(prepared.images()) && sceneProject == workspace.projectGeneration()
+                && ScenePreviewSession.initialImageIds(displayedScene.scene()).equals(ScenePreviewSession.initialImageIds(prepared.scene()))
+                && Objects.equals(sceneDocument, workspace.resources().opened());
+        if (reuse) { sceneActions.state = state; fragment.render(state); }
+        else {
+            clearFragments();
+            sceneActions = new SceneActions(state);
+            fragment = new DialogueFragment(sceneActions, DialogueFragment.CornerControls.DISPLAY_ONLY, images.fork(), false);
+            manager.beginTransaction().replace(containerId, fragment, "editor-scene-preview").commitNow();
+        }
+        displayedScene = prepared; sceneDocument = workspace.resources().opened(); sceneProject = workspace.projectGeneration();
+        return true;
+    }
+
+    void renderSceneTransform(top.rookiestwo.maimai_dialogue.client.scene.SceneState scene, long token) {
+        if (sceneActions == null || fragment == null || displayedScene == null) return;
+        sceneActions.state = staticSceneState(displayedScene, scene, sceneGeneration, token);
+        fragment.render(sceneActions.state);
+    }
+
+    private static DialogueScreenState staticSceneState(ScenePreviewSession.Prepared prepared,
+            top.rookiestwo.maimai_dialogue.client.scene.SceneState scene, long generation, long token) {
+        return new DialogueScreenState(generation, java.util.Optional.of(prepared.scene()), java.util.Optional.of(prepared.theme()),
+                java.util.Optional.of(new top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback(token, scene, scene, java.util.List.of(), 0, 0)),
+                top.rookiestwo.maimai_dialogue.client.session.PlaybackPhase.READY, true, java.util.Optional.empty(), false, false, 0,
+                java.util.Optional.of(EditorWidgets.tr("scene.preview_speaker")), java.util.Optional.of(EditorWidgets.tr("scene.preview_text")),
+                java.util.Optional.empty(), java.util.List.of(), java.util.List.of(), false, false);
+    }
+
+    /** A static, real Dialogue layout with no session, commands, progress or audio callbacks. */
+    private static final class SceneActions implements DialogueUiActions {
+        private DialogueScreenState state;
+        SceneActions(DialogueScreenState state) { this.state = state; }
+        @Override public DialogueScreenState viewState() { return state; }
+        @Override public void advance() {}
+        @Override public void skipToEnd() {}
+        @Override public void selectOption(DialogueOption option) {}
+        @Override public void completePlayback(long generation, long token) {}
+        @Override public void completeTextPlayback(long generation, long token) {}
+        @Override public void closeFromUi() {}
+        @Override public void onScreenDestroyed(DialogueScreenHandle screen) {}
+    }
+
     void releaseView() {
+        releasingView = true;
         audio.stop();
         finishSceneDrag(false);
         scenes.select(workspace.projectGeneration(), null, null);
         // FragmentManager destroys child Views before the parent callback; do not start nested transactions here.
         reset();
         fragment = null;
+        sceneActions = null; displayedScene = null; sceneDocument = null; sceneProject = -1;
         showingIdle = false;
         view = null;
         changed = () -> {};

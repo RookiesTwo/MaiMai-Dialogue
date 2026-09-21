@@ -1,8 +1,5 @@
 {
-  "presentation": {
-    "type": "reference",
-    "id": "maimai_dialogue:showcase/filter_crt"
-  },
+  "scene": "maimai_dialogue:showcase/filter_crt",
   "steps": [
     {
       "speaker": {

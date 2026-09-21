@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue.client.session;
 
-import top.rookiestwo.maimai_dialogue.content.resolve.DialoguePresentationResolver;
+import top.rookiestwo.maimai_dialogue.content.resolve.SceneResolver;
 
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -20,7 +20,7 @@ import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueTargetExit;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueEnd;
 import top.rookiestwo.maimai_dialogue.speaker.HideSpeaker;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.OptionTarget;
-import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.ChoiceExit;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.ReturnExit;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.ReturnTarget;
@@ -459,7 +459,7 @@ public final class DialogueSession {
         boolean ready = active.playbackState.phase() == PlaybackPhase.READY;
         return new DialogueScreenState(
                 active.generation,
-                Optional.of(active.presentation),
+                Optional.of(active.sceneDefinition),
                 Optional.of(active.theme),
                 Optional.of(active.playback),
                 active.playbackState.phase(),
@@ -654,11 +654,9 @@ public final class DialogueSession {
         generation++;
         definition.bgm().ifPresent(bgm -> effects.add(new DialogueSessionEffect.ApplyBgm(
                 bgm, new AudioCue.Key(generation << 32, -1))));
-        var resolved = DialoguePresentationResolver.resolve(
-                definition.presentation(), content::presentation, content::theme,
-                content::scene, content::visualAsset
+        var resolved = SceneResolver.resolve(
+                definition.scene(), content::scene, content::theme, content::visualAsset
         );
-        reportResolutionErrors(dialogueId, resolved.referenceErrors(), effects);
         if (resolved.missingTheme()) {
             effects.add(reportMissingClient("dialogue theme", resolved.source().theme()));
         }
@@ -666,7 +664,7 @@ public final class DialogueSession {
         reportResolutionErrors(dialogueId, resolved.visualErrors(), effects);
         return new ActiveDialogue(
                 generation, dialogueId, definition,
-                resolved.presentation(), resolved.theme(), content
+                resolved.scene(), resolved.theme(), content
         );
     }
 
@@ -833,7 +831,7 @@ public final class DialogueSession {
         private final long generation;
         private final ResourceLocation currentDialogueId;
         private final DialogueDefinition definition;
-        private final Presentation presentation;
+        private final SceneDefinition sceneDefinition;
         private final ThemeDefinition theme;
         private final SceneRuntime sceneRuntime;
         private boolean initialStep = true;
@@ -852,17 +850,17 @@ public final class DialogueSession {
                 long generation,
                 ResourceLocation currentDialogueId,
                 DialogueDefinition definition,
-                Presentation presentation,
+                SceneDefinition sceneDefinition,
                 ThemeDefinition theme,
                 DialogueContentLookup content
         ) {
             this.generation = generation;
             this.currentDialogueId = currentDialogueId;
             this.definition = definition;
-            this.presentation = presentation;
+            this.sceneDefinition = sceneDefinition;
             this.theme = theme;
             sceneRuntime = new SceneRuntime(
-                    presentation,
+                    sceneDefinition,
                     0.0F,
                     content::action,
                     generation << 32

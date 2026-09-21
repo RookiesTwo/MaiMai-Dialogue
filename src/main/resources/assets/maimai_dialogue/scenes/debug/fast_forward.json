@@ -18,5 +18,13 @@
       "visible": true,
       "z_index": 10
     }
+  },
+  "theme": "maimai_dialogue:default",
+  "dialogue_box": {
+    "x": 0.5,
+    "y": 0.98,
+    "width": 0.96,
+    "max_height": 0.5,
+    "anchor": "bottom_center"
   }
 }

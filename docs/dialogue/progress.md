@@ -39,11 +39,9 @@ description: 使用 ProgressNode 控制 Dialogue 和选项是否可访问。
 }
 ```
 
-```json:line-numbers {35-43} [完整 welcome.json]
+```json:line-numbers  [完整 welcome.json]
 {
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "steps": [
     {
       "speaker": {
@@ -98,12 +96,10 @@ description: 使用 ProgressNode 控制 Dialogue 和选项是否可访问。
 
 2. 创建目标 Dialogue `secret.json`。`requires` 是本章真正控制访问权限的部分：
 
-```json:line-numbers {2} [secret.json]
+```json:line-numbers  [secret.json]
 {
   "requires": "guide.secret_unlocked",
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "end": {
     "speaker": {
       "type": "set",

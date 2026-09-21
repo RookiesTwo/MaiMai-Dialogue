@@ -29,16 +29,20 @@ final class ScenePropertiesView extends LinearLayout {
     private boolean refreshing;
 
     ScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
-        super(context); this.project = project; model = project.scenes(); this.choices = choices; setOrientation(VERTICAL);
+        this(context, project, choices, layout, project.scenes());
+    }
+    ScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout, SceneWorkspace model) {
+        super(context); this.project = project; this.model = model; this.choices = choices; setOrientation(VERTICAL);
         this.layout = layout;
     }
     void refresh() {
         var state = model.snapshot();
-        String next = state.key() == null || state.key().kind() != ResourceKind.SCENE ? "" : state.key() + "/"
+        String next = !model.acceptsResource(state.key()) ? "" : project.projectGeneration() + "/" + state.key() + "/"
                 + (state.data() == null ? "invalid" : model.objectId() + "/" + shape(model.objectMap()) + "/"
                 + model.data().has("background") + "/" + component(model.part(Part.BACKGROUND)) + "/" + shape(model.variantMap(Part.BACKGROUND)) + "/" + model.variant(Part.BACKGROUND)
                 + "/" + component(model.part(Part.OBJECT)) + "/" + shape(model.variantMap(Part.OBJECT)) + "/" + model.variant(Part.OBJECT)
-                + "/" + model.data().has("filter") + "/" + component(model.part(Part.FILTER)) + "/" + text(model.part(Part.FILTER), "type", "none"));
+                + "/" + model.data().has("filter") + "/" + component(model.part(Part.FILTER)) + "/" + text(model.part(Part.FILTER), "type", "none")
+                );
         refreshing = true;
         try {
             if (!binding.equals(next)) { binding = next; clearFocus(); removeAllViews(); bindings.clear(); sections.clear(); group = this; build(); }

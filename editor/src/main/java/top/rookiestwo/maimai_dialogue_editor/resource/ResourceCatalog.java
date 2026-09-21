@@ -78,7 +78,7 @@ public final class ResourceCatalog {
     public static JsonObject emptyDraft(ResourceKind kind) {
         return switch (kind) {
             case DIALOGUE -> JsonParser.parseString("""
-                    {"presentation":{"theme":"maimai_dialogue:default"},"steps":[],"end":{"exit":{"type":"return"}}}
+                    {"scene":"maimai_dialogue:default","steps":[],"end":{"exit":{"type":"return"}}}
                     """).getAsJsonObject();
             case SPEAKER -> JsonParser.parseString("{\"name\":\"\"}").getAsJsonObject();
             case VISUAL_ASSET -> JsonParser.parseString("{\"variants\":{},\"sampling\":\"linear\"}").getAsJsonObject();

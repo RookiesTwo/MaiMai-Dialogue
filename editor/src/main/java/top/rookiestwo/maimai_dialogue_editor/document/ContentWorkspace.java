@@ -139,6 +139,13 @@ public final class ContentWorkspace {
         notifyChange(state.key(), true);
     }
 
+    public void editScene(String value) {
+        Snapshot state = snapshot();
+        if (!editable(state, ResourceKind.DIALOGUE)) return;
+        state.data().addProperty("scene", value.strip());
+        write(state, "scene", state.cursor());
+    }
+
     public void editSpeakerName(String value) {
         Snapshot state = snapshot();
         if (!editable(state, ResourceKind.SPEAKER)) return;

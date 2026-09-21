@@ -5,10 +5,9 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.client.resource.ClientContentSnapshot;
-import top.rookiestwo.maimai_dialogue.content.resolve.DialoguePresentationResolver;
+import top.rookiestwo.maimai_dialogue.content.resolve.SceneResolver;
 import top.rookiestwo.maimai_dialogue.dialogue.*;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.*;
-import top.rookiestwo.maimai_dialogue.presentation.Presentation;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerOperation;
 import top.rookiestwo.maimai_dialogue_editor.content.ProjectContentSnapshot;
@@ -94,27 +93,20 @@ public final class ProjectValidator {
                         issue(key, reference.field(), "invalid_reference", failure.getMessage());
                     }
                 }
-                if (key.kind() == ResourceKind.DIALOGUE && issues.stream().noneMatch(i -> key.equals(i.resource()))) {
+                if ((key.kind() == ResourceKind.DIALOGUE || key.kind() == ResourceKind.SCENE)
+                        && issues.stream().noneMatch(i -> key.equals(i.resource()))) {
+                    boolean dialogue = key.kind() == ResourceKind.DIALOGUE;
+                    String field = dialogue ? "scene" : "$";
                     try {
-                        var definition = content.dialogue(ResourceLocation.parse(key.id(draft.namespace()))).orElseThrow();
-                        var resolved = DialoguePresentationResolver.resolve(definition.presentation(), content::presentation,
-                                content::theme, content::scene, content::visualAsset);
-                        if (resolved.missingTheme()) issue(key, "presentation.theme", "missing_reference", resolved.source().theme().toString());
-                        if (!resolved.source().theme().getNamespace().equals(draft.namespace()))
-                            dependencies.add(resolved.source().theme().toString());
-                        for (String error : resolved.referenceErrors()) issue(key, "presentation", "invalid_reference", error);
-                        for (String error : resolved.sceneErrors()) issue(key, "presentation.scene", "invalid_reference", error);
-                        for (String error : resolved.visualErrors()) issue(key, "presentation.visual_objects", "invalid_reference", error);
-                    } catch (RuntimeException failure) { issue(key, "presentation", "invalid_reference", failure.getMessage()); }
-                }
-                if (key.kind() == ResourceKind.SCENE && issues.stream().noneMatch(i -> key.equals(i.resource()))) {
-                    try {
-                        var scene = content.scene(ResourceLocation.parse(key.id(draft.namespace()))).orElseThrow();
-                        var presentation = new Presentation(Presentation.DEFAULT_THEME_ID, scene.background(),
-                                top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout.DEFAULT, scene.visualObjects(), scene.filter());
-                        var resolved = top.rookiestwo.maimai_dialogue.content.resolve.VisualAssetResolver.resolve(presentation, content::visualAsset);
-                        resolved.errors().forEach(error -> issue(key, "visual_objects", "invalid_reference", error));
-                    } catch (RuntimeException failure) { issue(key, "visual_objects", "invalid_reference", failure.getMessage()); }
+                        var id = ResourceLocation.parse(key.id(draft.namespace()));
+                        var resolved = dialogue
+                                ? SceneResolver.resolve(content.dialogue(id).orElseThrow().scene(), content::scene, content::theme, content::visualAsset)
+                                : SceneResolver.resolve(content.scene(id).orElseThrow(), content::theme, content::visualAsset);
+                        if (resolved.missingTheme()) issue(key, dialogue ? field : "theme", "missing_reference", resolved.source().theme().toString());
+                        if (!resolved.source().theme().getNamespace().equals(draft.namespace())) dependencies.add(resolved.source().theme().toString());
+                        for (String error : resolved.sceneErrors()) issue(key, field, "invalid_reference", error);
+                        for (String error : resolved.visualErrors()) issue(key, dialogue ? field : "visual_objects", "invalid_reference", error);
+                    } catch (RuntimeException failure) { issue(key, field, "invalid_reference", failure.getMessage()); }
                 }
             }
         }
@@ -138,8 +130,12 @@ public final class ProjectValidator {
         JsonObject object = json.getAsJsonObject();
         if (key.kind() == ResourceKind.SPEAKER) {
             requiredText(key, object.get("name"), "name");
+        } else if (key.kind() == ResourceKind.SCENE) {
+            if (object.has("theme")) check(key, object.get("theme"), "theme", ResourceLocation.CODEC);
+            if (object.has("dialogue_box")) check(key, object.get("dialogue_box"), "dialogue_box",
+                    top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout.CODEC);
         } else if (key.kind() == ResourceKind.DIALOGUE) {
-            check(key, object.get("presentation"), "presentation", Presentation.CODEC);
+            check(key, object.get("scene"), "scene", ResourceLocation.CODEC);
             JsonElement steps = object.get("steps");
             if (steps != null) {
                 if (!steps.isJsonArray()) issue(key, "steps", "array", "");
@@ -216,7 +212,6 @@ public final class ProjectValidator {
             case DIALOGUE -> content.dialogue(id).isPresent();
             case SPEAKER -> content.speaker(id).isPresent();
             case THEME -> content.theme(id).isPresent();
-            case PRESENTATION -> content.presentation(id).isPresent();
             case SCENE -> content.scene(id).isPresent();
             case VISUAL_ASSET -> content.visualAsset(id).isPresent();
             case ACTION -> content.action(id).isPresent();

@@ -32,7 +32,6 @@ description: 为 example namespace 建立 Resource Pack 与 Data Pack。
 │        ├─ dialogues/guide/
 │        ├─ speakers/
 │        ├─ themes/
-│        ├─ presentations/
 │        ├─ scenes/
 │        ├─ visual_assets/
 │        ├─ actions/
@@ -54,8 +53,7 @@ description: 为 example namespace 建立 Resource Pack 与 Data Pack。
 | `dialogues/` | 对话文件（正文、步骤、选项、条件），资源包和数据包里各一份 | 每一章都会用到 |
 | `speakers/` | 说话者：一个名字（比如"村庄向导"） | 要显示说话人名字时 |
 | `themes/` | 主题：对话界面的外观（颜色、字号、按钮样式） | 要改界面外观时 |
-| `presentations/` | 演出配置文件：一段对话的显示方案（用哪个主题、哪个场景） | 多个对话共用同一套画面设置时 |
-| `scenes/` | 场景：一套可复用的背景、视觉对象、滤镜组合 | 背景和人物图想集中管理时 |
+| `scenes/` | 场景：背景、视觉对象、滤镜、Theme 引用和对话框布局 | 背景和人物图想集中管理时 |
 | `visual_assets/` | 视觉资源：给一组图片（差分）起代号 | 人物或道具图要复用、要切换表情时 |
 | `actions/` | 场景动作：可复用的动画 | 动画要在多个对话里重复使用时 |
 | `textures/dialogue/` | 背景和视觉对象实际使用的图片（PNG） | 用到自备图片时 |
@@ -106,7 +104,7 @@ assets/example/dialogues/guide/welcome.json
 - 资源包中的 `assets` 副本负责显示正文和画面；
 - 数据包中的 `data` 副本负责判断 Dialogue、`requires` 和访问权限。
 
-后续每次修改 Dialogue，都要把相同 JSON 同步保存到两个 Pack 中。Speaker、Theme、Presentation、Scene、VisualAsset、SceneAction 和图片只放入资源包。
+后续每次修改 Dialogue，都要把相同 JSON 同步保存到两个 Pack 中。Speaker、Theme、Scene、VisualAsset、SceneAction 和图片只放入资源包。
 
 ## 不想手打？直接下载示例包
 

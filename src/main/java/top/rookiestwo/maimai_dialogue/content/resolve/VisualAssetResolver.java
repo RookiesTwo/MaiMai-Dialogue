@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue.content.resolve;
 
-import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAssetDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualObject;
 
@@ -23,15 +23,15 @@ public final class VisualAssetResolver {
     }
 
     public static Result resolve(
-            Presentation presentation,
+            SceneDefinition sceneDefinition,
             Function<ResourceLocation, Optional<VisualAssetDefinition>> lookup
     ) {
-        Objects.requireNonNull(presentation, "presentation");
+        Objects.requireNonNull(sceneDefinition, "sceneDefinition");
         Objects.requireNonNull(lookup, "lookup");
 
         Map<String, VisualObject> resolvedObjects = new LinkedHashMap<>();
         List<String> errors = new ArrayList<>();
-        presentation.visualObjects().forEach((objectId, object) -> {
+        sceneDefinition.visualObjects().forEach((objectId, object) -> {
             if (!object.referencesAsset()) {
                 resolvedObjects.put(objectId, object);
                 return;
@@ -55,24 +55,22 @@ public final class VisualAssetResolver {
             );
         });
 
-        Presentation resolvedPresentation = new Presentation(
-                presentation.reference(),
-                presentation.theme(),
-                presentation.scene(),
-                presentation.background(),
-                presentation.dialogueBox(),
+        SceneDefinition resolvedScene = new SceneDefinition(
+                sceneDefinition.theme(),
+                sceneDefinition.background(),
+                sceneDefinition.dialogueBox(),
                 resolvedObjects,
-                presentation.filter()
+                sceneDefinition.filter()
         );
-        return new Result(resolvedPresentation, errors);
+        return new Result(resolvedScene, errors);
     }
 
     public record Result(
-            Presentation presentation,
+            SceneDefinition scene,
             List<String> errors
     ) {
         public Result {
-            Objects.requireNonNull(presentation, "presentation");
+            Objects.requireNonNull(scene, "scene");
             Objects.requireNonNull(errors, "errors");
             errors = List.copyOf(errors);
         }

@@ -11,26 +11,47 @@ description: 使用归一化坐标改变对话框的位置、宽度和最大高�
 
 ## 开始前
 
-你已经完成[播放 SceneAction](./actions.md)，Dialogue 正在引用 `example:guide/welcome` Presentation。
+你已经完成[播放 SceneAction](./actions.md)，Dialogue 正在引用 `example:guide/welcome` Scene。
 
 ## 需要修改的文件
 
-只修改 Resource Pack 中的演出配置文件（PresentationDefinition）：
+只修改 Resource Pack 中的场景文件（Scene）：
 
 ```text
-<资源包>/assets/example/presentations/guide/welcome.json
+<资源包>/assets/example/scenes/guide/welcome.json
 ```
 
 Dialogue 继续使用原来的 reference，不需要修改双端副本。
 
 ## 跟着做
 
-在演出配置文件中加入 `dialogue_box`：
+在场景文件中加入 `dialogue_box`：
 
-```json:line-numbers {4-10} [presentations/guide/welcome.json]
+```json:line-numbers  [scenes/guide/welcome.json]
 {
+  "background": {
+    "variants": {
+      "default": "minecraft:gui/title/background/panorama_0.png",
+      "alternate": "minecraft:gui/title/background/panorama_1.png"
+    },
+    "initial_variant": "default",
+    "fit": "cover",
+    "opacity": 0.82
+  },
+  "visual_objects": {
+    "guide_marker": {
+      "asset": "example:guide/marker",
+      "initial_variant": "default",
+      "x": 0.5,
+      "y": 0.3,
+      "anchor": "center",
+      "scale": 8.0,
+      "opacity": 1.0,
+      "visible": true,
+      "z_index": 10
+    }
+  },
   "theme": "maimai_dialogue:default",
-  "scene": "example:guide/welcome",
   "dialogue_box": {
     "x": 0.5,
     "y": 0.95,
@@ -70,7 +91,7 @@ bottom_left   bottom_center   bottom_right
 
 ## 如果没有生效
 
-- 布局没有变化：确认修改的是 `presentations/guide/welcome.json`，Dialogue reference ID 是 `example:guide/welcome`。
+- 布局没有变化：确认修改的是 `scenes/guide/welcome.json`，Dialogue reference ID 是 `example:guide/welcome`。
 - 对话框出现在意外位置：检查 `anchor`；本例使用 `bottom_center`。
 - 正文出现滚动条：说明内容超过了 `max_height`；可以滚动阅读，或适当提高高度上限。
 - Option 区域过小：使用选项展开按钮，并避免在选项页同时放置长正文。
@@ -78,4 +99,4 @@ bottom_left   bottom_center   bottom_right
 
 ## 下一步
 
-继续[添加场景滤镜](./filters.md)，为同一套 Presentation 添加画面效果。
+继续[添加场景滤镜](./filters.md)，为同一套 Scene 添加画面效果。

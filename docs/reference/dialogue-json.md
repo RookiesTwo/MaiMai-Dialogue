@@ -14,9 +14,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
   "requires": "guide.started && !guide.finished",
   "skip_summary": "跳过后将直接进入最终选择。",
   "must_complete": true,
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "steps": [],
   "end": {
     "exit": {
@@ -31,7 +29,7 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 | `requires` | 否 | 无条件公开 | 服务端访问表达式 |
 | `skip_summary` | 否 | 无确认摘要 | 长按跳过成功后显示的 Markdown 摘要 |
 | `must_complete` | 否 | `false` | 中断后登录时必须从根节点重新播放 |
-| `presentation` | 是 | — | Theme、场景和对话框布局 |
+| `scene` | 是 | — | Scene ID 字符串；画面、主题和对话框配置在 Scene 中定义 |
 | `bgm` | 否 | 保留当前音乐 | 初始 BGM 播放或停止指令，见 [音频 JSON](./audio-json.md) |
 | `steps` | 否 | `[]` | 按顺序播放的普通步骤 |
 | `end` | 是 | — | 最后一步，必须提供 `exit` |

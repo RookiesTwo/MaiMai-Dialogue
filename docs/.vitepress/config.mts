@@ -111,8 +111,6 @@ export default defineConfig(withMermaid({
             text: "画面",
             collapsed: true,
             items: [
-              { text: "Presentation JSON", link: "/reference/presentation-json" },
-              { text: "演出配置文件", link: "/reference/presentation-definition-json" },
               { text: "Scene JSON", link: "/reference/scene-json" },
               { text: "VisualAsset JSON", link: "/reference/visual-asset-json" },
             ],

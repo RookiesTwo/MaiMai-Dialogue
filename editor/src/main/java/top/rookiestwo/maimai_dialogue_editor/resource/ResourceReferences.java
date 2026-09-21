@@ -17,7 +17,7 @@ public final class ResourceReferences {
         switch (kind) {
             case DIALOGUE -> {
                 scanner.audio(get(draft, "bgm"), "bgm");
-                scanner.presentation(get(draft, "presentation"), "presentation");
+                scanner.add(ResourceKind.SCENE, get(draft, "scene"), "scene");
                 each(get(draft, "steps"), (value, index) -> scanner.step(value, "steps[" + index + "]"));
                 JsonElement end = get(draft, "end");
                 scanner.step(end, "end");
@@ -26,8 +26,10 @@ public final class ResourceReferences {
                 if (type(exit, "options")) each(get(exit, "options"), (option, index) ->
                         scanner.target(get(option, "target"), "end.exit.options[" + index + "].target"));
             }
-            case PRESENTATION -> scanner.presentation(draft, "");
-            case SCENE -> scanner.visualObjects(draft, "");
+            case SCENE -> {
+                scanner.add(ResourceKind.THEME, get(draft, "theme"), "theme");
+                scanner.visualObjects(draft, "");
+            }
             case VISUAL_ASSET -> scanner.variants(draft, "");
             case SPEAKER -> scanner.audio(get(draft, "typewriter_sound"), "typewriter_sound");
             case ACTION -> scanner.action(draft, "");
@@ -54,17 +56,6 @@ public final class ResourceReferences {
 
     private void target(JsonElement value, String path) {
         if (type(value, "dialogue")) add(ResourceKind.DIALOGUE, get(value, "dialogue"), path + ".dialogue");
-    }
-
-    private void presentation(JsonElement value, String path) {
-        String prefix = path.isEmpty() ? "" : path + ".";
-        if (type(value, "reference")) {
-            add(ResourceKind.PRESENTATION, get(value, "id"), prefix + "id");
-        } else {
-            add(ResourceKind.THEME, get(value, "theme"), prefix + "theme");
-            add(ResourceKind.SCENE, get(value, "scene"), prefix + "scene");
-            visualObjects(value, path);
-        }
     }
 
     private void visualObjects(JsonElement value, String path) {

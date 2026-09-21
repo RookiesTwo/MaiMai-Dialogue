@@ -1,9 +1,6 @@
 {
   "skip_summary": "## Skip summary\n\nSkip the remaining preset action demo and go directly to its final choices.",
-  "presentation": {
-    "type": "reference",
-    "id": "maimai_dialogue:debug/actions"
-  },
+  "scene": "maimai_dialogue:debug/actions",
   "steps": [
     {
       "text": "本对话依次演示内置预设 Action,每个 Step 的正文标注了当前调用的预设名。开场:`maimai_dialogue:presets/dialogue_enter`(对话框上移淡入)+ `maimai_dialogue:presets/fade_in`(标记从透明淡入)。",

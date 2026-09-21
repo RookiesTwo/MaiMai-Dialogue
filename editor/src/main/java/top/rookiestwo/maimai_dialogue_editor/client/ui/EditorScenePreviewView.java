@@ -19,8 +19,8 @@ final class EditorScenePreviewView extends FrameLayout {
     private final TextView error;
     private final ProjectWorkspace workspace;
     private final SceneCanvasOverlay overlay;
-    private EditorPreviewSurface surface;
-    private DialogueSceneView renderer;
+    private final EditorPreviewSurface surface;
+    private final EditorPreviewHost host;
     private DialogueImageSource pendingImages;
     private ScenePreviewSession.Prepared requested;
     private ScenePreviewSession.Prepared displayed;
@@ -29,11 +29,11 @@ final class EditorScenePreviewView extends FrameLayout {
     private long playbackToken;
     private String loadError = "";
     private long revision;
-    private int referenceHeight = 1;
+    private boolean detaching;
 
-    EditorScenePreviewView(Context context, EditorPreviewAssets assets, ProjectWorkspace workspace) {
-        super(context); this.assets = assets; this.workspace = workspace;
-        overlay = new SceneCanvasOverlay(context, this, workspace.scenes());
+    EditorScenePreviewView(Context context, EditorPreviewHost host, EditorPreviewSurface surface) {
+        super(context); this.host = host; this.surface = surface; this.assets = host.assets(); this.workspace = host.workspace();
+        overlay = new SceneCanvasOverlay(context, this, this.workspace.scenes());
         addView(overlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         error = EditorWidgets.paragraph(context, ""); error.setTextColor(EditorWidgets.ERROR);
         error.setMaxLines(4); error.setVisibility(GONE);
@@ -47,16 +47,9 @@ final class EditorScenePreviewView extends FrameLayout {
             requested = next; loadError = ""; long expected = ++revision;
             if (pendingImages != null) { pendingImages.close(); pendingImages = null; }
             if (next == null) clearRendered();
-            else if (canUpdateFilterOnly(next)) {
-                var filter = next.presentation().filter().orElse(null);
-                renderer.setSceneFilter(filter);
-                displayed = next;
-            }
             else {
                 var images = assets.openImages(next.images()); pendingImages = images;
-                var ids = new java.util.LinkedHashSet<ResourceLocation>();
-                next.presentation().background().ifPresent(background -> ids.add(background.initialImage()));
-                next.presentation().visualObjects().values().forEach(object -> ids.add(object.initialImage()));
+                var ids = ScenePreviewSession.initialImageIds(next.scene());
                 Map<ResourceLocation, Image> loaded = new LinkedHashMap<>();
                 int[] remaining = {ids.size()}; boolean[] failed = {false};
                 if (ids.isEmpty()) publish(next, images, loaded);
@@ -74,26 +67,14 @@ final class EditorScenePreviewView extends FrameLayout {
         showError(session.error());
         updatePosition(); overlay.synchronize();
     }
-    private boolean canUpdateFilterOnly(ScenePreviewSession.Prepared next) {
-        if (renderer == null || displayed == null || !displayed.images().equals(next.images())) return false;
-        var before = displayed.presentation(); var after = next.presentation();
-        return before.background().equals(after.background()) && before.visualObjects().equals(after.visualObjects());
-    }
     private void publish(ScenePreviewSession.Prepared prepared, DialogueImageSource images, Map<ResourceLocation, Image> loaded) {
-        // Keep preloaded handles alive even when this Scene exceeds the shared image-cache budget.
+        // The Fragment owns a fork of preloaded handles, so a replacement never clears the old scene mid-load.
         try (var ready = new ReadyImages(loaded)) {
-            DialogueSceneView next = new DialogueSceneView(getContext(), ready);
-            try {
-                next.apply(prepared.presentation());
-                var initial = SceneState.initial(prepared.presentation());
-                next.renderPlayback(new ScenePlayback(0, initial, initial, List.of(), 0, 0), true, () -> {});
-            } catch (RuntimeException failure) {
-                next.clearScene(); loadError = String.valueOf(failure.getMessage()); showError(""); return;
-            }
-            clearRendered(); renderer = next; displayed = prepared; renderedState = SceneState.initial(prepared.presentation());
-            surface = new EditorPreviewSurface(getContext(), renderer); surface.setReferenceHeight(referenceHeight);
-            addView(surface, 0, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-            overlay.invalidate();
+            if (host.showScene(prepared, ready)) {
+                displayed = prepared; renderedState = SceneState.initial(prepared.scene()); overlay.invalidate();
+            } else requested = null;
+        } catch (RuntimeException failure) {
+            loadError = String.valueOf(failure.getMessage()); showError("");
         } finally { images.close(); pendingImages = null; }
     }
     private static final class ReadyImages implements DialogueImageSource {
@@ -107,20 +88,20 @@ final class EditorScenePreviewView extends FrameLayout {
         String message = preparationError.isEmpty() ? loadError : preparationError;
         error.setText(message); error.setTooltipText(message); error.setVisibility(message.isEmpty() ? GONE : VISIBLE);
     }
-    void setReferenceHeight(int height) { referenceHeight = height; if (surface != null) surface.setReferenceHeight(height); }
+    void setReferenceHeight(int height) { surface.setReferenceHeight(height); }
     boolean canInteract() {
         return workspace.scenes().active() && workspace.windowFocused() && session != null && session.current()
-                && displayed == session.prepared() && renderer != null && loadError.isEmpty();
+                && displayed == session.prepared() && host.sceneFragment() != null && loadError.isEmpty();
     }
     Map<String, RectF> objectBounds() {
-        if (renderer == null || surface == null) return Map.of();
+        if (host.sceneFragment() == null || surface == null) return Map.of();
         var result = new LinkedHashMap<String, RectF>();
-        renderer.visualObjectBounds().forEach((id, bounds) -> { surface.mapContentBounds(bounds); result.put(id, bounds); });
+        host.sceneFragment().visualObjectBounds().forEach((id, bounds) -> { surface.mapContentBounds(bounds); result.put(id, bounds); });
         return result;
     }
     RectF objectAnchor(String id) {
-        if (renderer == null || surface == null) return null;
-        var point = renderer.visualObjectAnchor(id).orElse(null); if (point == null) return null;
+        if (host.sceneFragment() == null || surface == null) return null;
+        var point = host.sceneFragment().visualObjectAnchor(id).orElse(null); if (point == null) return null;
         var bounds = new RectF(point.x, point.y, point.x, point.y); surface.mapContentBounds(bounds); return bounds;
     }
     void moveObject(float dx, float dy) {
@@ -132,8 +113,8 @@ final class EditorScenePreviewView extends FrameLayout {
     }
     void endDrag(boolean commit) { overlay.finish(commit); }
     private void updatePosition() {
-        if (renderer == null || displayed == null) return;
-        SceneState state = SceneState.initial(displayed.presentation());
+        if (host.sceneFragment() == null || displayed == null) return;
+        SceneState state = SceneState.initial(displayed.scene());
         var position = workspace.scenes().dragPosition();
         // After release, retain the final position while its freshly committed snapshot is prepared.
         if (position == null && session != null && !session.current() && renderedState != null) return;
@@ -144,17 +125,20 @@ final class EditorScenePreviewView extends FrameLayout {
         }
         if (!state.equals(renderedState)) {
             renderedState = state;
-            renderer.renderPlayback(new ScenePlayback(++playbackToken, state, state, List.of(), 0, 0), true, () -> {});
+            host.renderSceneTransform(state, ++playbackToken);
         }
     }
     private void clearRendered() {
-        if (renderer != null) renderer.clearScene(); renderer = null; displayed = null; renderedState = null;
-        if (surface != null) removeView(surface); surface = null;
+        if (!detaching) host.clearScenePreview();
+        displayed = null; renderedState = null;
     }
     void release() {
         overlay.finish(false);
         ++revision; requested = null; clearRendered(); loadError = "";
         if (pendingImages != null) { pendingImages.close(); pendingImages = null; }
     }
-    @Override protected void onDetachedFromWindow() { release(); super.onDetachedFromWindow(); }
+    @Override protected void onDetachedFromWindow() {
+        detaching = true;
+        try { release(); } finally { detaching = false; super.onDetachedFromWindow(); }
+    }
 }

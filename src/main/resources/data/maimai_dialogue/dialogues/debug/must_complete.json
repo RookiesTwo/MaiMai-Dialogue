@@ -1,10 +1,7 @@
 {
   "must_complete": true,
   "skip_summary": "Skip directly to End. The pending record should only be cleared after the End text and scene are both ready.",
-  "presentation": {
-    "type": "reference",
-    "id": "maimai_dialogue:debug/default"
-  },
+  "scene": "maimai_dialogue:debug/default",
   "steps": [
     {
       "speaker": {

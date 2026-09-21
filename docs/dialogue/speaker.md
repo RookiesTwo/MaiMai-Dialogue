@@ -63,11 +63,9 @@ Speaker 也可用 `typewriter_sound` 配置专属打字音色或静音，具体�
 }
 ```
 
-```json:line-numbers {7-10,18-20} [完整 welcome.json]
+```json:line-numbers  [完整 welcome.json]
 {
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "steps": [
     {
       "speaker": {

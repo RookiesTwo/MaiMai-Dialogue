@@ -1,9 +1,6 @@
 {
   "skip_summary": "## Skip summary\n\nSkip the remaining demo dialogue and go directly to its final choices.",
-  "presentation": {
-    "type": "reference",
-    "id": "maimai_dialogue:debug/root"
-  },
+  "scene": "maimai_dialogue:debug/root",
   "steps": [
     {
       "speaker": {

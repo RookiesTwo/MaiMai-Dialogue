@@ -12,7 +12,6 @@ public final class ProjectDefinitions {
         return switch (kind) {
             case DIALOGUE -> DefinitionTypes.DIALOGUE;
             case SPEAKER -> DefinitionTypes.SPEAKER;
-            case PRESENTATION -> DefinitionTypes.PRESENTATION;
             case SCENE -> DefinitionTypes.SCENE;
             case VISUAL_ASSET -> DefinitionTypes.VISUAL_ASSET;
             case ACTION -> DefinitionTypes.ACTION;

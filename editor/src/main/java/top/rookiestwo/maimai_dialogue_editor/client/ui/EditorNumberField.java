@@ -59,7 +59,8 @@ final class EditorNumberField extends LinearLayout {
         boolean scale = field.name().equals("scale");
         boolean bounded = !integer && field.minimum() >= -100 && field.maximum() <= 100;
         // Scale has no upper data limit. This interval is only a convenient slider range.
-        sliderMinimum = scale ? 1 : bounded ? Math.round(field.minimum() * 1000) : 0;
+        sliderMinimum = scale ? 1 : bounded
+                ? Math.max(field.minimum() > 0 ? 1 : Integer.MIN_VALUE, Math.round(field.minimum() * 1000)) : 0;
         slider = scale || bounded ? new EditorSeekBar(context) : null;
         if (slider != null) {
             slider.setMax((scale ? 4000 : Math.round(field.maximum() * 1000)) - sliderMinimum);

@@ -2,7 +2,6 @@ package top.rookiestwo.maimai_dialogue.client.session;
 
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
-import top.rookiestwo.maimai_dialogue.presentation.PresentationDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAssetDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
@@ -17,12 +16,6 @@ public interface DialogueContentLookup {
     Optional<SpeakerDefinition> speaker(ResourceLocation id);
 
     Optional<ThemeDefinition> theme(ResourceLocation id);
-
-    default Optional<PresentationDefinition> presentation(
-            ResourceLocation id
-    ) {
-        return Optional.empty();
-    }
 
     default Optional<SceneDefinition> scene(ResourceLocation id) {
         return Optional.empty();

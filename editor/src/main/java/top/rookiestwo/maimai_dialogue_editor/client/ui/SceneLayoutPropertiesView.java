@@ -1,0 +1,123 @@
+package top.rookiestwo.maimai_dialogue_editor.client.ui;
+
+import icyllis.modernui.core.Context;
+import icyllis.modernui.view.Gravity;
+import icyllis.modernui.widget.*;
+import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
+import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor;
+import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.resource.*;
+import java.util.*;
+import java.util.function.*;
+
+/** Theme and dialogue-box configuration belongs to the Scene resource. */
+final class SceneLayoutPropertiesView extends LinearLayout {
+    private final ProjectWorkspace project;
+    private final SceneWorkspace model;
+    private final ChoicePresenter choices;
+    private final EditorLayoutState layout;
+    private final LinearLayout form;
+    private final List<Runnable> bindings = new ArrayList<>();
+    private final List<EditorPropertySection> sections = new ArrayList<>();
+    private LinearLayout group;
+    private String binding = "";
+    private boolean refreshing;
+
+    SceneLayoutPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
+        super(context); setOrientation(VERTICAL);
+        this.project = project; model = project.scenes(); this.choices = choices; this.layout = layout;
+        form = new LinearLayout(context); form.setOrientation(VERTICAL); addView(form);
+    }
+    void refresh() {
+        var state = model.snapshot();
+        String next = !model.acceptsResource(state.key()) ? "" : project.projectGeneration() + "/" + state.key()
+                + "/" + (state.data() == null ? "invalid" : model.data().has("dialogue_box") && model.box() == null);
+        refreshing = true;
+        try {
+            if (!binding.equals(next)) {
+                binding = next; form.clearFocus(); form.removeAllViews(); bindings.clear(); sections.clear(); build();
+            }
+            bindings.forEach(Runnable::run); sections.forEach(EditorPropertySection::refresh);
+        } finally { refreshing = false; }
+    }
+    private boolean accepts(String expected) { return !refreshing && isAttachedToWindow() && binding.equals(expected) && model.active(); }
+    private String value(String field, String fallback) { return SceneWorkspace.text(model.data(), field, fallback); }
+    private void build() {
+        if (binding.isEmpty()) return;
+        if (model.data() == null) { form.addView(EditorWidgets.compactParagraph(getContext(), "edit.invalid_object")); return; }
+        section("scene.settings");
+        reference("scene.theme", "theme", ResourceKind.THEME, SceneDefinition.DEFAULT_THEME_ID.toString());
+        section("scene.box");
+        if (model.data().has("dialogue_box") && model.box() == null) group.addView(EditorWidgets.compactParagraph(getContext(), "edit.invalid_object"));
+        for (var field : SceneWorkspace.BOX_NUMBERS) {
+            String expected = binding;
+            var input = new EditorNumberField(getContext(), field,
+                    () -> SceneWorkspace.text(model.box(), field.name(), Float.toString(field.fallback())),
+                    value -> model.setBoxNumber(field, value), () -> accepts(expected), project::endEdit);
+            EditorWidgets.propertyRow(group, "scene.box." + field.name(), input, false);
+            bindings.add(() -> input.refresh(model.active()));
+        }
+        choice("scene.anchor", () -> SceneWorkspace.text(model.box(), "anchor", DialogueBoxLayout.DEFAULT.anchor().serializedName()),
+                () -> Arrays.stream(VisualAnchor.values()).map(anchor -> new ChoicePresenter.Item(anchor.serializedName(),
+                        EditorWidgets.tr("scene.anchor." + anchor.serializedName()))).toList(), model::setBoxAnchor);
+        String expected = binding;
+        var reset = EditorWidgets.button(getContext(), "scene.reset_box", () -> { if (accepts(expected)) model.resetBox(); });
+        group.addView(reset); bindings.add(() -> EditorWidgets.enabled(reset, model.active() && model.data().has("dialogue_box")));
+    }
+    private void reference(String label, String field, ResourceKind kind, String fallback) {
+        String expected = binding;
+        var input = EditorWidgets.compactInput(getContext(), value(field, fallback), ignored -> {}, () -> {});
+        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
+        input.setOnFocusChangeListener((view, focused) -> {
+            if (!focused && accepts(expected)) {
+                String entered = input.getText().toString();
+                if (!entered.equals(value(field, fallback))) model.setTheme(entered);
+                project.endEdit();
+            }
+        });
+        EditorWidgets.propertyRow(group, label, input, false);
+        bindings.add(() -> {
+            if (!input.isFocused() && !input.getText().toString().equals(value(field, fallback))) input.setText(value(field, fallback));
+            input.setEnabled(model.active());
+        });
+        choice(null, () -> value(field, fallback), () -> resourceItems(kind), selected -> model.setTheme(selected));
+    }
+    private List<ChoicePresenter.Item> resourceItems(ResourceKind kind) {
+        if (project.draft() == null) return List.of();
+        var ids = new TreeSet<String>(); var external = ClientServices.get().content().current();
+        var externalIds = switch (kind) {
+            case SCENE -> external.scenes().ids();
+            case THEME -> external.themes().ids();
+            default -> Set.<net.minecraft.resources.ResourceLocation>of();
+        };
+        externalIds.stream().filter(id -> !id.getNamespace().equals(project.draft().namespace())).forEach(id -> ids.add(id.toString()));
+        project.resources().catalog().keys().stream().filter(key -> key.kind() == kind).forEach(key -> ids.add(key.id(project.draft().namespace())));
+        var result = new ArrayList<ChoicePresenter.Item>();
+        if (kind == ResourceKind.SCENE) result.add(new ChoicePresenter.Item("", EditorWidgets.tr("scene.no_scene")));
+        ids.forEach(id -> result.add(new ChoicePresenter.Item(id, id)));
+        return result;
+    }
+    private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
+        String expected = binding;
+        var button = EditorWidgets.button(getContext(), "", null);
+        button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        EditorWidgets.bindMetrics(button, () -> button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0,
+                dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0));
+        button.setOnClickListener(view -> { if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> {
+            if (accepts(expected) && !selected.equals(value.get())) { project.endEdit(); setter.accept(selected); project.endEdit(); }
+        }); });
+        EditorWidgets.propertyRow(group, label, button, false);
+        bindings.add(() -> {
+            String current = value.get();
+            String text = label == null ? EditorWidgets.tr("edit.choose_resource") : items.get().stream()
+                    .filter(item -> item.value().equals(current)).map(ChoicePresenter.Item::label).findFirst().orElse(current);
+            button.setText(text + " ▾"); button.setTooltipText(text); EditorWidgets.enabled(button, model.active());
+        });
+    }
+    private void section(String key) {
+        var section = new EditorPropertySection(getContext(), key, layout); form.addView(section); sections.add(section); group = section.body();
+    }
+}

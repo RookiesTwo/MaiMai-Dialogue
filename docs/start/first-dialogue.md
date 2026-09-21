@@ -32,11 +32,9 @@ description: 创建并打开 example:guide/welcome。
 1. 在资源包和数据包对应位置都创建 `welcome.json`。
 2. 将下面的完整 JSON 原样复制到两个文件中。高亮部分是本章新建的 Dialogue 内容：
 
-```json:line-numbers {2-11} [welcome.json]
+```json:line-numbers  [welcome.json]
 {
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "end": {
     "text": "你好！这是我的第一段对话。",
     "exit": {
@@ -46,7 +44,7 @@ description: 创建并打开 example:guide/welcome。
 }
 ```
 
-`presentation.theme` 使用 MOD 内置的默认主题。主题（Theme）是对话界面的外观设置（颜色、字号、按钮样式），这一章先直接用默认值，[制作主题](../scene/themes.md)一章会教你创建自己的主题。`end` 是这个 Dialogue 必须拥有的结束点，`exit` 决定到达这里后如何离开。
+`scene` 引用 MOD 内置的空场景 `maimai_dialogue:default`，使用默认主题与对话框布局。主题（Theme）是对话界面的外观设置（颜色、字号、按钮样式），这一章先直接用默认值，[制作主题](../scene/themes.md)一章会教你创建自己的主题。`end` 是这个 Dialogue 必须拥有的结束点，`exit` 决定到达这里后如何离开。
 
 这次由命令直接打开 `welcome`，所以它承担入口对话的角色；入口处的 `return` 会关闭界面。文件名 `welcome` 只是按内容含义起的名字——“入口”取决于对话是被哪条命令打开的，与文件名无关。
 

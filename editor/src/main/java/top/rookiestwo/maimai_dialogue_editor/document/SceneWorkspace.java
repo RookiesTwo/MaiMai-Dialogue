@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.document;
 
+import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
+
 import com.google.gson.*;
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
@@ -11,6 +13,12 @@ import java.util.function.Consumer;
 
 /** Scene draft edits and local cursors. No Views, runtime mutation or editor metadata in resource JSON. */
 public final class SceneWorkspace {
+    public static final List<NumberField> BOX_NUMBERS = List.of(
+            new NumberField("x", DialogueBoxLayout.DEFAULT.x(), 0, 1),
+            new NumberField("y", DialogueBoxLayout.DEFAULT.y(), 0, 1),
+            new NumberField("width", DialogueBoxLayout.DEFAULT.width(), Float.MIN_VALUE, 1),
+            new NumberField("max_height", DialogueBoxLayout.DEFAULT.maxHeight(), Float.MIN_VALUE, 1));
+
     public enum Part { BACKGROUND, OBJECT, FILTER }
     public record NumberField(String name, float fallback, float minimum, float maximum, boolean integer) {
         public NumberField(String name, float fallback, float minimum, float maximum) {
@@ -43,7 +51,10 @@ public final class SceneWorkspace {
     private Drag drag;
     private ContentWorkspace.Snapshot dragSnapshot;
 
-    public SceneWorkspace(ProjectWorkspace project, Runnable changed) { this.project = project; this.changed = changed; }
+    public SceneWorkspace(ProjectWorkspace project, Runnable changed) {
+        this.project = project; this.changed = changed;
+    }
+    public boolean acceptsResource(ResourceKey key) { return key != null && key.kind() == ResourceKind.SCENE; }
     public ContentWorkspace.Snapshot snapshot() {
         if (generation != project.projectGeneration()) {
             generation = project.projectGeneration(); objects.clear(); variants.clear(); drag = null; dragSnapshot = null;
@@ -301,6 +312,39 @@ public final class SceneWorkspace {
         } catch (NumberFormatException failure) { return "scene.invalid_number"; }
         editPart(part, field.name(), data -> data.addProperty(field.name(), number)); return "";
     }
+    public JsonObject box() { return data() == null ? null : object(data().get("dialogue_box")); }
+    public String setBoxNumber(SceneWorkspace.NumberField field, String text) {
+        if (!active()) return "";
+        java.math.BigDecimal number = null;
+        if (!text.isBlank()) {
+            try {
+                float value = Float.parseFloat(text);
+                if (!Float.isFinite(value) || value < field.minimum() || value > field.maximum()) return "scene.invalid_number";
+                number = new java.math.BigDecimal(text.strip());
+            } catch (NumberFormatException failure) { return "scene.invalid_number"; }
+        }
+        var value = number;
+        edit("box/" + field.name(), next -> editBox(next, box -> {
+            if (value == null) box.remove(field.name()); else box.addProperty(field.name(), value);
+        }));
+        return "";
+    }
+    public void setBoxAnchor(String value) {
+        if (Arrays.stream(top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor.values())
+                .noneMatch(anchor -> anchor.serializedName().equals(value))) return;
+        edit("box/anchor", next -> editBox(next, box -> box.addProperty("anchor", value)));
+    }
+    public void resetBox() { project.endEdit(); edit(null, next -> next.remove("dialogue_box")); project.endEdit(); }
+    private static void editBox(JsonObject next, Consumer<JsonObject> operation) {
+        JsonObject box = SceneWorkspace.object(next.get("dialogue_box"));
+        if (box == null) box = new JsonObject();
+        operation.accept(box);
+        if (box.isEmpty()) next.remove("dialogue_box"); else next.add("dialogue_box", box);
+    }
+    public void setTheme(String value) {
+        edit("theme", next -> { if (value.isBlank()) next.remove("theme"); else next.addProperty("theme", value.strip()); });
+    }
+
     private void editPart(Part part, String group, Consumer<JsonObject> mutation) {
         String id = objectId();
         edit(group == null ? null : part + "/" + id + "/" + group, data -> {
@@ -311,7 +355,9 @@ public final class SceneWorkspace {
         if (!active()) return;
         drag = null;
         var state = snapshot(); JsonObject next = state.data().deepCopy(); mutation.accept(next);
-        if (!next.equals(state.data())) project.editAsset(state.key(), next, group);
+        if (!next.equals(state.data())) {
+            project.editAsset(state.key(), next, group);
+        }
     }
     private static boolean validName(String name) { return name.matches("[a-z0-9_-]+"); }
     private static String unused(JsonObject map, String seed) {

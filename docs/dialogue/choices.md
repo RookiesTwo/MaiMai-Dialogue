@@ -57,11 +57,9 @@ description: 在入口 Dialogue 中显示选项，并进入可返回的子 Dialo
 }
 ```
 
-```json:line-numbers {21-43} [完整 welcome.json]
+```json:line-numbers  [完整 welcome.json]
 {
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "steps": [
     {
       "speaker": {
@@ -153,11 +151,9 @@ Option 可以在执行原 `target` 前先运行一条或多条指令。例如接
 
 2. 创建 `about.json`。它是一段新的 Dialogue，因此下面高亮的是整个内容结构：
 
-```json:line-numbers {2-14} [about.json]
+```json:line-numbers  [about.json]
 {
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "end": {
     "speaker": {
       "type": "set",

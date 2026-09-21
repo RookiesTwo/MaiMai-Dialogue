@@ -115,4 +115,4 @@ blocking Action 会与打字机共同阻止步骤继续。播放中推进会立�
 ## 下一步
 
 - MOD 自带的可直接引用的动画见 [内置预设 SceneAction](./preset-actions.md)。
-- 动画作用对象（VisualObject 等）的声明见 [Presentation JSON](./presentation-json.md)。
+- 动画作用对象（VisualObject 等）的声明见 [Scene JSON](./scene-json.md)。

@@ -21,10 +21,10 @@ description: 创建可复用 Theme，定制对话框、文字、选项和滚动�
 <资源包>/assets/example/themes/parchment.json
 ```
 
-并修改演出配置文件（PresentationDefinition）：
+并修改场景文件（Scene）：
 
 ```text
-<资源包>/assets/example/presentations/guide/welcome.json
+<资源包>/assets/example/scenes/guide/welcome.json
 ```
 
 Dialogue 的双端 reference 不需要修改。
@@ -82,12 +82,33 @@ Dialogue 的双端 reference 不需要修改。
 
 它的资源 ID 是 `example:parchment`。
 
-2. 把 `presentations/guide/welcome.json` 的 `theme` 改为 `example:parchment`：
+2. 把 `scenes/guide/welcome.json` 的 `theme` 改为 `example:parchment`：
 
-```json:line-numbers {2} [presentations/guide/welcome.json]
+```json:line-numbers  [scenes/guide/welcome.json]
 {
+  "background": {
+    "variants": {
+      "default": "minecraft:gui/title/background/panorama_0.png",
+      "alternate": "minecraft:gui/title/background/panorama_1.png"
+    },
+    "initial_variant": "default",
+    "fit": "cover",
+    "opacity": 0.82
+  },
+  "visual_objects": {
+    "guide_marker": {
+      "asset": "example:guide/marker",
+      "initial_variant": "default",
+      "x": 0.5,
+      "y": 0.3,
+      "anchor": "center",
+      "scale": 8.0,
+      "opacity": 1.0,
+      "visible": true,
+      "z_index": 10
+    }
+  },
   "theme": "example:parchment",
-  "scene": "example:guide/welcome",
   "dialogue_box": {
     "x": 0.5,
     "y": 0.95,
@@ -105,7 +126,7 @@ Dialogue 的双端 reference 不需要修改。
 }
 ```
 
-Theme 的每个区块和字段都可以省略；省略部分使用内置默认值。因为多个 Dialogue 可以引用同一个演出配置文件，这次修改会同时影响它们。
+Theme 的每个区块和字段都可以省略；省略部分使用内置默认值。因为多个 Dialogue 可以引用同一个场景文件，这次修改会同时影响它们。
 
 ::: tip 颜色格式
 主题里所有颜色都用 `#RRGGBB`（红绿蓝）或 `#AARRGGBB`（前两位是透明度）写法。透明度 `FF` 是不透明，`00` 是全透明，比如 `#30FFFFFF` 就是透明度 30% 的白色。
@@ -119,10 +140,10 @@ Theme 的每个区块和字段都可以省略；省略部分使用内置默认�
 
 ## 如果没有生效
 
-- 仍显示默认 Theme：检查演出配置文件的 `theme` ID。
+- 仍显示默认 Theme：检查场景文件的 `theme` ID。
 - Theme 文件未加载：确认目录是 `themes`。
 - 颜色透明度异常：颜色格式使用 `#RRGGBB` 或 `#AARRGGBB`。
-- 只想修改一个 Dialogue：为它创建单独的演出配置文件，再切换 reference ID。
+- 只想修改一个 Dialogue：为它创建单独的场景文件，再切换 reference ID。
 
 ## 下一步
 

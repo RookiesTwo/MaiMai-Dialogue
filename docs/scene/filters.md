@@ -11,24 +11,45 @@ description: 使用 color_adjust 或 crt 改变背景与 VisualObject 的画面�
 
 ## 开始前
 
-你已经完成[调整对话框布局](./dialogue-box.md)，Dialogue 正在引用 `example:guide/welcome` Presentation。
+你已经完成[调整对话框布局](./dialogue-box.md)，Dialogue 正在引用 `example:guide/welcome` Scene。
 
 ## 需要修改的文件
 
-继续修改 Resource Pack 中的演出配置文件（PresentationDefinition）：
+继续修改 Resource Pack 中的场景文件（Scene）：
 
 ```text
-<资源包>/assets/example/presentations/guide/welcome.json
+<资源包>/assets/example/scenes/guide/welcome.json
 ```
 
 ## 跟着做
 
 加入 `color_adjust` Filter：
 
-```json:line-numbers {11-17} [presentations/guide/welcome.json]
+```json:line-numbers  [scenes/guide/welcome.json]
 {
+  "background": {
+    "variants": {
+      "default": "minecraft:gui/title/background/panorama_0.png",
+      "alternate": "minecraft:gui/title/background/panorama_1.png"
+    },
+    "initial_variant": "default",
+    "fit": "cover",
+    "opacity": 0.82
+  },
+  "visual_objects": {
+    "guide_marker": {
+      "asset": "example:guide/marker",
+      "initial_variant": "default",
+      "x": 0.5,
+      "y": 0.3,
+      "anchor": "center",
+      "scale": 8.0,
+      "opacity": 1.0,
+      "visible": true,
+      "z_index": 10
+    }
+  },
   "theme": "maimai_dialogue:default",
-  "scene": "example:guide/welcome",
   "dialogue_box": {
     "x": 0.5,
     "y": 0.95,
@@ -67,7 +88,7 @@ MuiModApi.postToUiThread(() -> sceneView.setColorAdjustment(
 ));
 ```
 
-这个调用不修改项目或播放数据；需要保存／导出的参数仍应写入 Scene 或 Presentation。GPU 处理仍有开销，性能需要结合实际场景、分辨率和设备验证。
+这个调用不修改项目或播放数据；需要保存／导出的参数仍应写入 Scene。GPU 处理仍有开销，性能需要结合实际场景、分辨率和设备验证。
 
 如果要使用 CRT 效果，可以把 Filter 替换为：
 
@@ -77,7 +98,7 @@ MuiModApi.postToUiThread(() -> sceneView.setColorAdjustment(
 }
 ```
 
-CRT 还支持 curvature、scanline、RGB mask、chromatic aberration、vignette、noise、flicker、bloom 和 edge_feather 参数；完整字段见 [Presentation JSON](../reference/presentation-json.md#crt-filter)。
+CRT 还支持 curvature、scanline、RGB mask、chromatic aberration、vignette、noise、flicker、bloom 和 edge_feather 参数；完整字段见 [Scene JSON](../reference/scene-json.md#crt-filter)。
 
 CRT 在编辑器预览与正式播放中使用同一条 GPU 管线：曲率改变场景采样坐标，色差分别偏移红蓝通道，扫描线、RGB 栅格、暗角、噪点和闪烁在合成时处理。CRT 视口默认铺黑色底，曲率收缩后的边角和素材透明区域合成到黑底上，不露出后方游戏画面或编辑器方格。黑底不参与滤镜计算，随场景一起变换和淡入淡出，Dialogue UI 保持在其上方。
 
@@ -93,7 +114,7 @@ CRT 在编辑器预览与正式播放中使用同一条 GPU 管线：曲率改�
 
 ## 如果没有生效
 
-- 完全没有变化：确认 Filter 写在演出配置文件中，而不是 Theme 中。
+- 完全没有变化：确认 Filter 写在场景文件中，而不是 Theme 中。
 - DialogueBox 也被染色：这不是预期行为，请检查是否使用了额外 shader MOD。
 - 画面过暗：把 `brightness` 调回接近 `0`，并降低 `contrast`。
 - CRT 开销或效果过强：先将 `bloom` 设为 `0`，再按需要减少其他效果；将 `noise` 与 `flicker` 设为 `0` 可停止滤镜自身的动画刷新。

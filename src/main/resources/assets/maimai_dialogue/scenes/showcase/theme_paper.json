@@ -21,5 +21,9 @@
       "z_index": 10
     }
   },
-  "theme": "maimai_dialogue:default"
+  "theme": "maimai_dialogue:showcase/paper",
+  "dialogue_box": {
+    "width": 0.7,
+    "max_height": 0.5
+  }
 }

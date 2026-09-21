@@ -36,7 +36,7 @@ import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
 import top.rookiestwo.maimai_dialogue.client.config.ClientPreferences;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
-import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
 import javax.annotation.Nullable;
@@ -60,6 +60,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
     private final DialogueUiActions controller;
     private final CornerControls cornerControls;
     private final DialogueImageSource images;
+    private final boolean requestInitialFocus;
     private final FastForwardPlayback fastForward;
     private final DialogueConfirmations confirmations;
     private long renderedGeneration = Long.MIN_VALUE;
@@ -90,8 +91,15 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
 
     /** Owns the scoped image source until this Fragment is destroyed. Existing constructors use game resources. */
     public DialogueFragment(DialogueUiActions controller, CornerControls cornerControls, DialogueImageSource images) {
+        this(controller, cornerControls, images, true);
+    }
+
+    /** Embedded authoring previews leave keyboard focus with the property being edited. */
+    public DialogueFragment(DialogueUiActions controller, CornerControls cornerControls, DialogueImageSource images,
+                            boolean requestInitialFocus) {
         this.controller = controller;
         this.images = Objects.requireNonNull(images);
+        this.requestInitialFocus = requestInitialFocus;
         this.cornerControls = Objects.requireNonNull(cornerControls, "cornerControls");
         fastForward = new FastForwardPlayback(() -> latestState, controller);
         confirmations = new DialogueConfirmations(
@@ -160,7 +168,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
         scene.setDialogueBoxStateConsumer(root::setDialogueBoxState);
         root.setFocusable(true);
         root.setFocusableInTouchMode(true);
-        if (cornerControls == CornerControls.INTERACTIVE || initialState.scenePlayback().isPresent()) {
+        if (requestInitialFocus && (cornerControls == CornerControls.INTERACTIVE || initialState.scenePlayback().isPresent())) {
             root.requestFocus();
         }
 
@@ -174,7 +182,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
     }
 
     private int dialogueBoxVisibility(DialogueScreenState state) {
-        return cornerControls == CornerControls.DISPLAY_ONLY && state.presentation().isEmpty()
+        return cornerControls == CornerControls.DISPLAY_ONLY && state.sceneDefinition().isEmpty()
                 ? View.GONE : View.VISIBLE;
     }
 
@@ -211,7 +219,7 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                         );
                         box.reset(theme);
                         skipEntry.applyTheme(theme);
-                        applyPresentation(state, root, scene);
+                        applyScene(state, root, scene);
                     }
                     root.setSkipAvailable(
                             state.canSkipToEnd() && !root.hasConfirmation()
@@ -258,19 +266,28 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                 root::requestViewportRefresh);
     }
 
-    private static void applyPresentation(
+    /** Detached geometry snapshots in the Fragment root's coordinates, for authoring overlays. UI thread only. */
+    public java.util.Map<String, icyllis.modernui.graphics.RectF> visualObjectBounds() {
+        return sceneView == null ? java.util.Map.of() : sceneView.visualObjectBounds();
+    }
+
+    public java.util.Optional<icyllis.modernui.graphics.PointF> visualObjectAnchor(String id) {
+        return sceneView == null ? java.util.Optional.empty() : sceneView.visualObjectAnchor(id);
+    }
+
+    private static void applyScene(
             DialogueScreenState state,
             DialogueRootLayout root,
             DialogueSceneView scene
     ) {
-        Presentation presentation = state.presentation().orElse(null);
-        if (presentation == null) {
+        SceneDefinition sceneDefinition = state.sceneDefinition().orElse(null);
+        if (sceneDefinition == null) {
             scene.clearScene();
             root.setDialogueBoxLayout(DialogueBoxLayout.DEFAULT);
             return;
         }
-        scene.apply(presentation);
-        root.setDialogueBoxLayout(presentation.dialogueBox());
+        scene.apply(sceneDefinition);
+        root.setDialogueBoxLayout(sceneDefinition.dialogueBox());
     }
 
     private void advanceFromUi() {

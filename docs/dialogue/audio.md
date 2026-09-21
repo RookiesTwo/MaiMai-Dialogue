@@ -21,7 +21,7 @@ description: 添加背景音乐、角色打字音色和按步骤触发的提示�
 
 ## 给 Dialogue 配置 BGM
 
-在 Dialogue 顶层加入以下字段，其余 `presentation`、`steps`、`end` 照常填写：
+在 Dialogue 顶层加入以下字段，其余 `scene`、`steps`、`end` 照常填写：
 
 ```json
 {

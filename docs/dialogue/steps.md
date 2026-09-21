@@ -44,11 +44,9 @@ description: 使用 steps 把一段对话拆成多个阅读步骤。
 }
 ```
 
-```json:line-numbers {5-12,14} [完整 welcome.json]
+```json:line-numbers  [完整 welcome.json]
 {
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "steps": [
     {
       "text": "欢迎来到村庄。"

@@ -28,9 +28,7 @@ Dialogue 顶层可声明：
 ```json
 {
   "requires": "(guide.met || guide.invited) && !guide.finished",
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "end": {
     "exit": {
       "type": "return"

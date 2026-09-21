@@ -1,8 +1,7 @@
 package top.rookiestwo.maimai_dialogue.client.resource;
 
-import java.util.Optional;
 
-import top.rookiestwo.maimai_dialogue.content.resolve.DialoguePresentationResolver;
+import top.rookiestwo.maimai_dialogue.content.resolve.SceneResolver;
 
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
@@ -16,8 +15,6 @@ import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueTarget;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueTargetExit;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueEnd;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.ChoiceExit;
-import top.rookiestwo.maimai_dialogue.presentation.Presentation;
-import top.rookiestwo.maimai_dialogue.presentation.PresentationDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.speaker.SetSpeaker;
 import top.rookiestwo.maimai_dialogue.speaker.SpeakerOperation;
@@ -47,7 +44,6 @@ public final class ClientResourceValidator {
                 snapshot.dialogues(),
                 snapshot.speakers(),
                 snapshot.themes(),
-                snapshot.presentations(),
                 snapshot.scenes(),
                 snapshot.visualAssets(),
                 snapshot.actions(),
@@ -60,76 +56,23 @@ public final class ClientResourceValidator {
         );
     }
 
-    static List<String> validate(
-            DefinitionRegistry<DialogueDefinition> dialogues,
-            DefinitionRegistry<SpeakerDefinition> speakers,
-            DefinitionRegistry<ThemeDefinition> themes,
-            DefinitionRegistry<SceneAction> actions,
-            Predicate<ResourceLocation> imageExists
-    ) {
-        return validate(
-                dialogues,
-                speakers,
-                themes,
-                DefinitionRegistry.empty(),
-                DefinitionRegistry.empty(),
-                DefinitionRegistry.empty(),
-                actions,
-                imageExists
-        );
+    static List<String> validate(DefinitionRegistry<DialogueDefinition> dialogues,
+            DefinitionRegistry<SpeakerDefinition> speakers, DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<SceneAction> actions, Predicate<ResourceLocation> imageExists) {
+        return validate(dialogues, speakers, themes, DefinitionRegistry.empty(), DefinitionRegistry.empty(), actions, imageExists);
     }
 
-    static List<String> validate(
-            DefinitionRegistry<DialogueDefinition> dialogues,
-            DefinitionRegistry<SpeakerDefinition> speakers,
-            DefinitionRegistry<ThemeDefinition> themes,
-            DefinitionRegistry<VisualAssetDefinition> visualAssets,
-            DefinitionRegistry<SceneAction> actions,
-            Predicate<ResourceLocation> imageExists
-    ) {
-        return validate(
-                dialogues,
-                speakers,
-                themes,
-                DefinitionRegistry.empty(),
-                DefinitionRegistry.empty(),
-                visualAssets,
-                actions,
-                imageExists
-        );
+    static List<String> validate(DefinitionRegistry<DialogueDefinition> dialogues,
+            DefinitionRegistry<SpeakerDefinition> speakers, DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<VisualAssetDefinition> visualAssets, DefinitionRegistry<SceneAction> actions,
+            Predicate<ResourceLocation> imageExists) {
+        return validate(dialogues, speakers, themes, DefinitionRegistry.empty(), visualAssets, actions, imageExists);
     }
 
-    static List<String> validate(
-            DefinitionRegistry<DialogueDefinition> dialogues,
-            DefinitionRegistry<SpeakerDefinition> speakers,
-            DefinitionRegistry<ThemeDefinition> themes,
-            DefinitionRegistry<SceneDefinition> scenes,
-            DefinitionRegistry<VisualAssetDefinition> visualAssets,
-            DefinitionRegistry<SceneAction> actions,
-            Predicate<ResourceLocation> imageExists
-    ) {
-        return validate(
-                dialogues,
-                speakers,
-                themes,
-                DefinitionRegistry.empty(),
-                scenes,
-                visualAssets,
-                actions,
-                imageExists
-        );
-    }
-
-    static List<String> validate(
-            DefinitionRegistry<DialogueDefinition> dialogues,
-            DefinitionRegistry<SpeakerDefinition> speakers,
-            DefinitionRegistry<ThemeDefinition> themes,
-            DefinitionRegistry<PresentationDefinition> presentations,
-            DefinitionRegistry<SceneDefinition> scenes,
-            DefinitionRegistry<VisualAssetDefinition> visualAssets,
-            DefinitionRegistry<SceneAction> actions,
-            Predicate<ResourceLocation> imageExists
-    ) {
+    static List<String> validate(DefinitionRegistry<DialogueDefinition> dialogues,
+            DefinitionRegistry<SpeakerDefinition> speakers, DefinitionRegistry<ThemeDefinition> themes,
+            DefinitionRegistry<SceneDefinition> scenes, DefinitionRegistry<VisualAssetDefinition> visualAssets,
+            DefinitionRegistry<SceneAction> actions, Predicate<ResourceLocation> imageExists) {
         List<String> errors = new ArrayList<>();
         visualAssets.entries().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey(
@@ -143,19 +86,6 @@ public final class ClientResourceValidator {
                                 imageExists,
                                 errors
                         )));
-        presentations.entries().entrySet().stream()
-                .sorted(Map.Entry.comparingByKey(
-                        Comparator.comparing(ResourceLocation::toString)
-                ))
-                .forEach(entry -> validatePresentationContents(
-                        entry.getKey(),
-                        entry.getValue().presentation(),
-                        themes,
-                        scenes,
-                        visualAssets,
-                        imageExists,
-                        errors
-                ));
         scenes.entries().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey(
                         Comparator.comparing(ResourceLocation::toString)
@@ -163,6 +93,7 @@ public final class ClientResourceValidator {
                 .forEach(entry -> validateScene(
                         entry.getKey(),
                         entry.getValue(),
+                        themes,
                         visualAssets,
                         imageExists,
                         errors
@@ -177,7 +108,6 @@ public final class ClientResourceValidator {
                         dialogues,
                         speakers,
                         themes,
-                        presentations,
                         scenes,
                         visualAssets,
                         actions,
@@ -193,23 +123,20 @@ public final class ClientResourceValidator {
             DefinitionRegistry<DialogueDefinition> dialogues,
             DefinitionRegistry<SpeakerDefinition> speakers,
             DefinitionRegistry<ThemeDefinition> themes,
-            DefinitionRegistry<PresentationDefinition> presentations,
             DefinitionRegistry<SceneDefinition> scenes,
             DefinitionRegistry<VisualAssetDefinition> visualAssets,
             DefinitionRegistry<SceneAction> actions,
             Predicate<ResourceLocation> imageExists,
             List<String> errors
     ) {
-        var resolved = DialoguePresentationResolver.resolve(
-                dialogue.presentation(), presentations::find, themes::find,
-                scenes::find, visualAssets::find
+        var resolved = SceneResolver.resolve(
+                dialogue.scene(), scenes::find, themes::find, visualAssets::find
         );
-        resolved.referenceErrors().forEach(error -> errors.add(dialogueId + ": " + error));
-        validateResolvedPresentation(dialogueId, resolved, imageExists, errors);
-        Presentation presentation = resolved.presentation();
+        validateResolvedScene(dialogueId, resolved, imageExists, errors);
+        SceneDefinition scene = resolved.scene();
 
         SceneRuntime runtime = new SceneRuntime(
-                presentation,
+                scene,
                 0.0F,
                 actions::find
         );
@@ -272,35 +199,18 @@ public final class ClientResourceValidator {
         }
     }
 
-    private static Presentation validatePresentationContents(
+    private static void validateResolvedScene(
             ResourceLocation ownerId,
-            Presentation sourcePresentation,
-            DefinitionRegistry<ThemeDefinition> themes,
-            DefinitionRegistry<SceneDefinition> scenes,
-            DefinitionRegistry<VisualAssetDefinition> visualAssets,
+            SceneResolver.Result resolved,
             Predicate<ResourceLocation> imageExists,
             List<String> errors
     ) {
-        var resolved = DialoguePresentationResolver.resolve(
-                sourcePresentation, ignored -> Optional.empty(), themes::find,
-                scenes::find, visualAssets::find
-        );
-        validateResolvedPresentation(ownerId, resolved, imageExists, errors);
-        return resolved.presentation();
-    }
-
-    private static void validateResolvedPresentation(
-            ResourceLocation ownerId,
-            DialoguePresentationResolver.Result resolved,
-            Predicate<ResourceLocation> imageExists,
-            List<String> errors
-    ) {
-        Presentation sourcePresentation = resolved.source();
+        SceneDefinition sourceScene = resolved.source();
         if (resolved.missingTheme()) {
             errors.add(ownerId + ": missing Theme "
-                    + sourcePresentation.theme());
+                    + sourceScene.theme());
         }
-        sourcePresentation.background().ifPresent(background ->
+        sourceScene.background().ifPresent(background ->
                 background.variants().forEach((variant, image) ->
                         validateImage(
                                 ownerId,
@@ -311,7 +221,7 @@ public final class ClientResourceValidator {
                         )
                 )
         );
-        sourcePresentation.visualObjects().forEach((objectId, object) -> {
+        sourceScene.visualObjects().forEach((objectId, object) -> {
             if (!object.referencesAsset()) {
                 validateVisualObjectImages(
                         ownerId,
@@ -326,48 +236,10 @@ public final class ClientResourceValidator {
         resolved.visualErrors().forEach(error -> errors.add(ownerId + ": " + error));
     }
 
-    private static void validateScene(
-            ResourceLocation sceneId,
-            SceneDefinition scene,
-            DefinitionRegistry<VisualAssetDefinition> visualAssets,
-            Predicate<ResourceLocation> imageExists,
-            List<String> errors
-    ) {
-        scene.background().ifPresent(background ->
-                background.variants().forEach((variant, image) ->
-                        validateImage(
-                                sceneId,
-                                "Scene Background variant " + variant,
-                                image,
-                                imageExists,
-                                errors
-                        )
-                )
-        );
-        scene.visualObjects().forEach((objectId, object) -> {
-            if (!object.referencesAsset()) {
-                validateVisualObjectImages(
-                        sceneId,
-                        objectId,
-                        object,
-                        imageExists,
-                        errors
-                );
-                return;
-            }
-            ResourceLocation assetId = object.asset().orElseThrow();
-            VisualAssetDefinition asset = visualAssets.find(assetId)
-                    .orElse(null);
-            if (asset == null) {
-                errors.add(sceneId + ": VisualObject " + objectId
-                        + " references missing VisualAsset " + assetId + ".");
-                return;
-            }
-            object.resolve(asset).error().ifPresent(error ->
-                    errors.add(sceneId + ": VisualObject " + objectId
-                            + ": " + error.message())
-            );
-        });
+    private static void validateScene(ResourceLocation sceneId, SceneDefinition scene,
+            DefinitionRegistry<ThemeDefinition> themes, DefinitionRegistry<VisualAssetDefinition> visualAssets,
+            Predicate<ResourceLocation> imageExists, List<String> errors) {
+        validateResolvedScene(sceneId, SceneResolver.resolve(scene, themes::find, visualAssets::find), imageExists, errors);
     }
 
     private static void validateVisualObjectImages(

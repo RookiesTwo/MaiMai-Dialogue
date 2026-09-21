@@ -1,7 +1,7 @@
 package top.rookiestwo.maimai_dialogue.client.scene;
 
 import net.minecraft.resources.ResourceLocation;
-import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneActionCall;
 import top.rookiestwo.maimai_dialogue.presentation.action.ActionSpec;
 import top.rookiestwo.maimai_dialogue.presentation.action.ActionProperty;
@@ -23,24 +23,24 @@ public final class SceneRuntime {
     private SceneState current;
     private long nextPlaybackToken;
 
-    public SceneRuntime(Presentation presentation) {
-        this(presentation, 1.0F, 1L);
+    public SceneRuntime(SceneDefinition sceneDefinition) {
+        this(sceneDefinition, 1.0F, 1L);
     }
 
     public SceneRuntime(
-            Presentation presentation,
+            SceneDefinition sceneDefinition,
             float initialDialogueOpacity
     ) {
-        this(presentation, initialDialogueOpacity, 1L);
+        this(sceneDefinition, initialDialogueOpacity, 1L);
     }
 
     public SceneRuntime(
-            Presentation presentation,
+            SceneDefinition sceneDefinition,
             float initialDialogueOpacity,
             long firstPlaybackToken
     ) {
         this(
-                presentation,
+                sceneDefinition,
                 initialDialogueOpacity,
                 ignored -> Optional.empty(),
                 firstPlaybackToken
@@ -48,16 +48,16 @@ public final class SceneRuntime {
     }
 
     public SceneRuntime(
-            Presentation presentation,
+            SceneDefinition sceneDefinition,
             float initialDialogueOpacity,
             Function<ResourceLocation, Optional<SceneAction>>
                     actionLookup
     ) {
-        this(presentation, initialDialogueOpacity, actionLookup, 1L);
+        this(sceneDefinition, initialDialogueOpacity, actionLookup, 1L);
     }
 
     public SceneRuntime(
-            Presentation presentation,
+            SceneDefinition sceneDefinition,
             float initialDialogueOpacity,
             Function<ResourceLocation, Optional<SceneAction>>
                     actionLookup,
@@ -68,7 +68,7 @@ public final class SceneRuntime {
                 "actionLookup"
         );
         nextPlaybackToken = firstPlaybackToken;
-        current = SceneState.initial(presentation, initialDialogueOpacity);
+        current = SceneState.initial(sceneDefinition, initialDialogueOpacity);
     }
 
     public SceneState current() {

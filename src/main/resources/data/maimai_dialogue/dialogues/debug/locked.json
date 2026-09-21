@@ -1,9 +1,6 @@
 {
   "requires": "debug.unlocked",
-  "presentation": {
-    "type": "reference",
-    "id": "maimai_dialogue:debug/default"
-  },
+  "scene": "maimai_dialogue:debug/default",
   "end": {
     "speaker": {
       "type": "set",

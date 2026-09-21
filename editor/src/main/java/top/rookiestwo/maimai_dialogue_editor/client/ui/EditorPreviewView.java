@@ -61,7 +61,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         materialImage = new ImageView(context);
         materialImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
         canvas.addView(materialImage, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        scene = new EditorScenePreviewView(context, host.assets(), host.workspace());
+        scene = new EditorScenePreviewView(context, host, surface);
         canvas.addView(scene, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         message = EditorWidgets.paragraph(context, "preview.idle");
         message.setTextIsSelectable(true);
@@ -94,11 +94,11 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         toolbar.setVisibility(dialogue ? VISIBLE : GONE);
         canvas.setVisibility(material || dialogue || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         scene.setVisibility(mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
-        scene.refresh(host.scenes());
+        if (mode == EditorPreviewHost.Mode.SCENE) scene.refresh(host.scenes()); else scene.release();
         audio.setVisibility(mode == EditorPreviewHost.Mode.SOUND ? VISIBLE : GONE);
         audio.refresh();
         materialImage.setVisibility(material ? VISIBLE : GONE);
-        surface.setVisibility(dialogue ? VISIBLE : GONE);
+        surface.setVisibility(dialogue || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         var nextImage = material ? host.imagePreview() : null;
         if (!java.util.Objects.equals(nextImage, displayedImage)) {
             var previous = displayedImage;
@@ -135,8 +135,8 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         EditorWidgets.enabled(stop, host.running());
         // A pending image is just the canvas; asset failures remain available in the workbench status bar.
         notice.setVisibility(!dialogue || host.running() || host.loading() ? GONE : VISIBLE);
-        message.setText(!dialogue ? ""
-                : EditorWidgets.tr(host.message()) + (host.error().isEmpty() ? "" : "\n" + host.error()));
+        message.setText(!dialogue ? "" : EditorWidgets.tr(host.message()) + (host.error().isEmpty() ? "" : "\n" + host.error()));
+        message.setTextColor(EditorWidgets.MUTED);
     }
 
     void setReferenceHeight(int height) {

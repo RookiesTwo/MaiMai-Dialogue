@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue.dialogue;
 
-import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import net.minecraft.resources.ResourceLocation;
+import top.rookiestwo.maimai_dialogue.content.DefinitionCodecs;
 import top.rookiestwo.maimai_dialogue.audio.BgmOperation;
 
 import com.mojang.serialization.Codec;
@@ -22,7 +23,7 @@ public record DialogueDefinition(
         Optional<ProgressExpression> requires,
         Optional<String> skipSummary,
         boolean mustComplete,
-        Presentation presentation,
+        ResourceLocation scene,
         List<DialogueStep> steps,
         DialogueEnd end,
         Optional<BgmOperation> bgm
@@ -34,7 +35,7 @@ public record DialogueDefinition(
                     )
                     : DataResult.success(value));
 
-    public static final Codec<DialogueDefinition> CODEC =
+    private static final Codec<DialogueDefinition> BASE_CODEC =
             RecordCodecBuilder.create(instance ->
                     instance.group(
                             ProgressExpression.CODEC.optionalFieldOf("requires")
@@ -43,8 +44,8 @@ public record DialogueDefinition(
                                     .forGetter(DialogueDefinition::skipSummary),
                             Codec.BOOL.optionalFieldOf("must_complete", false)
                                     .forGetter(DialogueDefinition::mustComplete),
-                            Presentation.CODEC.fieldOf("presentation")
-                                    .forGetter(DialogueDefinition::presentation),
+                            ResourceLocation.CODEC.fieldOf("scene")
+                                    .forGetter(DialogueDefinition::scene),
                             DialogueStep.CODEC.listOf()
                                     .optionalFieldOf("steps", List.of())
                                     .forGetter(DialogueDefinition::steps),
@@ -55,10 +56,12 @@ public record DialogueDefinition(
                     ).apply(instance, DialogueDefinition::new)
             );
 
+    public static final Codec<DialogueDefinition> CODEC = DefinitionCodecs.rejectFields(BASE_CODEC, "presentation");
+
     public DialogueDefinition {
         Objects.requireNonNull(requires, "requires");
         Objects.requireNonNull(skipSummary, "skipSummary");
-        Objects.requireNonNull(presentation, "presentation");
+        Objects.requireNonNull(scene, "scene");
         Objects.requireNonNull(steps, "steps");
         Objects.requireNonNull(end, "end");
         Objects.requireNonNull(bgm, "bgm");
@@ -67,15 +70,15 @@ public record DialogueDefinition(
 
     public DialogueDefinition(
             Optional<ProgressExpression> requires, Optional<String> skipSummary,
-            boolean mustComplete, Presentation presentation, List<DialogueStep> steps, DialogueEnd end
+            boolean mustComplete, ResourceLocation scene, List<DialogueStep> steps, DialogueEnd end
     ) {
-        this(requires, skipSummary, mustComplete, presentation, steps, end, Optional.empty());
+        this(requires, skipSummary, mustComplete, scene, steps, end, Optional.empty());
     }
 
     public DialogueDefinition(
             Optional<ProgressExpression> requires,
             Optional<String> skipSummary,
-            Presentation presentation,
+            ResourceLocation scene,
             List<DialogueStep> steps,
             DialogueEnd end
     ) {
@@ -83,7 +86,7 @@ public record DialogueDefinition(
                 requires,
                 skipSummary,
                 false,
-                presentation,
+                scene,
                 steps,
                 end
         );
@@ -91,7 +94,7 @@ public record DialogueDefinition(
 
     public DialogueDefinition(
             Optional<ProgressExpression> requires,
-            Presentation presentation,
+            ResourceLocation scene,
             List<DialogueStep> steps,
             DialogueEnd end
     ) {
@@ -99,7 +102,7 @@ public record DialogueDefinition(
                 requires,
                 Optional.empty(),
                 false,
-                presentation,
+                scene,
                 steps,
                 end
         );

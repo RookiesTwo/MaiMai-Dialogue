@@ -1,8 +1,5 @@
 {
-  "presentation": {
-    "type": "reference",
-    "id": "maimai_dialogue:debug/root"
-  },
+  "scene": "maimai_dialogue:debug/root",
   "steps": [
     {
       "text": "这个 Dialogue 没有 bgm 字段，刚才的音乐应继续播放。",

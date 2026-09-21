@@ -4,7 +4,7 @@ import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
 
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueOption;
-import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
 
 import java.util.List;
@@ -14,7 +14,7 @@ import top.rookiestwo.maimai_dialogue.audio.TypewriterSound;
 
 public record DialogueScreenState(
         long generation,
-        Optional<Presentation> presentation,
+        Optional<SceneDefinition> sceneDefinition,
         Optional<ThemeDefinition> theme,
         Optional<ScenePlayback> scenePlayback,
         PlaybackPhase playbackPhase,
@@ -44,7 +44,7 @@ public record DialogueScreenState(
 
     public DialogueScreenState {
         Objects.requireNonNull(typewriterSound, "typewriterSound");
-        Objects.requireNonNull(presentation, "presentation");
+        Objects.requireNonNull(sceneDefinition, "sceneDefinition");
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(scenePlayback, "scenePlayback");
         Objects.requireNonNull(playbackPhase, "playbackPhase");
@@ -56,12 +56,12 @@ public record DialogueScreenState(
         options = List.copyOf(options);
     }
 
-    public DialogueScreenState(long generation, Optional<Presentation> presentation, Optional<ThemeDefinition> theme,
+    public DialogueScreenState(long generation, Optional<SceneDefinition> sceneDefinition, Optional<ThemeDefinition> theme,
             Optional<ScenePlayback> scenePlayback, PlaybackPhase playbackPhase, boolean playbackSkipped,
             Optional<String> skipSummary, boolean canSkipToEnd, boolean mustComplete, int typewriterIntervalMs,
             Optional<String> speaker, Optional<String> text, Optional<SessionMessage> error, List<DialogueHistoryEntry> history,
             List<DialogueOption> options, boolean loadingOptions, boolean requestingTarget) {
-        this(generation, presentation, theme, scenePlayback, playbackPhase, playbackSkipped, skipSummary,
+        this(generation, sceneDefinition, theme, scenePlayback, playbackPhase, playbackSkipped, skipSummary,
                 canSkipToEnd, mustComplete, typewriterIntervalMs, speaker, text, error, history, options,
                 loadingOptions, requestingTarget, TypewriterSound.DEFAULT);
     }

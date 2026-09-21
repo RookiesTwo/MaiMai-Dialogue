@@ -51,24 +51,22 @@ assets/example/visual_assets/characters/guide.json
 assets/example/textures/characters/guide/happy.png
 ```
 
-## 在 Dialogue 中引用
+## 在 Scene 中引用
 
 ```json
 {
-  "presentation": {
-    "theme": "maimai_dialogue:default",
-    "visual_objects": {
-      "guide": {
-        "asset": "example:characters/guide",
-        "initial_variant": "neutral",
-        "x": 0.8,
-        "y": 1.0,
-        "anchor": "bottom_center",
-        "scale": 1.0,
-        "opacity": 1.0,
-        "visible": true,
-        "z_index": 10
-      }
+  "theme": "maimai_dialogue:default",
+  "visual_objects": {
+    "guide": {
+      "asset": "example:characters/guide",
+      "initial_variant": "neutral",
+      "x": 0.8,
+      "y": 1.0,
+      "anchor": "bottom_center",
+      "scale": 1.0,
+      "opacity": 1.0,
+      "visible": true,
+      "z_index": 10
     }
   }
 }
@@ -76,11 +74,11 @@ assets/example/textures/characters/guide/happy.png
 
 `initial_variant` 必须存在于被引用 VisualAsset 的 `variants` 中。VisualObject 可以额外声明 `sampling` 来覆盖 VisualAsset 的设置；省略时继承 VisualAsset。
 
-VisualAsset 只复用图片集合与 sampling，不保存位置等场景状态。因此同一角色可以在不同 Dialogue 或 [Scene](./scene-json.md) 中使用不同位置、大小、初始表情和层级。
+VisualAsset 只复用图片集合与 sampling，不保存位置等场景状态。因此同一角色可以在不同 [Scene](./scene-json.md) 中使用不同位置、大小、初始表情和层级。
 
-## Inline 兼容写法
+## 直接声明图片差分
 
-旧内容仍可直接在 VisualObject 中写 `variants`。一个 VisualObject 必须且只能提供 `asset` 或 `variants` 其中之一：
+也可以直接在 VisualObject 中写 `variants`。一个 VisualObject 必须且只能提供 `asset` 或 `variants` 其中之一：
 
 ```json
 {
@@ -95,5 +93,5 @@ VisualAsset 只复用图片集合与 sampling，不保存位置等场景状态�
 
 ## 下一步
 
-- 对象在画面上的位置、缩放等字段见 [Presentation JSON](./presentation-json.md#visualobject-视觉对象)。
+- 对象在画面上的位置、缩放等字段见 [Scene JSON](./scene-json.md#visualobject-视觉对象)。
 - 切换差分用动画，见 [SceneAction JSON](./scene-action-json.md)。

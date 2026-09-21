@@ -1,4 +1,6 @@
 {
+  "gui.maimai_dialogue_editor.scene.width": "Width",
+  "gui.maimai_dialogue_editor.scene.max_height": "Maximum height",
   "gui.maimai_dialogue_editor.export.validate": "Validate project",
   "gui.maimai_dialogue_editor.export.write": "Export resource and data packs",
   "gui.maimai_dialogue_editor.export.open_folder": "Open export folder",
@@ -133,7 +135,6 @@
   "gui.maimai_dialogue_editor.resize": "Drag to resize the panel",
   "gui.maimai_dialogue_editor.resource.dialogue": "Dialogues",
   "gui.maimai_dialogue_editor.resource.speaker": "Speakers",
-  "gui.maimai_dialogue_editor.resource.presentation": "Presentations",
   "gui.maimai_dialogue_editor.resource.scene": "Scenes",
   "gui.maimai_dialogue_editor.resource.visual_asset": "Visual assets",
   "gui.maimai_dialogue_editor.resource.action": "Scene actions",
@@ -272,5 +273,16 @@
   "gui.maimai_dialogue_editor.scene.duplicate_id": "This name already exists.",
   "gui.maimai_dialogue_editor.scene.invalid_number": "Enter a number within the valid range; scale must be positive and Z index must be an integer.",
   "gui.maimai_dialogue_editor.scene.invalid_color": "Use #RRGGBB or #AARRGGBB.",
-  "gui.maimai_dialogue_editor.scene.missing_image": "Image unavailable:"
+  "gui.maimai_dialogue_editor.scene.missing_image": "Image unavailable:",
+  "gui.maimai_dialogue_editor.scene.settings": "Scene settings",
+  "gui.maimai_dialogue_editor.scene.theme": "Theme",
+  "gui.maimai_dialogue_editor.scene.box": "Dialogue box area",
+  "gui.maimai_dialogue_editor.scene.box.x": "X",
+  "gui.maimai_dialogue_editor.scene.box.y": "Y",
+  "gui.maimai_dialogue_editor.scene.box.width": "Width",
+  "gui.maimai_dialogue_editor.scene.box.max_height": "Maximum height",
+  "gui.maimai_dialogue_editor.scene.reset_box": "Reset dialogue box area",
+  "gui.maimai_dialogue_editor.scene.preview_speaker": "Traveler",
+  "gui.maimai_dialogue_editor.scene.preview_text": "Wind passes through the trees as distant lights begin to glow.\n\nThe traveler pauses, looking toward the town across the valley. Tonight's story has only just begun.",
+  "gui.maimai_dialogue_editor.edit.scene": "Scene"
 }

@@ -2,8 +2,9 @@ package top.rookiestwo.maimai_dialogue_editor.preview;
 
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.client.resource.ClientContentSnapshot;
-import top.rookiestwo.maimai_dialogue.content.resolve.VisualAssetResolver;
-import top.rookiestwo.maimai_dialogue.presentation.*;
+import top.rookiestwo.maimai_dialogue.content.resolve.SceneResolver;
+import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue_editor.content.ProjectContentSnapshot;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialSnapshot;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
@@ -13,7 +14,9 @@ import java.util.concurrent.*;
 
 /** UI-thread state with serialized background preparation. Obsolete results never replace a newer Scene. */
 public final class ScenePreviewSession {
-    public record Prepared(Presentation presentation, MaterialSnapshot images) {}
+    public record Prepared(SceneDefinition scene, MaterialSnapshot images, ThemeDefinition theme) {
+        public Prepared(SceneDefinition scene, MaterialSnapshot images) { this(scene, images, ThemeDefinition.DEFAULT); }
+    }
     private record Request(long project, ProjectDraft draft, ResourceKey key) {}
     @FunctionalInterface public interface Backend { CompletableFuture<Prepared> prepare(ProjectDraft draft, ResourceKey key); }
     private final Backend backend;
@@ -32,7 +35,8 @@ public final class ScenePreviewSession {
     public boolean current() { return !disposed && prepared != null && published == requested && error.isEmpty(); }
     public void select(long project, ProjectDraft draft, ResourceKey key) {
         if (disposed) return;
-        Request next = draft == null || key == null || key.kind() != ResourceKind.SCENE ? null : new Request(project, draft, key);
+        Request next = draft == null || key == null || key.kind() != ResourceKind.SCENE
+                ? null : new Request(project, draft, key);
         if (requested == null && next == null || requested != null && next != null && requested.project == next.project
                 && requested.draft == next.draft && requested.key.equals(next.key)) return;
         boolean sameScene = requested != null && next != null && requested.project == next.project && requested.key.equals(next.key);
@@ -67,22 +71,31 @@ public final class ScenePreviewSession {
     public static Prepared prepare(ProjectDraft draft, ResourceKey key, ClientContentSnapshot external) throws java.io.IOException {
         if (key.kind() != ResourceKind.SCENE) throw new IllegalArgumentException("Expected a Scene");
         var id = ResourceLocation.fromNamespaceAndPath(draft.namespace(), key.path());
-        var content = new ProjectContentSnapshot(draft, external).prepare(ResourceKind.SCENE, id);
-        var scene = content.scene(id).orElseThrow(() -> new IllegalArgumentException("Missing Scene: " + id));
-        var presentation = new Presentation(Presentation.DEFAULT_THEME_ID, scene.background(), DialogueBoxLayout.DEFAULT,
-                scene.visualObjects(), scene.filter());
-        var resolved = VisualAssetResolver.resolve(presentation, content::visualAsset);
-        if (!resolved.errors().isEmpty()) throw new IllegalArgumentException(String.join("\n", resolved.errors()));
+        var content = new ProjectContentSnapshot(draft, external).prepare(key.kind(), id);
+        var source = content.scene(id).orElseThrow(() -> new IllegalArgumentException("Missing Scene: " + id));
+        var resolved = SceneResolver.resolve(source, content::theme, content::visualAsset);
+        var errors = new ArrayList<>(resolved.visualErrors());
+        if (resolved.missingTheme()) errors.add("Missing Theme: " + resolved.source().theme());
+        if (!errors.isEmpty()) throw new IllegalArgumentException(String.join("\n", errors));
+        var scene = resolved.scene();
         var images = MaterialSnapshot.prepare(draft);
-        for (ResourceLocation image : imageIds(resolved.presentation())) {
+        for (ResourceLocation image : imageIds(scene)) {
             if (images.owns(image) && !images.images().containsKey(image)) throw new IllegalArgumentException("Missing image: " + image);
         }
-        return new Prepared(resolved.presentation(), images);
+        return new Prepared(scene, images, resolved.theme());
     }
-    public static Set<ResourceLocation> imageIds(Presentation presentation) {
+    public static Set<ResourceLocation> imageIds(SceneDefinition scene) {
         Set<ResourceLocation> ids = new LinkedHashSet<>();
-        presentation.background().ifPresent(background -> ids.addAll(background.variants().values()));
-        presentation.visualObjects().values().forEach(object -> ids.addAll(object.variants().values()));
+        scene.background().ifPresent(background -> ids.addAll(background.variants().values()));
+        scene.visualObjects().values().forEach(object -> ids.addAll(object.variants().values()));
+        return ids;
+    }
+
+    /** Static authoring only needs the initial variants; other variants stay lazily loaded. */
+    public static Set<ResourceLocation> initialImageIds(SceneDefinition scene) {
+        Set<ResourceLocation> ids = new LinkedHashSet<>();
+        scene.background().ifPresent(background -> ids.add(background.initialImage()));
+        scene.visualObjects().values().forEach(object -> ids.add(object.initialImage()));
         return ids;
     }
 }

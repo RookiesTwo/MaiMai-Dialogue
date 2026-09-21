@@ -18,10 +18,10 @@ description: 按玩家看到的现象排查安装、双端资源、选项、图�
 
 ## 日志里的 ID 分不清是哪类资源
 
-资源 ID 只在**同一种类型**里唯一：`presentations/` 与 `dialogues/` 下的文件可以拥有同一个 ID（例如 `example:guide/welcome`）。日志报缺失时，先确认它指的是哪一类资源：
+资源 ID 只在**同一种类型**里唯一：`scenes/` 与 `dialogues/` 下的文件可以拥有同一个 ID（例如 `example:guide/welcome`）。日志报缺失时，先确认它指的是哪一类资源：
 
 - "Dialogue 不存在"通常指数据包中的对话文件；
-- "主题 / 演出配置 / 场景缺失"指资源包中的对应目录；
+- "主题 / 场景缺失"指资源包中的对应目录；
 - 图片缺失会直接报图片 ID，按[资源路径与 ID](./resource-paths.md)核对 `textures/` 路径。
 
 ## 命令提示 Dialogue 不存在
@@ -68,7 +68,7 @@ description: 按玩家看到的现象排查安装、双端资源、选项、图�
 
 ## 主题回退为默认样式
 
-检查 `presentation.theme` 对应的：
+检查 Scene 的 `theme` 对应的：
 
 ```text
 <资源包>/assets/<namespace>/themes/<path>.json

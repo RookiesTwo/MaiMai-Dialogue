@@ -7,7 +7,6 @@ import top.rookiestwo.maimai_dialogue.client.resource.ClientContentSnapshot;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueContentLookup;
 import top.rookiestwo.maimai_dialogue.content.DefinitionRegistry;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
-import top.rookiestwo.maimai_dialogue.presentation.PresentationDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
 import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAssetDefinition;
@@ -89,7 +88,6 @@ public final class ProjectContentSnapshot implements DialogueContentLookup {
             case DIALOGUE -> dialogue(id);
             case SPEAKER -> speaker(id);
             case THEME -> theme(id);
-            case PRESENTATION -> presentation(id);
             case SCENE -> scene(id);
             case VISUAL_ASSET -> visualAsset(id);
             case ACTION -> action(id);
@@ -109,9 +107,6 @@ public final class ProjectContentSnapshot implements DialogueContentLookup {
     }
     @Override public Optional<ThemeDefinition> theme(ResourceLocation id) {
         return find(ResourceKind.THEME, id, ThemeDefinition.CODEC, external.themes());
-    }
-    @Override public Optional<PresentationDefinition> presentation(ResourceLocation id) {
-        return find(ResourceKind.PRESENTATION, id, PresentationDefinition.CODEC, external.presentations());
     }
     @Override public Optional<SceneDefinition> scene(ResourceLocation id) {
         return find(ResourceKind.SCENE, id, SceneDefinition.CODEC, external.scenes());

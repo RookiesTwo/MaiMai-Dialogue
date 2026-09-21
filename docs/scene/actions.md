@@ -124,12 +124,9 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
 }
 ```
 
-```json:line-numbers {39-48,58-90} [完整 welcome.json]
+```json:line-numbers  [完整 welcome.json]
 {
-  "presentation": {
-    "type": "reference",
-    "id": "example:guide/welcome"
-  },
+  "scene": "example:guide/welcome",
   "steps": [
     {
       "speaker": {
@@ -165,7 +162,10 @@ description: 创建可复用动画，并在 Dialogue 步骤中调用它。
             "duration_ms": 500,
             "easing": "ease_in_out",
             "x": [
-              { "at": 1.0, "value": 0.18 }
+              {
+                "at": 1.0,
+                "value": 0.18
+              }
             ],
             "variant": {
               "at": 0.55,

@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue.client.scene;
 
-import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,24 +19,24 @@ public record SceneState(
         objects = Map.copyOf(objects);
     }
 
-    public static SceneState initial(Presentation presentation) {
-        return initial(presentation, 1.0F);
+    public static SceneState initial(SceneDefinition sceneDefinition) {
+        return initial(sceneDefinition, 1.0F);
     }
 
     public static SceneState initial(
-            Presentation presentation,
+            SceneDefinition sceneDefinition,
             float dialogueOpacity
     ) {
         Map<String, SceneObjectState> objects = new LinkedHashMap<>();
-        presentation.visualObjects().forEach((id, definition) ->
+        sceneDefinition.visualObjects().forEach((id, definition) ->
                 objects.put(id, SceneObjectState.initial(definition))
         );
         return new SceneState(
                 DialogueBoxState.initial(
-                        presentation.dialogueBox(),
+                        sceneDefinition.dialogueBox(),
                         dialogueOpacity
                 ),
-                presentation.background().map(SceneBackgroundState::initial),
+                sceneDefinition.background().map(SceneBackgroundState::initial),
                 objects
         );
     }

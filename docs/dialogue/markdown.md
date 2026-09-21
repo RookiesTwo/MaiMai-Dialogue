@@ -44,11 +44,9 @@ description: 在 Dialogue 正文中使用标题、强调和行内代码。
 }
 ```
 
-```json:line-numbers {11,14,21} [完整 welcome.json]
+```json:line-numbers  [完整 welcome.json]
 {
-  "presentation": {
-    "theme": "maimai_dialogue:default"
-  },
+  "scene": "maimai_dialogue:default",
   "steps": [
     {
       "speaker": {

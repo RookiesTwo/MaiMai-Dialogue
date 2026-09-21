@@ -1,8 +1,5 @@
 {
-  "presentation": {
-    "type": "reference",
-    "id": "maimai_dialogue:showcase/wheat_musume"
-  },
+  "scene": "maimai_dialogue:showcase/wheat_musume",
   "end": {
     "speaker": {
       "type": "set",

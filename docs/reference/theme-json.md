@@ -85,4 +85,4 @@ Theme 不控制背景、VisualObject 或 Scene Filter。缺失 Theme 时客户�
 
 ## 下一步
 
-- 用 Theme 的地方是 [Presentation JSON](./presentation-json.md) 的 `theme` 字段。
+- 用 Theme 的地方是 [Scene JSON](./scene-json.md) 的 `theme` 字段。

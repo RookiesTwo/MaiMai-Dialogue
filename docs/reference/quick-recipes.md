@@ -27,15 +27,15 @@ description: 按"我想做什么"查找该改哪个文件、用哪个字段。
 
 | 我想做 | 改哪个文件 | 关键字段 | 教程 |
 |---|---|---|---|
-| 换一张背景 | 资源包 `scenes/...`，或对话 `presentation.background` | `background` | [添加背景](../scene/background.md) |
+| 换一张背景 | 资源包 `scenes/...` | `background` | [添加背景](../scene/background.md) |
 | 放一张立绘 / 道具图 | 资源包 `visual_assets/...` + `scenes/...` | `asset`、`visual_objects` | [添加 VisualObject](../scene/visual-objects.md) |
 | 立绘换表情（切换差分） | 视觉资源 / 场景 + 动画 | `variants`、Action 的 `variant` | [播放 SceneAction](../scene/actions.md) |
 | 播放一段动画 | 资源包 `actions/...`，或直接写在步骤里 | 步骤 `actions`、`reference` / `inline` | [播放 SceneAction](../scene/actions.md) |
 | 用 MOD 自带的动画 | 不改文件，直接引用 | `maimai_dialogue:presets/<名称>` | [内置预设 SceneAction](./preset-actions.md) |
-| 调整对话框位置 / 宽度 | 资源包 `presentations/...` | `dialogue_box` | [调整对话框布局](../scene/dialogue-box.md) |
+| 调整对话框位置 / 宽度 | 资源包 `scenes/...` | `dialogue_box` | [调整对话框布局](../scene/dialogue-box.md) |
 | 给画面加滤镜 | 同上 | `filter` | [添加场景滤镜](../scene/filters.md) |
 | 改对话框配色 / 字号 | 资源包 `themes/...` | `box`、`text`、`option` | [制作 Theme](../scene/themes.md) |
-| 多个对话共用一套画面 | 资源包 `presentations/...`，对话里引用 | `presentation: {type: reference}` | [添加 VisualObject](../scene/visual-objects.md) |
+| 多个对话共用一套画面 | 资源包 `scenes/...`，对话里引用 | `scene: "namespace:path"` | [添加 VisualObject](../scene/visual-objects.md) |
 
 ## 条件与运营
 
@@ -48,5 +48,5 @@ description: 按"我想做什么"查找该改哪个文件、用哪个字段。
 
 ## 下一步
 
-- 完整字段参考：[Dialogue JSON](./dialogue-json.md)、[Presentation JSON](./presentation-json.md)、[SceneAction JSON](./scene-action-json.md)
+- 完整字段参考：[Dialogue JSON](./dialogue-json.md)、[Scene JSON](./scene-json.md)、[SceneAction JSON](./scene-action-json.md)
 - 所有术语的含义：[术语表](../concepts/glossary.md)

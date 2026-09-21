@@ -10,7 +10,7 @@ import java.util.*;
 
 /** Immutable metadata/resource map. Unchanged resource bodies are shared across edits and undo snapshots. */
 public final class ProjectDraft {
-    public static final int FORMAT_VERSION = 2;
+    public static final int FORMAT_VERSION = 3;
     private final JsonObject metadata;
     private final Map<ResourceKey, ProjectResource> entries;
     private final Set<ResourceKind> groups;

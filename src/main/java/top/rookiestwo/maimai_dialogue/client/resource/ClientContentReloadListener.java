@@ -9,7 +9,6 @@ import top.rookiestwo.maimai_dialogue.content.DefinitionLoadResult;
 import top.rookiestwo.maimai_dialogue.content.DefinitionTypes;
 import top.rookiestwo.maimai_dialogue.content.JsonDefinitionLoader;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
-import top.rookiestwo.maimai_dialogue.presentation.PresentationDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAssetDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.action.SceneAction;
@@ -64,10 +63,6 @@ public final class ClientContentReloadListener
                 JsonDefinitionLoader.load(manager, DefinitionTypes.DIALOGUE),
                 JsonDefinitionLoader.load(manager, DefinitionTypes.SPEAKER),
                 JsonDefinitionLoader.load(manager, DefinitionTypes.THEME),
-                JsonDefinitionLoader.load(
-                        manager,
-                        DefinitionTypes.PRESENTATION
-                ),
                 JsonDefinitionLoader.load(manager, DefinitionTypes.SCENE),
                 JsonDefinitionLoader.load(
                         manager,
@@ -84,13 +79,12 @@ public final class ClientContentReloadListener
     ) {
         MaiMaiDialogue.LOGGER.info(
                 "Loaded client Dialogue content: {} dialogues, {} speakers, "
-                        + "{} themes, {} presentations, {} scenes, "
+                        + "{} themes, {} scenes, "
                         + "{} visual assets and {} actions with "
                         + "{} load errors.",
                 snapshot.dialogues().size(),
                 snapshot.speakers().size(),
                 snapshot.themes().size(),
-                snapshot.presentations().size(),
                 snapshot.scenes().size(),
                 snapshot.visualAssets().size(),
                 snapshot.actions().size(),
@@ -112,7 +106,6 @@ public final class ClientContentReloadListener
             DefinitionLoadResult<DialogueDefinition> dialogues,
             DefinitionLoadResult<SpeakerDefinition> speakers,
             DefinitionLoadResult<ThemeDefinition> themes,
-            DefinitionLoadResult<PresentationDefinition> presentations,
             DefinitionLoadResult<SceneDefinition> scenes,
             DefinitionLoadResult<VisualAssetDefinition> visualAssets,
             DefinitionLoadResult<SceneAction> actions
@@ -122,7 +115,6 @@ public final class ClientContentReloadListener
                     dialogues.registry(),
                     speakers.registry(),
                     themes.registry(),
-                    presentations.registry(),
                     scenes.registry(),
                     visualAssets.registry(),
                     actions.registry()
@@ -133,7 +125,6 @@ public final class ClientContentReloadListener
             return dialogues.issues().size()
                     + speakers.issues().size()
                     + themes.issues().size()
-                    + presentations.issues().size()
                     + scenes.issues().size()
                     + visualAssets.issues().size()
                     + actions.issues().size();
@@ -143,10 +134,6 @@ public final class ClientContentReloadListener
             dialogues.logIssues(MaiMaiDialogue.LOGGER, DefinitionTypes.DIALOGUE);
             speakers.logIssues(MaiMaiDialogue.LOGGER, DefinitionTypes.SPEAKER);
             themes.logIssues(MaiMaiDialogue.LOGGER, DefinitionTypes.THEME);
-            presentations.logIssues(
-                    MaiMaiDialogue.LOGGER,
-                    DefinitionTypes.PRESENTATION
-            );
             scenes.logIssues(MaiMaiDialogue.LOGGER, DefinitionTypes.SCENE);
             visualAssets.logIssues(
                     MaiMaiDialogue.LOGGER,

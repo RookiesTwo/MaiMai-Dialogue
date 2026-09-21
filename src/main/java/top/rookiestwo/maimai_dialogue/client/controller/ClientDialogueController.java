@@ -384,12 +384,6 @@ public final class ClientDialogueController implements DialogueUiActions {
             }
 
             @Override
-            public java.util.Optional<top.rookiestwo.maimai_dialogue.presentation.PresentationDefinition>
-            presentation(ResourceLocation id) {
-                return snapshot().presentations().find(id);
-            }
-
-            @Override
             public java.util.Optional<SceneAction>
             action(ResourceLocation id) {
                 return snapshot().actions().find(id);

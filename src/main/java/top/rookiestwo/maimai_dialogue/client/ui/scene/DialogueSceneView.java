@@ -12,7 +12,7 @@ import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.ImageView;
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.presentation.scene.BackgroundFit;
-import top.rookiestwo.maimai_dialogue.presentation.Presentation;
+import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.scene.SceneBackground;
 import top.rookiestwo.maimai_dialogue.presentation.filter.SceneFilter;
 import top.rookiestwo.maimai_dialogue.presentation.filter.ColorAdjustFilter;
@@ -35,7 +35,7 @@ public final class DialogueSceneView extends FrameLayout {
             new LinkedHashMap<>();
     private final DialogueImageSource images;
     private SceneImageRenderer imageRenderer;
-    private Presentation renderedPresentation;
+    private SceneDefinition renderedScene;
     private SceneImageRenderer.ImageLayers backgroundLayers;
     private final SceneTransition transition = new SceneTransition(this);
     private final PlaybackTimeline sceneTimeline = new PlaybackTimeline();
@@ -105,14 +105,14 @@ public final class DialogueSceneView extends FrameLayout {
         return java.util.Optional.of(new icyllis.modernui.graphics.PointF(point[0], point[1]));
     }
 
-    // 根据新的 Presentation 重建背景、对象和滤镜视图。
-    public void apply(Presentation presentation) {
-        if (transition.current() != null && renderedPresentation != null
-                && renderedPresentation.background().equals(presentation.background())
-                && renderedPresentation.visualObjects().equals(presentation.visualObjects())
-                && !renderedPresentation.filter().equals(presentation.filter())) {
-            renderedPresentation = presentation;
-            setSceneFilter(presentation.filter().orElse(null));
+    // 根据新的 SceneDefinition 重建背景、对象和滤镜视图。
+    public void apply(SceneDefinition sceneDefinition) {
+        if (transition.current() != null && renderedScene != null
+                && renderedScene.background().equals(sceneDefinition.background())
+                && renderedScene.visualObjects().equals(sceneDefinition.visualObjects())
+                && !renderedScene.filter().equals(sceneDefinition.filter())) {
+            renderedScene = sceneDefinition;
+            setSceneFilter(sceneDefinition.filter().orElse(null));
             return;
         }
         cancelSceneAnimator();
@@ -120,8 +120,8 @@ public final class DialogueSceneView extends FrameLayout {
         transition.finish();
         // Theme 或 DialogueBox 改变时复用相同 Scene，避免角色被重复淡入。
         if (transition.current() != null
-                && sameSceneContent(renderedPresentation, presentation)) {
-            renderedPresentation = presentation;
+                && sameSceneContent(renderedScene, sceneDefinition)) {
+            renderedScene = sceneDefinition;
             return;
         }
         DialogueImageSource sceneImages = images.fork();
@@ -130,10 +130,10 @@ public final class DialogueSceneView extends FrameLayout {
         objectBindings.clear();
         backgroundLayers = null;
         currentBackgroundOpacity = 0.0F;
-        renderedPresentation = presentation;
+        renderedScene = sceneDefinition;
 
-        presentation.background().ifPresent(this::addBackground);
-        presentation.visualObjects().entrySet().stream()
+        sceneDefinition.background().ifPresent(this::addBackground);
+        sceneDefinition.visualObjects().entrySet().stream()
                 .sorted(Comparator
                         .comparingInt(
                                 (Map.Entry<String, VisualObject> entry) ->
@@ -144,7 +144,7 @@ public final class DialogueSceneView extends FrameLayout {
                         entry.getKey(),
                         entry.getValue()
                 ));
-        setSceneFilter(presentation.filter().orElse(null));
+        setSceneFilter(sceneDefinition.filter().orElse(null));
         initializeDetachedScene(transition.current());
         transition.current().setAlpha(0.0F);
         addView(
@@ -190,7 +190,7 @@ public final class DialogueSceneView extends FrameLayout {
         removeAllViews();
         objectBindings.clear();
         transition.reset();
-        renderedPresentation = null;
+        renderedScene = null;
         backgroundLayers = null;
         currentBackgroundOpacity = 0.0F;
     }
@@ -432,8 +432,8 @@ public final class DialogueSceneView extends FrameLayout {
     }
 
     private static boolean sameSceneContent(
-            Presentation current,
-            Presentation next
+            SceneDefinition current,
+            SceneDefinition next
     ) {
         return current != null
                 && current.background().equals(next.background())

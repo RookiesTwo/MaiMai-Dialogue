@@ -1,8 +1,5 @@
 {
-  "presentation": {
-    "type": "reference",
-    "id": "maimai_dialogue:showcase/theme_paper"
-  },
+  "scene": "maimai_dialogue:showcase/theme_paper",
   "steps": [
     {
       "speaker": {

@@ -1,8 +1,5 @@
 {
-  "presentation": {
-    "type": "reference",
-    "id": "maimai_dialogue:debug/parchment"
-  },
+  "scene": "maimai_dialogue:debug/parchment",
   "end": {
     "speaker": {
       "type": "set",

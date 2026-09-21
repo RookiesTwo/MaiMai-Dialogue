@@ -1,9 +1,6 @@
 {
   "skip_summary": "## 跳过摘要\n\n这是一段用于测试**快进**与**跳过**的演示对话。\n\n确认要跳过它，直接看到结尾吗？",
-  "presentation": {
-    "type": "reference",
-    "id": "maimai_dialogue:showcase/wheat_musume"
-  },
+  "scene": "maimai_dialogue:showcase/wheat_musume",
   "steps": [
     {
       "speaker": {

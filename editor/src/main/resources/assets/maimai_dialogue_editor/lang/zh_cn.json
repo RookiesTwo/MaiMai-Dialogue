@@ -1,4 +1,6 @@
 {
+  "gui.maimai_dialogue_editor.scene.width": "宽度",
+  "gui.maimai_dialogue_editor.scene.max_height": "最大高度",
   "gui.maimai_dialogue_editor.export.validate": "校验项目",
   "gui.maimai_dialogue_editor.export.write": "导出资源包与数据包",
   "gui.maimai_dialogue_editor.export.open_folder": "打开导出目录",
@@ -133,7 +135,6 @@
   "gui.maimai_dialogue_editor.resize": "拖动调整分区大小",
   "gui.maimai_dialogue_editor.resource.dialogue": "对话 Dialogue",
   "gui.maimai_dialogue_editor.resource.speaker": "说话人 Speaker",
-  "gui.maimai_dialogue_editor.resource.presentation": "演出配置 Presentation",
   "gui.maimai_dialogue_editor.resource.scene": "场景 Scene",
   "gui.maimai_dialogue_editor.resource.visual_asset": "视觉资源 VisualAsset",
   "gui.maimai_dialogue_editor.resource.action": "场景动作 SceneAction",
@@ -272,5 +273,16 @@
   "gui.maimai_dialogue_editor.scene.duplicate_id": "此名称已存在。",
   "gui.maimai_dialogue_editor.scene.invalid_number": "请输入有效范围内的数字；缩放须大于 0，显示层级须为整数。",
   "gui.maimai_dialogue_editor.scene.invalid_color": "颜色须为 #RRGGBB 或 #AARRGGBB。",
-  "gui.maimai_dialogue_editor.scene.missing_image": "图片不可用："
+  "gui.maimai_dialogue_editor.scene.missing_image": "图片不可用：",
+  "gui.maimai_dialogue_editor.scene.settings": "场景设置",
+  "gui.maimai_dialogue_editor.scene.theme": "界面主题",
+  "gui.maimai_dialogue_editor.scene.box": "对话框区域",
+  "gui.maimai_dialogue_editor.scene.box.x": "X",
+  "gui.maimai_dialogue_editor.scene.box.y": "Y",
+  "gui.maimai_dialogue_editor.scene.box.width": "宽度",
+  "gui.maimai_dialogue_editor.scene.box.max_height": "最大高度",
+  "gui.maimai_dialogue_editor.scene.reset_box": "恢复默认对话框区域",
+  "gui.maimai_dialogue_editor.scene.preview_speaker": "旅人",
+  "gui.maimai_dialogue_editor.scene.preview_text": "风穿过树林，远处的灯火渐渐亮起。\n\n旅人停下脚步，望向山谷另一端的小镇。今晚的故事，才刚刚开始。",
+  "gui.maimai_dialogue_editor.edit.scene": "场景"
 }

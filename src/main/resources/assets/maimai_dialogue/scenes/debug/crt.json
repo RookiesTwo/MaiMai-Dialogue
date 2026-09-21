@@ -29,5 +29,13 @@
     "noise": 0.05,
     "flicker": 0.025,
     "bloom": 0.24
+  },
+  "theme": "maimai_dialogue:default",
+  "dialogue_box": {
+    "x": 0.5,
+    "y": 0.96,
+    "width": 0.92,
+    "max_height": 0.52,
+    "anchor": "bottom_center"
   }
 }
