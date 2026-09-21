@@ -25,6 +25,8 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     private final Button advance;
     private final Button restart;
     private final Button stop;
+    private final Button[] themeExamples;
+    private final TextView themeError;
     private final ImageView materialImage;
     private final EditorAudioPreviewView audio;
     private final EditorScenePreviewView scene;
@@ -49,6 +51,12 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         advance = control(context, controls, "preview.advance", host::advance);
         restart = control(context, controls, "preview.restart", host::start);
         stop = control(context, controls, "preview.stop", host::stop);
+        themeExamples = new Button[3];
+        String[] examples = {"theme.example_text", "theme.example_options", "theme.example_error"};
+        for (int index = 0; index < examples.length; index++) {
+            int example = index;
+            themeExamples[index] = control(context, controls, examples[index], () -> host.themeExample(example));
+        }
         toolbar = new HorizontalScrollView(context);
         toolbar.setHorizontalScrollBarEnabled(false);
         toolbar.setBackground(EditorWidgets.shape(EditorWidgets.HEADER, 0));
@@ -63,6 +71,9 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         canvas.addView(materialImage, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         scene = new EditorScenePreviewView(context, host, surface);
         canvas.addView(scene, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        themeError = EditorWidgets.compactParagraph(context, "");
+        themeError.setTextColor(EditorWidgets.ERROR);
+        canvas.addView(themeError, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         message = EditorWidgets.paragraph(context, "preview.idle");
         message.setTextIsSelectable(true);
         notice = EditorWidgets.formScroll(context, message);
@@ -91,14 +102,24 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         if (mode != nextMode) { mode = nextMode; requestLayout(); }
         boolean material = mode == EditorPreviewHost.Mode.IMAGE;
         boolean dialogue = mode == EditorPreviewHost.Mode.DIALOGUE;
-        toolbar.setVisibility(dialogue ? VISIBLE : GONE);
-        canvas.setVisibility(material || dialogue || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
+        boolean theme = mode == EditorPreviewHost.Mode.THEME;
+        toolbar.setVisibility(dialogue || theme ? VISIBLE : GONE);
+        for (var control : new Button[]{advance, restart, stop}) control.setVisibility(dialogue ? VISIBLE : GONE);
+        for (int index = 0; index < themeExamples.length; index++) {
+            themeExamples[index].setVisibility(theme ? VISIBLE : GONE);
+            EditorWidgets.enabled(themeExamples[index], index != host.themeExample());
+        }
+        canvas.setVisibility(material || dialogue || theme || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         scene.setVisibility(mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         if (mode == EditorPreviewHost.Mode.SCENE) scene.refresh(host.scenes()); else scene.release();
+        if (theme) host.refreshTheme();
+        String themeIssue = theme ? host.themeError() : "";
+        themeError.setText(themeIssue.isEmpty() ? "" : EditorWidgets.tr("theme.invalid") + " " + themeIssue);
+        themeError.setVisibility(themeIssue.isEmpty() ? GONE : VISIBLE);
         audio.setVisibility(mode == EditorPreviewHost.Mode.SOUND ? VISIBLE : GONE);
         audio.refresh();
         materialImage.setVisibility(material ? VISIBLE : GONE);
-        surface.setVisibility(dialogue || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
+        surface.setVisibility(dialogue || theme || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         var nextImage = material ? host.imagePreview() : null;
         if (!java.util.Objects.equals(nextImage, displayedImage)) {
             var previous = displayedImage;
@@ -156,7 +177,8 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         prepareViewport(widthSpec, heightSpec);
         int width = MeasureSpec.getSize(widthSpec);
         int height = MeasureSpec.getSize(heightSpec);
-        toolbarHeight = mode == EditorPreviewHost.Mode.DIALOGUE ? Math.min(height, dp(EditorWidgets.COMPACT_ROW_DP)) : 0;
+        toolbarHeight = mode == EditorPreviewHost.Mode.DIALOGUE || mode == EditorPreviewHost.Mode.THEME
+                ? Math.min(height, dp(EditorWidgets.COMPACT_ROW_DP)) : 0;
         int availableHeight = Math.max(0, height - toolbarHeight);
         if (mode == EditorPreviewHost.Mode.IMAGE) {
             viewportWidth = width; viewportHeight = availableHeight;

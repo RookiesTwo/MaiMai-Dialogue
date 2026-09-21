@@ -34,6 +34,7 @@ final class DialogueOptionsView extends LinearLayout {
     private final LinearLayout list;
     private final Consumer<DialogueOption> selectionConsumer;
     private ThemeDefinition theme = ThemeDefinition.DEFAULT;
+    private List<DialogueOption> renderedOptions = List.of();
     private DialogueTypography typography = DialogueTypography.resolve(
             ClientConfig.get()
     );
@@ -94,6 +95,7 @@ final class DialogueOptionsView extends LinearLayout {
             boolean requestingTarget
     ) {
         boolean visible = loadingOptions || !options.isEmpty();
+        renderedOptions = List.copyOf(options);
         setVisibility(visible ? View.VISIBLE : View.GONE);
         divider.setVisibility(visible ? View.VISIBLE : View.GONE);
         section.setVisibility(visible ? View.VISIBLE : View.GONE);
@@ -133,6 +135,7 @@ final class DialogueOptionsView extends LinearLayout {
         for (int index = 0; index < list.getChildCount(); index++) {
             Button button = (Button) list.getChildAt(index);
             applyOptionStyle(button);
+            button.setText(optionLabel(renderedOptions.get(index)));
             button.setLayoutParams(optionLayoutParams());
         }
         ShapeDrawable dividerBackground = new ShapeDrawable();
@@ -147,6 +150,7 @@ final class DialogueOptionsView extends LinearLayout {
                 theme.spacing().optionsExpandedLimit()
         );
         DialogueScrollbarStyle.apply(scroll, theme);
+        scroll.post(() -> updateExpandVisibility(false));
     }
 
     private void toggleExpanded() {

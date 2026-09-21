@@ -219,6 +219,10 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                         );
                         box.reset(theme);
                         skipEntry.applyTheme(theme);
+                        if (cornerControls == CornerControls.INTERACTIVE) {
+                            var color = ColorStateList.valueOf(theme.controls().icon().argb());
+                            historyEntry.setImageTintList(color); skipEntry.setImageTintList(color);
+                        }
                         applyScene(state, root, scene);
                     }
                     root.setSkipAvailable(
@@ -255,6 +259,18 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                             )
                     );
                     fastForward.schedule(state);
+                });
+    }
+
+    // 主题编辑只替换实例样式，不重置正文、选项或场景。
+    public void renderThemePreview(ThemeDefinition theme) {
+        var root = rootLayout; var box = boxView; var skip = skipButton; var history = historyButton;
+        if (root == null || box == null || skip == null || history == null || cornerControls != CornerControls.DISPLAY_ONLY) return;
+        DialogueUiDispatch.toView(root, () -> rootLayout == root && boxView == box,
+                () -> {
+                    box.updateTheme(theme); skip.applyTheme(theme);
+                    var color = ColorStateList.valueOf(theme.controls().icon().argb());
+                    skip.setImageTintList(color); history.setImageTintList(color);
                 });
     }
 

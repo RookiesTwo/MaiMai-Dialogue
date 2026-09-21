@@ -9,7 +9,7 @@ import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.SeekBar;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.NumberField;
-import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.NumberDrag;
+import top.rookiestwo.maimai_dialogue_editor.document.EditGesture;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -34,11 +34,16 @@ final class EditorNumberField extends LinearLayout {
     private boolean edited;
     private boolean invalid;
     private boolean tracking;
-    private NumberDrag gesture;
+    private EditGesture gesture;
 
     EditorNumberField(Context context, NumberField field, Supplier<String> value,
                       Function<String, String> setter, BooleanSupplier accepts, Runnable endEdit,
-                      Supplier<NumberDrag> beginDrag) {
+                      Supplier<? extends EditGesture> beginDrag) {
+        this(context, field, value, setter, accepts, endEdit, beginDrag, "scene." + field.name());
+    }
+    EditorNumberField(Context context, NumberField field, Supplier<String> value,
+                      Function<String, String> setter, BooleanSupplier accepts, Runnable endEdit,
+                      Supplier<? extends EditGesture> beginDrag, String label) {
         super(context);
         this.value = value;
         this.setter = setter;
@@ -60,15 +65,16 @@ final class EditorNumberField extends LinearLayout {
         error.setVisibility(GONE);
 
         boolean scale = field.name().equals("scale");
-        boolean bounded = !integer && field.minimum() >= -100 && field.maximum() <= 100;
+        boolean bounded = field.minimum() >= -100 && field.maximum() <= 100;
+        int ticks = integer ? 1 : 1000;
         // Scale has no upper data limit. This interval is only a convenient slider range.
         sliderMinimum = scale ? 1 : bounded
-                ? Math.max(field.minimum() > 0 ? 1 : Integer.MIN_VALUE, Math.round(field.minimum() * 1000)) : 0;
+                ? Math.max(field.minimum() > 0 ? 1 : Integer.MIN_VALUE, Math.round(field.minimum() * ticks)) : 0;
         slider = scale || bounded ? new EditorSeekBar(context) : null;
         if (slider != null) {
-            slider.setMax((scale ? 4000 : Math.round(field.maximum() * 1000)) - sliderMinimum);
-            slider.setKeyProgressIncrement(field.maximum() - field.minimum() > 10 ? 1000 : 10);
-            slider.setTooltipText(EditorWidgets.tr("scene." + field.name()));
+            slider.setMax((scale ? 4000 : Math.round(field.maximum() * ticks)) - sliderMinimum);
+            slider.setKeyProgressIncrement(integer ? 1 : field.maximum() - field.minimum() > 10 ? 1000 : 10);
+            slider.setTooltipText(EditorWidgets.tr(label));
             line.addView(slider, new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1));
             EditorWidgets.bindMetrics(slider, () -> slider.setLayoutParams(
                     new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1)));
@@ -86,7 +92,7 @@ final class EditorNumberField extends LinearLayout {
                     invalid = false;
                     edited = false;
                     error.setVisibility(GONE);
-                    String next = BigDecimal.valueOf((long) sliderMinimum + progress, 3).toPlainString();
+                    String next = BigDecimal.valueOf((long) sliderMinimum + progress, integer ? 0 : 3).toPlainString();
                     if (tracking) {
                         if (gesture == null || !gesture.update(next)) return;
                     } else setter.apply(next);
@@ -97,7 +103,7 @@ final class EditorNumberField extends LinearLayout {
 
                 @Override public void onStopTrackingTouch(SeekBar seekBar) {
                     tracking = false;
-                    NumberDrag finished = gesture; gesture = null;
+                    EditGesture finished = gesture; gesture = null;
                     if (finished != null) finished.finish(true);
                     endEdit.run();
                     writeText(display(value.get()));
@@ -201,7 +207,7 @@ final class EditorNumberField extends LinearLayout {
     private void syncSlider() {
         if (slider == null || tracking) return;
         try {
-            double ticks = Double.parseDouble(value.get()) * 1000 - sliderMinimum;
+            double ticks = Double.parseDouble(value.get()) * (integer ? 1 : 1000) - sliderMinimum;
             if (!Double.isFinite(ticks)) return;
             // Programmatic synchronization never clamps or writes the draft's actual value.
             slider.setProgress((int) Math.round(Math.clamp(ticks, 0, slider.getMax())));

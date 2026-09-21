@@ -129,7 +129,11 @@ public final class ProjectValidator {
         if (!json.isJsonObject()) { issue(key, "$", "object", ""); return; }
         int before = issues.size();
         JsonObject object = json.getAsJsonObject();
-        if (key.kind() == ResourceKind.SPEAKER) {
+        if (key.kind() == ResourceKind.THEME) {
+            top.rookiestwo.maimai_dialogue_editor.document.ThemeFields.errors(object)
+                    .forEach((field, reason) -> issue(key, field, reason.equals("edit.invalid_object") ? "object"
+                            : reason.equals("scene.invalid_color") ? "theme_color" : "theme_number", ""));
+        } else if (key.kind() == ResourceKind.SPEAKER) {
             requiredText(key, object.get("name"), "name");
         } else if (key.kind() == ResourceKind.SCENE) {
             if (object.has("background")) check(key, object.get("background"), "background",

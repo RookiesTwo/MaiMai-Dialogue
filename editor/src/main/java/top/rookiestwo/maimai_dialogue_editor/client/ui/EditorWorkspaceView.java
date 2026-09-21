@@ -46,7 +46,11 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
                 showChoices(anchor, items, selected, chosen);
             }
             @Override public void showColor(View anchor, Supplier<String> value, Consumer<String> changed) {
-                showColorPalette(anchor, value, changed);
+                showColorPalette(anchor, value, changed, null);
+            }
+            @Override public void showColor(View anchor, Supplier<String> value, Consumer<String> changed,
+                    Supplier<? extends top.rookiestwo.maimai_dialogue_editor.document.EditGesture> gesture) {
+                showColorPalette(anchor, value, changed, gesture);
             }
         };
         workbench = new EditorWorkbench(context, layout, workspace,
@@ -118,6 +122,11 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     }
 
     void escape() {
+        if (workspace.themes().editing()) {
+            workspace.themes().endGesture(false);
+            if (choices != null) dismissChoices();
+            return;
+        }
         if (workspace.scenes().numberPreview() != null) {
             workspace.scenes().endNumberDrag(false);
             return;
@@ -186,7 +195,8 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         menu.requestFocus();
     }
 
-    private void showColorPalette(View anchor, Supplier<String> value, Consumer<String> changed) {
+    private void showColorPalette(View anchor, Supplier<String> value, Consumer<String> changed,
+            Supplier<? extends top.rookiestwo.maimai_dialogue_editor.document.EditGesture> gesture) {
         if (!workspace.content().active() || !workspace.windowFocused() || !anchor.isAttachedToWindow()) return;
         dismissChoices();
         workspace.endEdit();
@@ -194,7 +204,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         EditorColorPalette palette = new EditorColorPalette(getContext(), value, selected -> {
             if (request == paletteRevision && colorPalette != null && anchor.isAttachedToWindow()
                     && workspace.content().active()) changed.accept(selected);
-        }, workspace::endEdit, () -> { if (request == paletteRevision) dismissChoices(); });
+        }, workspace::endEdit, () -> { if (request == paletteRevision) dismissChoices(); }, gesture);
         colorPalette = palette;
         choices = EditorDropdownMenu.forContent(palette, anchor, 300, this::dismissChoices);
         workbench.setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
@@ -206,6 +216,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         if (choices == null) return;
         EditorDropdownMenu previous = choices;
         choices = null;
+        if (colorPalette != null) colorPalette.finishGesture();
         colorPalette = null;
         paletteRevision++;
         previous.dispose();

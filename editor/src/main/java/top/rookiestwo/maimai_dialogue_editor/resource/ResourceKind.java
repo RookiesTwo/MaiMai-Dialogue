@@ -7,7 +7,7 @@ public enum ResourceKind {
     SCENE("scenes", "scene", true),
     VISUAL_ASSET("visual_assets", "visual_asset", true),
     ACTION("actions", "action", false),
-    THEME("themes", "theme", false),
+    THEME("themes", "theme", true),
     IMAGE("images", "image", true),
     SOUND("sounds", "sound", true);
 

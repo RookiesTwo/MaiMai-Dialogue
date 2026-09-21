@@ -54,6 +54,8 @@ public final class ProjectWorkspace {
             this::editContent, this::endEdit, () -> notifyChanged());
     private final top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace scenes =
             new top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace(this, () -> notifyChanged());
+    private final top.rookiestwo.maimai_dialogue_editor.document.ThemeWorkspace themes =
+            new top.rookiestwo.maimai_dialogue_editor.document.ThemeWorkspace(this);
 
     public ProjectWorkspace(ProjectStore store, Executor io, Executor ui,
                             Runnable closeEditor) {
@@ -66,6 +68,7 @@ public final class ProjectWorkspace {
     }
     public MaterialWorkspace materials() { return materials; }
     public top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace scenes() { return scenes; }
+    public top.rookiestwo.maimai_dialogue_editor.document.ThemeWorkspace themes() { return themes; }
     public void showImport() {
         if (busy || disposed || draft() == null || resources.form() != ResourceWorkspace.Form.NONE) return;
         endEdit(); page = Page.IMPORT; clearError(); notifyChanged();
@@ -252,6 +255,7 @@ public final class ProjectWorkspace {
     public void windowFocusChanged(boolean focused) {
         if (disposed) return;
         if (!focused) scenes.endNumberDrag(true);
+        if (!focused) themes.endGesture(true);
         windowFocused = focused;
         if (!focused) dismissMenu();
     }
@@ -259,6 +263,7 @@ public final class ProjectWorkspace {
     public void request(Action action) {
         if (busy || disposed) return;
         scenes.endNumberDrag(true);
+        themes.endGesture(true);
         materials.cancelSelection();
         endEdit();
         clearError();
@@ -419,6 +424,7 @@ public final class ProjectWorkspace {
 
     public void undo() {
         scenes.endNumberDrag(false);
+        themes.endGesture(false);
         if (canUndo() && !disposed) {
             history.undo();
             edited();
@@ -427,6 +433,7 @@ public final class ProjectWorkspace {
 
     public void redo() {
         scenes.endNumberDrag(false);
+        themes.endGesture(false);
         if (canRedo() && !disposed) {
             history.redo();
             edited();
@@ -437,6 +444,7 @@ public final class ProjectWorkspace {
 
     private void save(Action afterSave) {
         scenes.endNumberDrag(true);
+        themes.endGesture(true);
         if (history == null || busy || disposed) return;
         endEdit();
         ProjectHistory owner = history;

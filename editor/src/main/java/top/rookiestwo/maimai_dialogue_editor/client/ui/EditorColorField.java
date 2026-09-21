@@ -19,6 +19,11 @@ final class EditorColorField extends LinearLayout {
 
     EditorColorField(Context context, Supplier<String> value, Consumer<String> setter,
                      BooleanSupplier accepts, Runnable endEdit, ChoicePresenter choices) {
+        this(context, value, setter, accepts, endEdit, choices, null);
+    }
+    EditorColorField(Context context, Supplier<String> value, Consumer<String> setter,
+                     BooleanSupplier accepts, Runnable endEdit, ChoicePresenter choices,
+                     Supplier<? extends top.rookiestwo.maimai_dialogue_editor.document.EditGesture> gesture) {
         super(context);
         this.value = value;
         setOrientation(VERTICAL);
@@ -50,7 +55,7 @@ final class EditorColorField extends LinearLayout {
                 invalid = false; error.setVisibility(GONE);
                 setter.accept(selected);
                 input.setText(value.get());
-            });
+            }, gesture == null ? null : () -> accepts.getAsBoolean() ? gesture.get() : null);
         });
         line.addView(swatch);
         EditorWidgets.bindMetrics(swatch, () -> swatch.setLayoutParams(

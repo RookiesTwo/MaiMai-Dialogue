@@ -73,7 +73,7 @@ public final class SceneWorkspace {
     public void endNumberDrag(boolean commit) { if (numberDrag != null) numberDrag.finish(commit); }
 
     /** Bound to the original document and object; stale View callbacks cannot edit a new selection. */
-    public final class NumberDrag {
+    public final class NumberDrag implements EditGesture {
         private final ProjectDraft before = project.draft();
         private final long owner = project.projectGeneration();
         private final ResourceKey key = snapshot().key();

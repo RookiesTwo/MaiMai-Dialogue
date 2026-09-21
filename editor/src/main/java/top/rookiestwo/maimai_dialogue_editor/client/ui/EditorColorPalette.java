@@ -9,12 +9,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import top.rookiestwo.maimai_dialogue_editor.document.EditGesture;
 
 /** Live HSV/alpha picker; reads are side-effect free and each gesture has an undo boundary. */
 final class EditorColorPalette extends LinearLayout {
     private final Supplier<String> value;
     private final Consumer<String> changed;
     private final Runnable endEdit;
+    private final Supplier<? extends EditGesture> beginEdit;
+    private EditGesture gesture;
     private final float[] hsv = {0, 0, 1};
     private int alpha = 255;
     private String current;
@@ -26,8 +29,10 @@ final class EditorColorPalette extends LinearLayout {
     private final EditorSeekBar hue;
     private final EditorSeekBar opacity;
 
-    EditorColorPalette(Context context, Supplier<String> value, Consumer<String> changed, Runnable endEdit, Runnable close) {
+    EditorColorPalette(Context context, Supplier<String> value, Consumer<String> changed, Runnable endEdit, Runnable close,
+                       Supplier<? extends EditGesture> beginEdit) {
         super(context); this.value = value; this.changed = changed; this.endEdit = endEdit;
+        this.beginEdit = beginEdit;
         setOrientation(VERTICAL);
         EditorWidgets.bindMetrics(this, () -> setPadding(dp(6), dp(6), dp(6), dp(6)));
         var heading = new LinearLayout(context);
@@ -58,7 +63,7 @@ final class EditorColorPalette extends LinearLayout {
         opacity = slider("color.alpha", 255, 255, progress -> alpha = progress,
                 progress -> Math.round(progress * 100f / 255) + "%");
         var footer = new LinearLayout(context);
-        var clear = EditorWidgets.button(context, "color.clear", () -> {
+        var clear = EditorWidgets.button(context, beginEdit == null ? "color.clear" : "reset_value", () -> {
             if (!isAttachedToWindow()) return;
             endEdit.run(); current = ""; hsv[0] = hsv[1] = 0; hsv[2] = 1; alpha = 255;
             updateControls(); changed.accept(""); endEdit.run();
@@ -97,8 +102,8 @@ final class EditorColorPalette extends LinearLayout {
         });
         control.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             private boolean tracking;
-            @Override public void onStartTrackingTouch(SeekBar bar) { endEdit.run(); tracking = true; }
-            @Override public void onStopTrackingTouch(SeekBar bar) { tracking = false; endEdit.run(); }
+            @Override public void onStartTrackingTouch(SeekBar bar) { startGesture(); tracking = true; }
+            @Override public void onStopTrackingTouch(SeekBar bar) { tracking = false; finishGesture(); }
             @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
                 if (!fromUser || updating) return;
                 if (!tracking) endEdit.run();
@@ -111,6 +116,7 @@ final class EditorColorPalette extends LinearLayout {
     }
 
     void refresh() {
+        if (gesture != null) return;
         String next = value.get();
         if (next.equals(current)) return;
         current = next;
@@ -125,7 +131,18 @@ final class EditorColorPalette extends LinearLayout {
         int color = Color.HSVToColor(hsv) | alpha << 24;
         current = alpha == 255 ? String.format(Locale.ROOT, "#%06X", color & 0xFFFFFF)
                 : String.format(Locale.ROOT, "#%08X", color);
-        updateControls(); changed.accept(current);
+        updateControls();
+        if (gesture != null) gesture.update(current); else changed.accept(current);
+    }
+
+    private void startGesture() {
+        finishGesture(); endEdit.run();
+        gesture = beginEdit == null ? null : beginEdit.get();
+    }
+    void finishGesture() {
+        var finished = gesture; gesture = null;
+        if (finished != null) finished.finish(true);
+        endEdit.run(); refresh();
     }
 
     private void updateControls() {
@@ -134,7 +151,7 @@ final class EditorColorPalette extends LinearLayout {
         finally { updating = false; }
         readouts.forEach(Runnable::run);
         sample.setValue(current);
-        hex.setText(current.isEmpty() ? EditorWidgets.tr("color.none") : current);
+        hex.setText(current.isEmpty() ? EditorWidgets.tr(beginEdit == null ? "color.none" : "theme.default_color") : current);
         palette.invalidate();
     }
 
@@ -176,7 +193,7 @@ final class EditorColorPalette extends LinearLayout {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN -> {
                     if (!event.isButtonPressed(MotionEvent.BUTTON_PRIMARY)) return false;
-                    requestFocus(); dragging = true; endEdit.run();
+                    requestFocus(); dragging = true; startGesture();
                     getParent().requestDisallowInterceptTouchEvent(true); move(event); return true;
                 }
                 case MotionEvent.ACTION_MOVE -> {
@@ -200,7 +217,7 @@ final class EditorColorPalette extends LinearLayout {
             if (!dragging) return;
             dragging = false;
             if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
-            endEdit.run();
+            finishGesture();
         }
 
         @Override public void onWindowFocusChanged(boolean focused) { super.onWindowFocusChanged(focused); if (!focused) finish(); }

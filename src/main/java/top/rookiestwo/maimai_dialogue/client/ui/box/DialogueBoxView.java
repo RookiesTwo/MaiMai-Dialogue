@@ -168,6 +168,15 @@ public final class DialogueBoxView extends LinearLayout {
         textPlayer.refreshMetrics();
     }
 
+    // 编辑器实时换样式时保留正文进度、滚动位置和选项实例。
+    public void updateTheme(ThemeDefinition nextTheme) {
+        if (theme.equals(nextTheme)) return;
+        boolean textChanged = !theme.text().equals(nextTheme.text());
+        applyTheme(nextTheme);
+        if (textChanged) textPlayer.refreshMetrics();
+        requestLayout();
+    }
+
     public void clear() {
         renderedTextToken = Long.MIN_VALUE;
         textViewport.resetForStep();

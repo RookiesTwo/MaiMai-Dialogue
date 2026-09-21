@@ -32,7 +32,7 @@ import java.util.function.Consumer;
 
 /** UI-thread owner of one embedded runtime Fragment. Client callbacks cross back through the UI handler. */
 final class EditorPreviewHost {
-    enum Mode { DIALOGUE, IMAGE, SOUND, SCENE, EMPTY }
+    enum Mode { DIALOGUE, IMAGE, SOUND, SCENE, THEME, EMPTY }
     private final Fragment owner;
     private final ProjectWorkspace workspace;
     private final EditorPreviewAssets assets;
@@ -63,6 +63,14 @@ final class EditorPreviewHost {
     private long sceneProject = -1;
     private long sceneGeneration;
     private boolean releasingView;
+    private int themeExample;
+    private int displayedThemeExample = -1;
+    private top.rookiestwo.maimai_dialogue.theme.ThemeDefinition displayedTheme;
+    private boolean themeFramePending;
+    private final Runnable themeFrame = () -> {
+        themeFramePending = false;
+        refreshTheme();
+    };
 
     EditorPreviewHost(Fragment owner, ProjectWorkspace workspace, EditorPreviewAssets assets, AudioPreviewSession.Backend audioBackend) {
         this.owner = owner;
@@ -93,6 +101,7 @@ final class EditorPreviewHost {
         releasingView = false;
         view = new EditorPreviewView(context, this, containerId);
         workspace.scenes().setLiveListener(immediate -> { if (view != null) view.requestSceneFrame(immediate); });
+        workspace.themes().setLiveListener(this::requestThemeFrame);
         return view;
     }
 
@@ -134,6 +143,7 @@ final class EditorPreviewHost {
             case IMAGE, VISUAL_ASSET -> Mode.IMAGE;
             case SOUND -> Mode.SOUND;
             case SCENE -> Mode.SCENE;
+            case THEME -> Mode.THEME;
             default -> Mode.EMPTY;
         };
     }
@@ -167,6 +177,7 @@ final class EditorPreviewHost {
     DialogueImageSource openImages() { return assets.openImages(); }
 
     void synchronize() {
+        if (mode() != Mode.THEME && sceneDocument != null && sceneDocument.kind() == ResourceKind.THEME) clearFragments();
         // Undo/redo may restore a different document cursor before the properties View is rebound.
         var document = workspace.content().snapshot();
         record SoundSelection(long project, ResourceKey key) {}
@@ -294,7 +305,7 @@ final class EditorPreviewHost {
 
     private void showIdleControls() {
         if (disposed || view == null || !view.isAttachedToWindow()) return;
-        if (mode() == Mode.SCENE) return;
+        if (mode() == Mode.SCENE || mode() == Mode.THEME) return;
         if (mode() != Mode.DIALOGUE) { clearFragments(); return; }
         FragmentManager manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return;
@@ -318,6 +329,7 @@ final class EditorPreviewHost {
     }
 
     private void clearFragments() {
+        displayedTheme = null; displayedThemeExample = -1;
         fragment = null;
         sceneActions = null; displayedScene = null; sceneDocument = null; sceneProject = -1;
         showingIdle = false;
@@ -374,7 +386,59 @@ final class EditorPreviewHost {
     DialogueFragment sceneFragment() { return sceneActions == null ? null : fragment; }
 
     void clearScenePreview() {
-        if (sceneActions != null && !releasingView) clearFragments();
+        if (sceneActions != null && sceneDocument != null && sceneDocument.kind() == ResourceKind.SCENE && !releasingView) clearFragments();
+    }
+
+    int themeExample() { return themeExample; }
+    void themeExample(int example) { themeExample = example; refreshTheme(); if (view != null) view.refresh(); }
+    String themeError() { return workspace.themes().error(); }
+    private void requestThemeFrame(boolean immediate) {
+        if (view == null || !view.isAttachedToWindow() || mode() != Mode.THEME) return;
+        if (immediate) { view.removeCallbacks(themeFrame); themeFramePending = false; refreshTheme(); }
+        else if (!themeFramePending) { themeFramePending = true; view.postOnAnimation(themeFrame); }
+    }
+    void refreshTheme() {
+        if (disposed || releasingView || mode() != Mode.THEME || view == null || !view.isAttachedToWindow()) return;
+        var manager = owner.getChildFragmentManager();
+        if (manager.isDestroyed() || manager.isStateSaved()) return;
+        boolean sameDocument = sceneActions != null && sceneProject == workspace.projectGeneration()
+                && Objects.equals(sceneDocument, workspace.resources().opened());
+        if (!sameDocument) clearFragments();
+        var theme = workspace.themes().preview();
+        if (theme == null) return;
+        if (fragment == null || displayedThemeExample != themeExample) {
+            var state = themeState(theme);
+            if (fragment == null) {
+                sceneActions = new SceneActions(state);
+                fragment = new DialogueFragment(sceneActions, DialogueFragment.CornerControls.DISPLAY_ONLY,
+                        assets.openImages(MaterialSnapshot.EMPTY), false);
+                manager.beginTransaction().replace(containerId, fragment, "editor-theme-preview").commitNow();
+            } else { sceneActions.state = state; fragment.render(state); }
+            displayedThemeExample = themeExample;
+            sceneProject = workspace.projectGeneration(); sceneDocument = workspace.resources().opened();
+            displayedTheme = null;
+        }
+        if (!theme.equals(displayedTheme)) {
+            fragment.renderThemePreview(theme); displayedTheme = theme;
+        }
+    }
+    private DialogueScreenState themeState(top.rookiestwo.maimai_dialogue.theme.ThemeDefinition theme) {
+        var scene = new top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition(
+                top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition.DEFAULT_THEME_ID, java.util.Optional.empty(),
+                new top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout(.5f, .5f, .6f, .65f,
+                        top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor.CENTER), java.util.Map.of(), java.util.Optional.empty());
+        var initial = top.rookiestwo.maimai_dialogue.client.scene.SceneState.initial(scene);
+        var options = new java.util.ArrayList<DialogueOption>();
+        if (themeExample == 1) for (int i = 1; i <= 8; i++) options.add(new DialogueOption(
+                net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.theme.preview_option", i),
+                top.rookiestwo.maimai_dialogue.dialogue.branch.OptionIcon.QUESTION,
+                top.rookiestwo.maimai_dialogue.dialogue.branch.ReturnTarget.INSTANCE));
+        return new DialogueScreenState(++sceneGeneration, java.util.Optional.of(scene), java.util.Optional.of(theme),
+                java.util.Optional.of(new top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback(sceneGeneration, initial, initial, java.util.List.of(), 0, 0)),
+                top.rookiestwo.maimai_dialogue.client.session.PlaybackPhase.READY, true, java.util.Optional.empty(), false, false, 0,
+                java.util.Optional.of(EditorWidgets.tr("scene.preview_speaker")), java.util.Optional.of(EditorWidgets.tr("theme.preview_text")),
+                themeExample == 2 ? java.util.Optional.of(top.rookiestwo.maimai_dialogue.client.session.SessionMessage.translated(
+                        "gui.maimai_dialogue_editor.theme.preview_error")) : java.util.Optional.empty(), java.util.List.of(), options, false, false);
     }
 
     boolean showScene(ScenePreviewSession.Prepared prepared, DialogueImageSource images) {
@@ -440,6 +504,10 @@ final class EditorPreviewHost {
     void releaseView() {
         workspace.scenes().endNumberDrag(true);
         workspace.scenes().setLiveListener(immediate -> {});
+        workspace.themes().endGesture(true);
+        workspace.themes().setLiveListener(immediate -> {});
+        if (view != null) view.removeCallbacks(themeFrame);
+        themeFramePending = false;
         releasingView = true;
         audio.stop();
         finishSceneDrag(false);
