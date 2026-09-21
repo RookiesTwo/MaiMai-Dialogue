@@ -4,6 +4,7 @@ import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.RectF;
 import icyllis.modernui.fragment.FragmentContainerView;
 import icyllis.modernui.view.MeasureSpec;
+import icyllis.modernui.view.MotionEvent;
 import icyllis.modernui.view.View;
 import icyllis.modernui.widget.FrameLayout;
 
@@ -44,6 +45,30 @@ final class EditorPreviewSurface extends FrameLayout {
     float normalizedDeltaX(float distance) { return distance / Math.max(1, content.getWidth() * content.getScaleX()); }
     float normalizedDeltaY(float distance) { return distance / Math.max(1, content.getHeight() * content.getScaleY()); }
 
+    // 在缩放边界将坐标换算为内容坐标，事件本身只保留平移，避免子控件偏移被再次缩放。
+    private MotionEvent contentEvent(MotionEvent event) {
+        float[] point = {event.getX() + getScrollX() - content.getLeft(),
+                event.getY() + getScrollY() - content.getTop()};
+        if (!content.hasIdentityMatrix()) content.getInverseMatrix().mapPoint(point);
+        MotionEvent mapped = event.copy();
+        mapped.offsetLocation(point[0] - event.getX(), point[1] - event.getY());
+        return mapped;
+    }
+
+    @Override public boolean dispatchTouchEvent(MotionEvent event) {
+        if (content.getVisibility() != VISIBLE) return false;
+        MotionEvent mapped = contentEvent(event);
+        try { return content.dispatchTouchEvent(mapped); }
+        finally { mapped.recycle(); }
+    }
+
+    @Override public boolean dispatchGenericMotionEvent(MotionEvent event) {
+        if (content.getVisibility() != VISIBLE) return false;
+        MotionEvent mapped = contentEvent(event);
+        try { return content.dispatchGenericMotionEvent(mapped); }
+        finally { mapped.recycle(); }
+    }
+
     @Override protected void onMeasure(int widthSpec, int heightSpec) {
         int width = MeasureSpec.getSize(widthSpec);
         int height = MeasureSpec.getSize(heightSpec);
@@ -63,6 +88,6 @@ final class EditorPreviewSurface extends FrameLayout {
         content.setScaleY(scale);
         content.setTranslationX((right - left - logicalWidth * scale) / 2.0F);
         content.setTranslationY((bottom - top - logicalHeight * scale) / 2.0F);
-        // ModernUI maps pointer, hover and wheel coordinates through the child View's inverse transform.
+        // 绘制和命中共用此变换；事件在上面的分发入口换算一次。
     }
 }
