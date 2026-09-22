@@ -135,6 +135,7 @@ public final class ProjectValidator {
                             : reason.equals("scene.invalid_color") ? "theme_color" : "theme_number", ""));
         } else if (key.kind() == ResourceKind.SPEAKER) {
             requiredText(key, object.get("name"), "name");
+            if (object.has("typewriter_sound")) audio(key, object.get("typewriter_sound"), "typewriter_sound", false);
         } else if (key.kind() == ResourceKind.SCENE) {
             if (object.has("background")) check(key, object.get("background"), "background",
                     top.rookiestwo.maimai_dialogue.presentation.scene.SceneBackground.CODEC);
@@ -142,6 +143,7 @@ public final class ProjectValidator {
             if (object.has("dialogue_box")) check(key, object.get("dialogue_box"), "dialogue_box",
                     top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout.CODEC);
         } else if (key.kind() == ResourceKind.DIALOGUE) {
+            if (object.has("bgm")) audio(key, object.get("bgm"), "bgm", true);
             check(key, object.get("scene"), "scene", ResourceLocation.CODEC);
             JsonElement steps = object.get("steps");
             if (steps != null) {
@@ -161,6 +163,7 @@ public final class ProjectValidator {
         if (!json.isJsonObject()) { issue(key, path, "object", ""); return; }
         int before = issues.size();
         JsonObject node = json.getAsJsonObject();
+        if (node.has("typewriter_sound")) audio(key, node.get("typewriter_sound"), path + ".typewriter_sound", false);
         if (node.has("text")) check(key, node.get("text"), path + ".text", DialogueText.CODEC);
         if (node.has("speaker")) {
             JsonElement speaker = node.get("speaker");
@@ -196,6 +199,23 @@ public final class ProjectValidator {
 
     private void requiredText(ResourceKey key, JsonElement value, String path) {
         if (text(value).isBlank()) issue(key, path, "required", "");
+    }
+    private void audio(ResourceKey key, JsonElement value, String path, boolean bgm) {
+        int before = issues.size();
+        if (value instanceof JsonObject object) {
+            if (object.has("sound") || bgm && "play".equals(text(object.get("type"))))
+                check(key, object.get("sound"), path + ".sound", ResourceLocation.CODEC);
+            if (object.has("volume")) check(key, object.get("volume"), path + ".volume", top.rookiestwo.maimai_dialogue.audio.AudioCodecs.VOLUME);
+            if (bgm) {
+                if (object.has("loop")) check(key, object.get("loop"), path + ".loop", Codec.BOOL);
+                if (object.has("fade_ms")) check(key, object.get("fade_ms"), path + ".fade_ms", top.rookiestwo.maimai_dialogue.audio.AudioCodecs.TIME);
+            } else {
+                if (object.has("pitch")) check(key, object.get("pitch"), path + ".pitch", top.rookiestwo.maimai_dialogue.audio.AudioCodecs.PITCH);
+                if (object.has("min_interval_ms")) check(key, object.get("min_interval_ms"), path + ".min_interval_ms", top.rookiestwo.maimai_dialogue.audio.AudioCodecs.TIME);
+            }
+        }
+        if (before == issues.size()) check(key, value, path, bgm ? top.rookiestwo.maimai_dialogue.audio.BgmOperation.CODEC
+                : top.rookiestwo.maimai_dialogue.audio.TypewriterSound.CODEC);
     }
     private void target(ResourceKey key, JsonElement value, String path, Codec<?> codec) {
         if (value != null && value.isJsonObject() && "dialogue".equals(text(value.getAsJsonObject().get("type"))))

@@ -12,12 +12,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 
-/** Local effect interpreter. No Minecraft, networking, player progress or audio backend. */
+/** Local effect interpreter. Audio effects are drained by the client host; commands/progress remain simulated. */
 public final class EditorPreviewSession {
     public enum Status { RUNNING, FINISHED, STOPPED, FAILED }
 
     private final DialogueContentLookup content;
     private final List<String> simulatedCommands = new ArrayList<>();
+    private final List<DialogueSessionEffect.ApplyBgm> bgm = new ArrayList<>();
     private DialogueSession session;
     private DialogueScreenState state = DialogueScreenState.empty(0);
     private Status status = Status.STOPPED;
@@ -48,6 +49,8 @@ public final class EditorPreviewSession {
                 if (state.playbackPhase() == PlaybackPhase.PLAYING) apply(session.advance());
                 if (running()) apply(session.advance());
             }
+            // Seeking settles audio state without briefly starting every skipped track.
+            if (bgm.size() > 1) { var last = bgm.getLast(); bgm.clear(); bgm.add(last); }
         } catch (RuntimeException failure) {
             fail(failure);
         }
@@ -59,6 +62,9 @@ public final class EditorPreviewSession {
     public String error() { return error; }
     public List<String> simulatedCommands() { return List.copyOf(simulatedCommands); }
     public DialogueSession.Position position() { return position; }
+    public List<DialogueSessionEffect.ApplyBgm> drainBgm() {
+        var result = List.copyOf(bgm); bgm.clear(); return result;
+    }
 
     public void advance() { update(DialogueSession::advance); }
     public void skipToEnd() { update(DialogueSession::skipToEnd); }
@@ -72,6 +78,7 @@ public final class EditorPreviewSession {
         status = Status.STOPPED;
         position = null;
         simulatedCommands.clear();
+        bgm.clear();
     }
 
     private void update(Function<DialogueSession, DialogueSessionUpdate> operation) {
@@ -106,12 +113,13 @@ public final class EditorPreviewSession {
                                 command.optionIndex(), OptionCommandDecision.EXECUTED));
                     }
                     case DialogueSessionEffect.Close ignored -> {
+                        bgm.clear();
                         status = Status.FINISHED;
                         session = null;
                         state = DialogueScreenState.empty(0);
                     }
                     case DialogueSessionEffect.ReportError report -> throw new IllegalArgumentException(report.message());
-                    case DialogueSessionEffect.ApplyBgm ignored -> { /* Audio authoring/preview belongs to later stages. */ }
+                    case DialogueSessionEffect.ApplyBgm operation -> bgm.add(operation);
                     case DialogueSessionEffect.CompleteRequiredDialogue ignored -> { /* Never persist progress. */ }
                 }
                 if (!running()) break;
@@ -131,6 +139,7 @@ public final class EditorPreviewSession {
     }
 
     private void fail(RuntimeException failure) {
+        bgm.clear();
         error = failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage();
         session = null;
         state = DialogueScreenState.empty(0);

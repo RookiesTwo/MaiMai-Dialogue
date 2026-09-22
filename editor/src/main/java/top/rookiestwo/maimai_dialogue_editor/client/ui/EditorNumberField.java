@@ -44,6 +44,11 @@ final class EditorNumberField extends LinearLayout {
     EditorNumberField(Context context, NumberField field, Supplier<String> value,
                       Function<String, String> setter, BooleanSupplier accepts, Runnable endEdit,
                       Supplier<? extends EditGesture> beginDrag, String label) {
+        this(context, field, value, setter, accepts, endEdit, beginDrag, label, Float.NaN);
+    }
+    EditorNumberField(Context context, NumberField field, Supplier<String> value,
+                      Function<String, String> setter, BooleanSupplier accepts, Runnable endEdit,
+                      Supplier<? extends EditGesture> beginDrag, String label, float quickMaximum) {
         super(context);
         this.value = value;
         this.setter = setter;
@@ -65,14 +70,15 @@ final class EditorNumberField extends LinearLayout {
         error.setVisibility(GONE);
 
         boolean scale = field.name().equals("scale");
-        boolean bounded = field.minimum() >= -100 && field.maximum() <= 100;
+        boolean bounded = Float.isFinite(quickMaximum) || field.minimum() >= -100 && field.maximum() <= 100;
+        float maximum = Float.isFinite(quickMaximum) ? quickMaximum : field.maximum();
         int ticks = integer ? 1 : 1000;
         // Scale has no upper data limit. This interval is only a convenient slider range.
         sliderMinimum = scale ? 1 : bounded
                 ? Math.max(field.minimum() > 0 ? 1 : Integer.MIN_VALUE, Math.round(field.minimum() * ticks)) : 0;
         slider = scale || bounded ? new EditorSeekBar(context) : null;
         if (slider != null) {
-            slider.setMax((scale ? 4000 : Math.round(field.maximum() * ticks)) - sliderMinimum);
+            slider.setMax((scale ? 4000 : Math.round(maximum * ticks)) - sliderMinimum);
             slider.setKeyProgressIncrement(integer ? 1 : field.maximum() - field.minimum() > 10 ? 1000 : 10);
             slider.setTooltipText(EditorWidgets.tr(label));
             line.addView(slider, new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1));

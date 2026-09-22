@@ -56,6 +56,8 @@ public final class ProjectWorkspace {
             new top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace(this, () -> notifyChanged());
     private final top.rookiestwo.maimai_dialogue_editor.document.ThemeWorkspace themes =
             new top.rookiestwo.maimai_dialogue_editor.document.ThemeWorkspace(this);
+    private final top.rookiestwo.maimai_dialogue_editor.document.AudioWorkspace audio =
+            new top.rookiestwo.maimai_dialogue_editor.document.AudioWorkspace(this);
 
     public ProjectWorkspace(ProjectStore store, Executor io, Executor ui,
                             Runnable closeEditor) {
@@ -69,6 +71,7 @@ public final class ProjectWorkspace {
     public MaterialWorkspace materials() { return materials; }
     public top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace scenes() { return scenes; }
     public top.rookiestwo.maimai_dialogue_editor.document.ThemeWorkspace themes() { return themes; }
+    public top.rookiestwo.maimai_dialogue_editor.document.AudioWorkspace audio() { return audio; }
     public void showImport() {
         if (busy || disposed || draft() == null || resources.form() != ResourceWorkspace.Form.NONE) return;
         endEdit(); page = Page.IMPORT; clearError(); notifyChanged();
@@ -256,6 +259,7 @@ public final class ProjectWorkspace {
         if (disposed) return;
         if (!focused) scenes.endNumberDrag(true);
         if (!focused) themes.endGesture(true);
+        if (!focused) audio.endGesture(true);
         windowFocused = focused;
         if (!focused) dismissMenu();
     }
@@ -264,6 +268,7 @@ public final class ProjectWorkspace {
         if (busy || disposed) return;
         scenes.endNumberDrag(true);
         themes.endGesture(true);
+        audio.endGesture(true);
         materials.cancelSelection();
         endEdit();
         clearError();
@@ -425,6 +430,7 @@ public final class ProjectWorkspace {
     public void undo() {
         scenes.endNumberDrag(false);
         themes.endGesture(false);
+        audio.endGesture(false);
         if (canUndo() && !disposed) {
             history.undo();
             edited();
@@ -434,6 +440,7 @@ public final class ProjectWorkspace {
     public void redo() {
         scenes.endNumberDrag(false);
         themes.endGesture(false);
+        audio.endGesture(false);
         if (canRedo() && !disposed) {
             history.redo();
             edited();
@@ -445,6 +452,7 @@ public final class ProjectWorkspace {
     private void save(Action afterSave) {
         scenes.endNumberDrag(true);
         themes.endGesture(true);
+        audio.endGesture(true);
         if (history == null || busy || disposed) return;
         endEdit();
         ProjectHistory owner = history;

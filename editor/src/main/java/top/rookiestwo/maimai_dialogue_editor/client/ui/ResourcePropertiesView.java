@@ -19,8 +19,9 @@ final class ResourcePropertiesView extends LinearLayout {
     private final SceneLayoutPropertiesView sceneLayout;
     private final DialogueScenePropertiesView dialogueScene;
     private final ThemePropertiesView themes;
+    private final AudioPropertiesView audio;
 
-    ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, EditorLayoutState layout) {
+    ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, EditorLayoutState layout, EditorPreviewHost preview) {
         super(context);
         this.workspace = workspace;
         setOrientation(VERTICAL);
@@ -42,6 +43,8 @@ final class ResourcePropertiesView extends LinearLayout {
         addView(dialogueScene, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         themes = new ThemePropertiesView(context, workspace, choices, layout);
         addView(themes, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        audio = new AudioPropertiesView(context, workspace, choices, layout, preview);
+        addView(audio, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         refresh();
     }
 
@@ -88,5 +91,6 @@ final class ResourcePropertiesView extends LinearLayout {
         dialogueScene.refresh();
         themes.setVisibility(opened && key.kind() == ResourceKind.THEME ? VISIBLE : GONE);
         themes.refresh();
+        audio.refresh();
     }
 }

@@ -45,6 +45,18 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
             @Override public void show(View anchor, List<Item> items, String selected, Consumer<String> chosen) {
                 showChoices(anchor, items, selected, chosen);
             }
+            @Override public void showSearchable(View anchor, List<Item> items, String selected, Consumer<String> chosen) {
+                if (!workspace.content().active() || !workspace.windowFocused() || !anchor.isAttachedToWindow()) return;
+                dismissChoices(); workspace.endEdit();
+                var content = new EditorSearchChoices(getContext(), items, selected, value -> {
+                    dismissChoices();
+                    if (anchor.isAttachedToWindow() && workspace.content().active()) chosen.accept(value);
+                });
+                choices = EditorDropdownMenu.forField(content, anchor, EditorWorkspaceView.this::dismissChoices);
+                workbench.setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
+                addView(choices, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+                choices.requestFocus();
+            }
             @Override public void showColor(View anchor, Supplier<String> value, Consumer<String> changed) {
                 showColorPalette(anchor, value, changed, null);
             }
@@ -122,6 +134,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     }
 
     void escape() {
+        if (workspace.audio().editing()) { workspace.audio().endGesture(false); return; }
         if (workspace.themes().editing()) {
             workspace.themes().endGesture(false);
             if (choices != null) dismissChoices();

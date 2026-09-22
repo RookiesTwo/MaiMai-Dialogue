@@ -16,6 +16,7 @@ import top.rookiestwo.maimai_dialogue.client.ui.screen.DialogueFragment;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueOption;
 import top.rookiestwo.maimai_dialogue_editor.content.ProjectContentSnapshot;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorDialogueAudio;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialSnapshot;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
 import top.rookiestwo.maimai_dialogue_editor.preview.EditorPreviewSession;
@@ -37,6 +38,14 @@ final class EditorPreviewHost {
     private final ProjectWorkspace workspace;
     private final EditorPreviewAssets assets;
     private final AudioPreviewSession audio;
+    private EditorDialogueAudio dialogueAudio;
+    private EditorDialogueAudio audition;
+    private long auditionRevision;
+    private boolean auditionLoading;
+    private ProjectDraft auditionDraft;
+    private top.rookiestwo.maimai_dialogue_editor.document.AudioWorkspace.Target auditionTarget;
+    private String auditionError = "";
+    private Runnable audioChanged = () -> {};
     private final ScenePreviewSession scenes;
     private final int containerId = View.generateViewId();
     private EditorPreviewView view;
@@ -148,6 +157,59 @@ final class EditorPreviewHost {
         };
     }
     AudioPreviewSession audio() { return audio; }
+    void setAudioListener(Runnable listener) { audioChanged = listener; }
+    boolean auditioning() { return auditionLoading || audition != null && audition.active(); }
+    String auditionError() { return auditionError; }
+    private EditorDialogueAudio audioScope(MaterialSnapshot materials, long expected, boolean sample) {
+        return new EditorDialogueAudio(materials, task -> workspace.prepare(() -> { task.run(); return null; }),
+                failure -> Core.getUiHandler().post(() -> {
+                    if (disposed || (sample ? expected != auditionRevision : expected != revision)) return;
+                    if (sample) auditionError = failure; else error = failure;
+                    refresh();
+                }), () -> Core.getUiHandler().post(this::refresh));
+    }
+    void audition() {
+        var model = workspace.audio();
+        if (!model.active()) return;
+        workspace.endEdit();
+        stopAudition();
+        top.rookiestwo.maimai_dialogue.audio.BgmOperation bgm;
+        top.rookiestwo.maimai_dialogue.audio.TypewriterSound typing;
+        try {
+            bgm = model.target().bgm() ? model.bgm().orElse(null) : null;
+            typing = model.target().bgm() ? null : model.typing();
+            if (bgm == null && typing == null || typing != null && !typing.enabled()) return;
+        } catch (RuntimeException invalid) { auditionError = String.valueOf(invalid.getMessage()); refresh(); return; }
+        if (running() || loading) stop();
+        audio.stop();
+        auditionTarget = model.target(); auditionDraft = workspace.draft();
+        var captured = auditionDraft; long expected = ++auditionRevision;
+        auditionLoading = true; auditionError = "";
+        workspace.prepare(() -> {
+            try { return MaterialSnapshot.prepare(captured); }
+            catch (java.io.IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
+        }).whenComplete((materials, failure) -> Core.getUiHandler().post(() -> {
+            if (disposed || expected != auditionRevision || captured != workspace.draft()) return;
+            auditionLoading = false;
+            if (failure != null) auditionError = String.valueOf(failure.getMessage());
+            else {
+                audition = audioScope(materials, expected, true);
+                if (bgm != null) audition.audition(bgm); else audition.audition(typing);
+            }
+            refresh();
+        }));
+        refresh();
+    }
+    void stopAudition() {
+        ++auditionRevision; auditionLoading = false;
+        if (audition != null) audition.close();
+        audition = null; auditionDraft = null; auditionTarget = null; auditionError = "";
+        audioChanged.run();
+    }
+    private void closeDialogueAudio() {
+        if (dialogueAudio != null) dialogueAudio.close();
+        dialogueAudio = null;
+    }
     ScenePreviewSession scenes() { return scenes; }
     EditorPreviewAssets assets() { return assets; }
     ProjectWorkspace workspace() { return workspace; }
@@ -177,6 +239,8 @@ final class EditorPreviewHost {
     DialogueImageSource openImages() { return assets.openImages(); }
 
     void synchronize() {
+        if (auditionDraft != null && (auditionDraft != workspace.draft()
+                || !Objects.equals(auditionTarget, workspace.audio().target()))) stopAudition();
         if (mode() != Mode.THEME && sceneDocument != null && sceneDocument.kind() == ResourceKind.THEME) clearFragments();
         // Undo/redo may restore a different document cursor before the properties View is rebound.
         var document = workspace.content().snapshot();
@@ -221,6 +285,8 @@ final class EditorPreviewHost {
         // A new tree selection may supersede a pending start before the client snapshot arrives.
         if (!canStart() || view == null || !view.isAttachedToWindow()) return;
         workspace.endEdit();
+        stopAudition();
+        closeDialogueAudio();
         // Keep the displayed session and controls until the replacement is ready.
         // Its callbacks are suspended while loading, then discarded by session identity.
         source = workspace.draft();
@@ -259,6 +325,7 @@ final class EditorPreviewHost {
                     if (advanceAfterLoad) playback.advance();
                     advanceAfterLoad = false;
                     if (running()) {
+                        dialogueAudio = audioScope(content.assets(), expected, false);
                         showingIdle = false;
                         fragment = new DialogueFragment(new PreviewActions(playback), DialogueFragment.CornerControls.DISPLAY_ONLY,
                                 assets.openImages(content.assets()));
@@ -266,6 +333,7 @@ final class EditorPreviewHost {
                     }
                     render();
                 } catch (RuntimeException failure) {
+                    closeDialogueAudio();
                     advanceAfterLoad = false;
                     if (playback != null) playback.stop();
                     playback = null;
@@ -317,6 +385,7 @@ final class EditorPreviewHost {
     }
 
     private void reset() {
+        closeDialogueAudio();
         ++revision;
         loading = false;
         advanceAfterLoad = false;
@@ -355,8 +424,12 @@ final class EditorPreviewHost {
             case FAILED -> "preview.failed";
         };
         error = playback.error();
-        if (running() && fragment != null) fragment.render(playback.state());
+        if (running() && fragment != null) {
+            if (dialogueAudio != null) dialogueAudio.render(playback.state(), playback.drainBgm());
+            fragment.render(playback.state());
+        }
         else {
+            closeDialogueAudio();
             // Drop decoded definitions, history and simulated commands as soon as playback ends.
             playback = null;
             showIdleControls();
@@ -380,6 +453,7 @@ final class EditorPreviewHost {
 
     private void refresh() {
         if (view != null) view.refresh();
+        audioChanged.run();
         changed.run();
     }
 
@@ -502,6 +576,8 @@ final class EditorPreviewHost {
     }
 
     void releaseView() {
+        workspace.audio().endGesture(true);
+        stopAudition(); closeDialogueAudio(); audioChanged = () -> {};
         workspace.scenes().endNumberDrag(true);
         workspace.scenes().setLiveListener(immediate -> {});
         workspace.themes().endGesture(true);
@@ -563,6 +639,14 @@ final class EditorPreviewHost {
         @Override public void completeTextPlayback(long generation, long token) {
             dispatch(current -> current.completeText(generation, token));
         }
+        private void audio(Consumer<EditorDialogueAudio> action) {
+            Core.getUiHandler().post(() -> {
+                if (!disposed && !loading && session != null && playback == session && session.running() && dialogueAudio != null)
+                    action.accept(dialogueAudio);
+            });
+        }
+        @Override public void audioFrame(long generation, long token, int elapsedMs) { audio(audio -> audio.frame(generation, token, elapsedMs)); }
+        @Override public void textRevealed(long generation, long token, int end, boolean audible) { audio(audio -> audio.reveal(generation, token, end, audible)); }
         @Override public void closeFromUi() { dispatch(EditorPreviewSession::stop); }
         @Override public void onScreenDestroyed(DialogueScreenHandle screen) {
             dispatch(current -> { if (fragment == screen) current.stop(); });

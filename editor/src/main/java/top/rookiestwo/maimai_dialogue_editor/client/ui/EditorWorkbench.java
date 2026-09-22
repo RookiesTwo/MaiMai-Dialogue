@@ -55,7 +55,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             state.leftCollapsed = true;
             requestLayout();
         }, true);
-        resourceProperties = new ResourcePropertiesView(context, workspace, choices, state);
+        resourceProperties = new ResourcePropertiesView(context, workspace, choices, state, previewHost);
         properties = new EditorPanel(context, "properties", EditorWidgets.formScroll(context, resourceProperties), () -> {
             cancelDrags();
             state.rightCollapsed = true;
