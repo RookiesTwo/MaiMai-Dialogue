@@ -422,5 +422,21 @@
   "gui.maimai_dialogue_editor.browser.error.stale_source": "The source has changed. Please reopen this operation.",
   "gui.maimai_dialogue_editor.action.preview_scene": "Preview scene",
   "gui.maimai_dialogue_editor.action.preview_empty_scene": "Empty scene",
-  "gui.maimai_dialogue_editor.action.preview_play": "Play action"
+  "gui.maimai_dialogue_editor.action.preview_play": "Play action",
+  "gui.maimai_dialogue_editor.timeline.replay": "Replay current action timeline",
+  "gui.maimai_dialogue_editor.timeline.stop": "Stop and rewind",
+  "gui.maimai_dialogue_editor.timeline.position": "Time position (milliseconds)",
+  "gui.maimai_dialogue_editor.timeline.automatic_fade": "Default dialogue fade-in",
+  "gui.maimai_dialogue_editor.timeline.action": "Action",
+  "gui.maimai_dialogue_editor.timeline.keyframe.at_playhead": "Add a %s ms playhead keyframe to %s (%s ms into the action), using its current delta.",
+  "gui.maimai_dialogue_editor.timeline.keyframe.playhead_hint": "Playhead: drag to seek, right-click to add a keyframe here",
+  "gui.maimai_dialogue_editor.timeline.keyframe.outside": "The playhead is outside this action",
+  "gui.maimai_dialogue_editor.timeline.keyframe.zero_duration": "Set an action duration greater than zero first",
+  "gui.maimai_dialogue_editor.timeline.keyframe.duplicate": "A keyframe already exists at this time",
+  "gui.maimai_dialogue_editor.timeline.keyframe.no_track": "Add an X/Y movement, scale or opacity track first",
+  "gui.maimai_dialogue_editor.timeline.keyframe.no_action": "No action is available for keyframes",
+  "gui.maimai_dialogue_editor.timeline.keyframe.readonly": "The default fade-in track is read-only",
+  "gui.maimai_dialogue_editor.timeline.keyframe.unavailable": "Select an action with a valid timeline to add a keyframe at the playhead",
+  "gui.maimai_dialogue_editor.timeline.keyframe.invalid": "Correct invalid action values first",
+  "gui.maimai_dialogue_editor.timeline.keyframe.make_inline": "Make inline and add"
 }

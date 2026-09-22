@@ -23,6 +23,10 @@ final class ActionPropertiesView extends LinearLayout {
     private final ActionWorkspace model;
     private final ChoicePresenter choices;
     private final EditorLayoutState layout;
+    private final EditorPreviewHost preview;
+    private final EditorActionKeyframes keyframes;
+    private final List<Runnable> keyframeBindings = new ArrayList<>();
+    private final Runnable timelineListener = () -> keyframeBindings.forEach(Runnable::run);
     private final List<Runnable> bindings = new ArrayList<>();
     private final Map<String, View> fields = new HashMap<>();
     private Binding binding;
@@ -30,8 +34,9 @@ final class ActionPropertiesView extends LinearLayout {
     private String sceneSignature = "", contextError = "", conversionError = "";
     private long metadataRequest, conversionRequest, focusedIssue = -1;
     private ActionSceneContext scene;
-    ActionPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
+    ActionPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout, EditorPreviewHost preview) {
         super(context); setOrientation(VERTICAL); this.project = project; model = project.actions(); this.choices = choices; this.layout = layout;
+        this.preview = preview; keyframes = new EditorActionKeyframes(project, preview, choices);
     }
     void refresh() {
         var context = model.inspecting() ? model.context() : null;
@@ -41,7 +46,7 @@ final class ActionPropertiesView extends LinearLayout {
         try {
             setVisibility(context == null ? GONE : VISIBLE);
             if (!next.equals(binding)) {
-                clearFocus(); binding = next; removeAllViews(); bindings.clear(); fields.clear(); conversionError = ""; ++conversionRequest;
+                clearFocus(); binding = next; removeAllViews(); bindings.clear(); keyframeBindings.clear(); fields.clear(); conversionError = ""; ++conversionRequest;
                 if (context != null) build();
             }
             bindings.forEach(Runnable::run);
@@ -177,9 +182,15 @@ final class ActionPropertiesView extends LinearLayout {
             number(body, "action.at", false, ActionFields.fraction(track + "." + index + ".at", (index + 1f) / frames.size(), true));
             number(body, "action.delta", false, ActionFields.delta(track + "." + index + ".value", track));
         }
-        var add = EditorWidgets.button(getContext(), "action.add_keyframe", () -> { if (accepts(expected)) model.addFrame(track); });
+        var add = EditorWidgets.button(getContext(), "action.add_keyframe", () -> {});
+        add.setOnClickListener(view -> { if (accepts(expected)) keyframes.addAtPlayhead(add, track); });
         EditorWidgets.propertyRow(body, null, add, false);
-        bindings.add(() -> EditorWidgets.enabled(add, model.active() && model.canAddFrame(track)));
+        Runnable update = () -> {
+            boolean enabled = model.active() && keyframes.canAdd(track);
+            if (add.isEnabled() != enabled) EditorWidgets.enabled(add, enabled);
+            add.setTooltipText(keyframes.tooltip(track));
+        };
+        bindings.add(update); keyframeBindings.add(update);
     }
     private void change(String field) {
         var body = component(field); if (!(model.definition().get(field) instanceof JsonObject)) return;
@@ -281,7 +292,11 @@ final class ActionPropertiesView extends LinearLayout {
             }
         });
     }
+    @Override protected void onAttachedToWindow() {
+        super.onAttachedToWindow(); preview.addTimelineObserver(timelineListener); timelineListener.run();
+    }
     @Override protected void onDetachedFromWindow() {
+        preview.removeTimelineObserver(timelineListener);
         ++metadataRequest; ++conversionRequest; sceneSignature = ""; scene = null;
         super.onDetachedFromWindow();
     }

@@ -17,12 +17,15 @@ final class ResourceDocumentView extends FrameLayout {
     private final Button locate;
     private final Button close;
     private int inset;
-    private int closeWidth;
-    private int actionWidth;
+    private int verticalInset;
+    private int buttonSize;
+    private int buttonGap;
+    private int titleWidth;
 
     ResourceDocumentView(Context context, ProjectWorkspace workspace) {
         super(context);
         this.workspace = workspace;
+        EditorWidgets.propertyButtonScope(this);
         title = EditorWidgets.label(context, "browser.no_document", 13, EditorWidgets.ACCENT);
         add = EditorWidgets.icon(context, "+", "edit.add_step", workspace.content()::addStep);
         locate = EditorWidgets.icon(context, "↳", "edit.locate_step", () ->
@@ -54,27 +57,34 @@ final class ResourceDocumentView extends FrameLayout {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int width = MeasureSpec.getSize(widthMeasureSpec);
         int height = MeasureSpec.getSize(heightMeasureSpec);
-        inset = Math.min(dp(4), Math.min(width, height) / 2);
+        inset = Math.min(dp(4), width / 2);
+        verticalInset = Math.min(dp(2), height / 2);
         int available = Math.max(0, width - inset * 2);
-        int contentHeight = Math.max(0, height - inset * 2);
-        closeWidth = close.getVisibility() == GONE ? 0 : Math.min(dp(24), available);
-        actionWidth = add.getVisibility() == GONE ? 0 : Math.min(dp(24), (available - closeWidth) / 2);
-        EditorPanel.measureExact(title, available - closeWidth - actionWidth * 2, contentHeight);
-        EditorPanel.measureExact(add, actionWidth, contentHeight);
-        EditorPanel.measureExact(locate, actionWidth, contentHeight);
-        EditorPanel.measureExact(close, closeWidth, contentHeight);
+        int contentHeight = Math.max(0, height - verticalInset * 2);
+        int count = (close.getVisibility() == GONE ? 0 : 1) + (add.getVisibility() == GONE ? 0 : 2);
+        buttonGap = count == 0 ? 0 : Math.min(dp(4), available / (count * 2));
+        int gaps = buttonGap * Math.max(0, count - 1);
+        buttonSize = count == 0 ? 0 : Math.min(dp(EditorWidgets.COMPACT_CONTROL_DP),
+                Math.min(contentHeight, Math.max(0, available - gaps) / count));
+        int remaining = Math.max(0, available - count * buttonSize - gaps);
+        titleWidth = remaining - (count == 0 ? 0 : Math.min(dp(6), remaining));
+        EditorPanel.measureExact(title, titleWidth, contentHeight);
+        for (Button button : new Button[]{add, locate, close}) {
+            int size = button.getVisibility() == GONE ? 0 : buttonSize;
+            EditorPanel.measureExact(button, size, size);
+        }
         setMeasuredDimension(width, height);
     }
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         int end = right - left - inset;
-        int contentBottom = bottom - top - inset;
-        close.layout(end - closeWidth, inset, end, contentBottom);
-        end -= closeWidth;
-        locate.layout(end - actionWidth, inset, end, contentBottom);
-        end -= actionWidth;
-        add.layout(end - actionWidth, inset, end, contentBottom);
-        title.layout(inset, inset, end - actionWidth, contentBottom);
+        int buttonTop = (bottom - top - buttonSize) / 2;
+        for (Button button : new Button[]{close, locate, add}) {
+            if (button.getVisibility() == GONE) { button.layout(0, 0, 0, 0); continue; }
+            button.layout(end - buttonSize, buttonTop, end, buttonTop + buttonSize);
+            end -= buttonSize + buttonGap;
+        }
+        title.layout(inset, verticalInset, inset + titleWidth, bottom - top - verticalInset);
     }
 }

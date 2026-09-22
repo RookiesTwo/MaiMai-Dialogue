@@ -21,6 +21,7 @@ final class EditorDropdownMenu extends FrameLayout {
     private final int[] ownLocation = new int[2];
     private boolean disposed;
     private boolean dismissQueued;
+    private icyllis.modernui.graphics.PointF anchorPoint;
 
     EditorDropdownMenu(View content, View anchor, Runnable onDismiss) {
         this(content, anchor, onDismiss, false);
@@ -36,6 +37,11 @@ final class EditorDropdownMenu extends FrameLayout {
 
     static EditorDropdownMenu forContent(View content, View anchor, int widthDp, Runnable onDismiss) {
         return new EditorDropdownMenu(content, anchor, onDismiss, false, widthDp);
+    }
+    static EditorDropdownMenu atPoint(View content, View anchor, float x, float y, Runnable onDismiss) {
+        var menu = new EditorDropdownMenu(content, anchor, onDismiss, false, 280);
+        menu.anchorPoint = new icyllis.modernui.graphics.PointF(x, y);
+        return menu;
     }
 
     private EditorDropdownMenu(View content, View anchor, Runnable onDismiss, boolean matchAnchorWidth, int widthDp) {
@@ -65,9 +71,9 @@ final class EditorDropdownMenu extends FrameLayout {
         anchor.getLocationInWindow(anchorLocation);
         getLocationInWindow(ownLocation);
         int panelWidth = Math.min(matchAnchorWidth ? anchor.getWidth() : dp(preferredWidthDp), width);
-        int left = Math.clamp(anchorLocation[0] - ownLocation[0], 0, width - panelWidth);
-        int anchorTop = Math.clamp(anchorLocation[1] - ownLocation[1], 0, height);
-        int top = Math.clamp(anchorTop + anchor.getHeight(), 0, height);
+        int left = Math.clamp(anchorLocation[0] - ownLocation[0] + (anchorPoint == null ? 0 : Math.round(anchorPoint.x)), 0, width - panelWidth);
+        int anchorTop = Math.clamp(anchorLocation[1] - ownLocation[1] + (anchorPoint == null ? 0 : Math.round(anchorPoint.y)), 0, height);
+        int top = Math.clamp(anchorTop + (anchorPoint == null ? anchor.getHeight() : 0), 0, height);
         boolean above = height - top < dp(180) && anchorTop > height - top;
         scroll.measure(MeasureSpec.makeMeasureSpec(panelWidth, MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(above ? anchorTop : height - top, MeasureSpec.AT_MOST));

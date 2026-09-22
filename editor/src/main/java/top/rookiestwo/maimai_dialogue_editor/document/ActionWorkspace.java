@@ -172,31 +172,26 @@ public final class ActionWorkspace {
             else if (!bgm.has("sound")) bgm.addProperty("sound", "");
         });
     }
-    public void addFrame(String track) {
-        if (!canAddFrame(track)) return;
-        edit(false, null, action -> {
-            var frames = array(action, track); if (frames == null) return;
-            float last = frames.isEmpty() ? 0 : Float.parseFloat(ActionFields.text(frames.get(frames.size() - 1), "at", "0"));
-            var frame = new JsonObject();
-            if (last < 1) { frame.addProperty("at", 1); frame.addProperty("value", 0); frames.add(frame); }
-            else {
-                float previous = 0;
-                for (int i = 0; i < frames.size(); i++) {
-                    float at = Float.parseFloat(ActionFields.text(frames.get(i), "at", "0"));
-                    if (at - previous > .00001f) {
-                        frame.addProperty("at", (previous + at) / 2); frame.addProperty("value", 0); insert(frames, i, frame); break;
-                    }
-                    previous = at;
-                }
-            }
-            action.add(track, frames);
-        });
-    }
-    public boolean canAddFrame(String track) {
-        if (!active() || definition() == null || !ActionFields.TRACKS.contains(track)) return false;
-        var value = definition().get(track);
-        return value instanceof JsonArray array && (array.isEmpty() || top.rookiestwo.maimai_dialogue.presentation.action.NumericTrack.CODEC
-                .parse(com.mojang.serialization.JsonOps.INSTANCE, value).result().isPresent());
+    public String addFrameAt(String track, int timeMs, int delayMs, JsonObject referenced) {
+        if (!active() || editing()) return "unavailable";
+        boolean reference = mode().equals("reference");
+        JsonObject definition = reference ? referenced : definition();
+        if (definition == null) return "unavailable";
+        if (!ActionFields.errors(definition).isEmpty()) return "invalid";
+        ActionKeyframes.Insertion insertion;
+        try {
+            var action = top.rookiestwo.maimai_dialogue.presentation.action.SceneAction.CODEC
+                    .parse(com.mojang.serialization.JsonOps.INSTANCE, definition).getOrThrow();
+            insertion = ActionKeyframes.plan(action, track, timeMs, delayMs);
+        } catch (RuntimeException invalid) { return "invalid"; }
+        if (!insertion.valid()) return insertion.error();
+        if (reference) {
+            var copy = definition.deepCopy(); ActionKeyframes.insert(copy, track, insertion);
+            edit(true, null, call -> {
+                var spec = call.getAsJsonObject("action"); spec.remove("id"); spec.addProperty("type", "inline"); spec.add("action", copy);
+            });
+        } else edit(false, null, action -> ActionKeyframes.insert(action, track, insertion));
+        return "";
     }
     public void applyPreset(String id) {
         edit(false, null, action -> {

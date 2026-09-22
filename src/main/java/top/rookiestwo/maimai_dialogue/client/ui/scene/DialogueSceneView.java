@@ -200,6 +200,18 @@ public final class DialogueSceneView extends FrameLayout {
         }
     }
 
+    /** UI-thread authoring sample. Never reports playback progress, completion or audio cues. */
+    public void renderPlaybackAt(ScenePlayback playback, int elapsedMs) {
+        if (transition.current() == null) return;
+        cancelSceneAnimator();
+        playbackToken = playback.token();
+        previewState = null;
+        int time = Math.clamp(elapsedMs, 0, playback.totalDurationMs());
+        applyState(playback.stateAt(time), playback.variantTransitionsAt(time));
+        // A manually sampled scene is fully mounted; object/dialogue opacity still comes from stateAt.
+        transition.finish();
+    }
+
     // 取消动画并释放当前场景持有的全部视图和图片。
     public void clearScene() {
         previewState = null; previewFilter = null;

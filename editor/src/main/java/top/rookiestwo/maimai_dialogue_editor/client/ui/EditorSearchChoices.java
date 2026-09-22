@@ -35,7 +35,8 @@ final class EditorSearchChoices extends LinearLayout {
         int end = Math.min(shown + 100, filtered.size());
         for (; shown < end; shown++) {
             var item = filtered.get(shown);
-            var button = EditorWidgets.button(getContext(), "", () -> chosen.accept(item.value()));
+            var button = EditorWidgets.button(getContext(), "", () -> { if (item.enabled()) chosen.accept(item.value()); });
+            EditorWidgets.enabled(button, item.enabled());
             button.setText(item.label()); button.setTooltipText(item.label()); button.setSelected(item.value().equals(selected));
             button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL); results.addView(button);
             EditorWidgets.bindMetrics(button, () -> {

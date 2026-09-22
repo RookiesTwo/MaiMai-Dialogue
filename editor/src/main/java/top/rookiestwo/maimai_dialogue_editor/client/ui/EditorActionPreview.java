@@ -30,6 +30,7 @@ final class EditorActionPreview {
     private Playback actions;
     private long revision, generation;
     private boolean playRequested, playing;
+    private Integer restorePosition;
     private String failure = "";
 
     EditorActionPreview(EditorPreviewHost host) {
@@ -52,6 +53,12 @@ final class EditorActionPreview {
     }
     boolean canPlay() { return host.mode() == EditorPreviewHost.Mode.ACTION && workspace.actions().active(); }
     boolean playing() { return playing || playRequested; }
+    boolean canSeek() { return canPlay() && displayed != null && displayed == session.prepared() && pendingImages == null; }
+    void pauseForSeek() {
+        boolean changed = playing || playRequested || audio != null;
+        closeAudio(); playRequested = playing = false;
+        if (changed) host.refresh();
+    }
     String error() { return failure.isEmpty() ? session.error() : failure; }
     List<String> targets() {
         var scene = session.prepared();
@@ -63,9 +70,10 @@ final class EditorActionPreview {
                 : new ActionPreviewSession.Request(workspace.projectGeneration(), workspace.draft(), workspace.resources().opened(), model.previewContext());
         if (Objects.equals(next, request)) { prepared(); return; }
         boolean sameDocument = next != null && request != null && next.project() == request.project() && next.key().equals(request.key());
+        restorePosition = sameDocument && next.context().equals(request.context()) ? host.timeline().position() : null;
         cancelPending(); closeAudio(); playRequested = playing = false;
-        if (sameDocument && displayed != null) render(false); // Halt the old animation while preserving a valid scene during preparation.
-        else { actions = null; displayed = null; closeImages(); host.clearActionPreview(); }
+        if (sameDocument && displayed != null) host.freezeTimelineFrame();
+        else { actions = null; displayed = null; closeImages(); host.clearActionPreview(); host.clearTimeline(this); }
         request = next; preparing = null; failure = "";
         session.select(next);
     }
@@ -103,11 +111,14 @@ final class EditorActionPreview {
         });
     }
     private void publish(ActionPreviewSession.Prepared next, Map<ResourceLocation, Image> loaded, DialogueImageSource source) {
+        boolean play = playRequested;
         try {
             var ready = new EditorReadyImages(loaded); closeImages(); images = ready; displayed = next;
-            boolean play = playRequested; playRequested = false; render(play);
+            playRequested = false; render(play);
         } catch (RuntimeException invalid) { failure = String.valueOf(invalid.getMessage()); playRequested = false; }
         finally { source.close(); pendingImages = null; }
+        if (!play && restorePosition != null) host.seekTimeline(host.timelinePlayback(), restorePosition);
+        restorePosition = null;
         host.refresh();
     }
     void play() {
@@ -130,6 +141,10 @@ final class EditorActionPreview {
         ScenePlayback playback;
         try { playback = play ? displayed.playback(request.context().target(), token) : displayed.initial(token); }
         catch (RuntimeException invalid) { failure = String.valueOf(invalid.getMessage()); return; }
+        ScenePlayback timelinePlayback = null;
+        try { timelinePlayback = play ? playback : displayed.playback(request.context().target(), token); }
+        catch (RuntimeException invalid) { failure = String.valueOf(invalid.getMessage()); }
+        host.bindTimeline(this, timelinePlayback, 1, play);
         var state = new DialogueScreenState(token, Optional.of(displayed.scene().scene()), Optional.of(displayed.scene().theme()),
                 Optional.of(playback), PlaybackPhase.READY, !play, Optional.empty(), false, false, 0,
                 Optional.of(EditorWidgets.tr("scene.preview_speaker")), Optional.of(EditorWidgets.tr("scene.preview_text")),
@@ -152,6 +167,8 @@ final class EditorActionPreview {
     void release() {
         cancelPending(); closeAudio(); closeImages(); actions = null; request = null; preparing = displayed = null;
         playRequested = playing = false; session.select(null); failure = "";
+        restorePosition = null;
+        host.clearTimeline(this);
     }
     void dispose() { release(); session.dispose(); }
 
@@ -169,7 +186,10 @@ final class EditorActionPreview {
         public void audioFrame(long generation, long token, int elapsed) {
             Core.getUiHandler().post(() -> {
                 if (actions == this && playing && audio != null && state.generation() == generation)
+                {
+                    host.followTimeline(EditorActionPreview.this, token, elapsed);
                     audio.frame(generation, token, elapsed);
+                }
             });
         }
     }

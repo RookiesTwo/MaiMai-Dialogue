@@ -285,6 +285,15 @@ public final class DialogueFragment extends Fragment implements ScreenCallback, 
                 () -> { root.setDialogueBoxLayout(layout); scene.renderPreview(state, filter); });
     }
 
+    /** Editor-only time sampling; the real state calculator and image blending remain shared with playback. */
+    public void renderScenePlaybackPreview(ScenePlayback playback, int elapsedMs) {
+        var root = rootLayout; var scene = sceneView;
+        if (root == null || scene == null || cornerControls != CornerControls.DISPLAY_ONLY) return;
+        DialogueUiDispatch.toView(root, () -> rootLayout == root && sceneView == scene && latestState != null
+                        && latestState.scenePlayback().map(value -> value.token() == playback.token()).orElse(false),
+                () -> scene.renderPlaybackAt(playback, elapsedMs));
+    }
+
     /** Refresh the current View's metrics/layout without restarting its session or playback. */
     public void refreshViewport() {
         DialogueRootLayout root = rootLayout;

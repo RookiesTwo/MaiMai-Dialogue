@@ -65,7 +65,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         EditorWidgets.propertyButtonScope(properties);
         document = new ResourceDocumentView(context, workspace);
         preview = new EditorPanel(context, "scene_preview", previewHost.createView(context, choices), null, true);
-        actionCalls = new ActionCallsView(context, workspace, previewHost);
+        actionCalls = new ActionCallsView(context, workspace, previewHost, choices);
         actions = new EditorPanel(context, "actions", actionCalls, null, true);
         leftRail = EditorWidgets.icon(context, "›", "expand_left", () -> {
             state.leftCollapsed = false;

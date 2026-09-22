@@ -48,6 +48,9 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
             @Override public void showMenu(View anchor, List<Item> items, String selected, Consumer<String> chosen) {
                 showChoices(anchor, items, selected, chosen, false);
             }
+            @Override public void showMenuAt(View anchor, float x, float y, List<Item> items, Consumer<String> chosen) {
+                showChoices(anchor, items, "", chosen, false, new icyllis.modernui.graphics.PointF(x, y));
+            }
             @Override public void showSearchable(View anchor, List<Item> items, String selected, Consumer<String> chosen) {
                 if (!workspace.content().active() || !workspace.windowFocused() || !anchor.isAttachedToWindow()) return;
                 dismissChoices(); workspace.endEdit();
@@ -192,20 +195,26 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     }
 
     private void showChoices(View anchor, List<ChoicePresenter.Item> items, String selected, Consumer<String> chosen, boolean matchAnchorWidth) {
+        showChoices(anchor, items, selected, chosen, matchAnchorWidth, null);
+    }
+    private void showChoices(View anchor, List<ChoicePresenter.Item> items, String selected, Consumer<String> chosen,
+                             boolean matchAnchorWidth, icyllis.modernui.graphics.PointF point) {
         if (!workspace.content().active() || !workspace.windowFocused() || !anchor.isAttachedToWindow()) return;
         dismissChoices();
         workspace.endEdit();
         LinearLayout list = new LinearLayout(getContext());
         list.setOrientation(LinearLayout.VERTICAL);
-        EditorDropdownMenu menu = matchAnchorWidth ? resourceChoices(list, anchor)
+        EditorDropdownMenu menu = point != null ? EditorDropdownMenu.atPoint(list, anchor, point.x, point.y, this::dismissChoices)
+                : matchAnchorWidth ? resourceChoices(list, anchor)
                 : EditorDropdownMenu.forContent(list, anchor, 180, this::dismissChoices);
         for (ChoicePresenter.Item item : items) {
             Button button = EditorWidgets.button(getContext(), "", () -> {
-                if (choices != menu) return;
+                if (choices != menu || !item.enabled()) return;
                 dismissChoices();
                 if (anchor.isAttachedToWindow() && workspace.content().active()) chosen.accept(item.value());
             });
             button.setText(item.label());
+            EditorWidgets.enabled(button, item.enabled());
             button.setTooltipText(item.label());
             button.setSelected(item.value().equals(selected));
             button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);

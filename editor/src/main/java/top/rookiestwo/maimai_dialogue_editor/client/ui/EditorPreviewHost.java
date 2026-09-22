@@ -63,6 +63,68 @@ final class EditorPreviewHost {
     private String message = "preview.idle";
     private String error = "";
     private Runnable changed = () -> {};
+    private final top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline timeline = new top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline();
+    private Runnable timelineChanged = () -> {};
+    private record TimelineBinding(long project, ProjectDraft draft, top.rookiestwo.maimai_dialogue_editor.document.ActionWorkspace.Context context) {}
+    private TimelineBinding timelineBinding;
+    private boolean timelineFramePending;
+    private final Runnable timelineFrame = () -> {
+        timelineFramePending = false;
+        if (!disposed && timeline.manual() && canSeekTimeline())
+            fragment.renderScenePlaybackPreview(timeline.playback(), timeline.position());
+    };
+    private TimelineBinding currentTimelineBinding() {
+        return new TimelineBinding(workspace.projectGeneration(), workspace.draft(), workspace.actions().context());
+    }
+    top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback timelinePlayback() {
+        return Objects.equals(timelineBinding, currentTimelineBinding()) ? timeline.playback() : null;
+    }
+    top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline timeline() { return timeline; }
+    void setTimelineListener(Runnable listener) { timelineChanged = listener; }
+    private final java.util.Set<Runnable> timelineObservers = new java.util.LinkedHashSet<>();
+    private View timelineHoverOwner;
+    private boolean playheadHovered;
+    void addTimelineObserver(Runnable listener) { timelineObservers.add(listener); }
+    void removeTimelineObserver(Runnable listener) { timelineObservers.remove(listener); }
+    private void notifyTimelineChanged() {
+        timelineChanged.run(); java.util.List.copyOf(timelineObservers).forEach(Runnable::run);
+    }
+    boolean playheadHovered() { return playheadHovered; }
+    void playheadHover(View owner, boolean hovered) {
+        if (!hovered && timelineHoverOwner != owner) return;
+        timelineHoverOwner = hovered ? owner : null;
+        if (playheadHovered == hovered) return;
+        playheadHovered = hovered;
+        // Hover exit may run while rows are being removed; never rebuild the timeline recursively.
+        var expectedView = view;
+        if (expectedView != null) expectedView.post(() -> {
+            if (!disposed && view == expectedView) notifyTimelineChanged();
+        });
+    }
+
+    void bindTimeline(Object owner, top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback scene, int calls, boolean playing) {
+        timelineBinding = currentTimelineBinding();
+        timeline.bind(owner, scene, calls, playing); notifyTimelineChanged();
+    }
+    void followTimeline(Object owner, long token, int elapsed) {
+        if (timeline.follow(owner, token, elapsed)) notifyTimelineChanged();
+    }
+    void clearTimeline(Object owner) { timeline.clear(owner); notifyTimelineChanged(); }
+    void freezeTimelineFrame() {
+        if (fragment != null && timeline.playback() != null) fragment.renderScenePlaybackPreview(timeline.playback(), timeline.position());
+    }
+    boolean canSeekTimeline() {
+        return timelinePlayback() != null && fragment != null && !loading && (mode() == Mode.ACTION ? actionPreview.canSeek()
+                : canOperate() && source == workspace.draft() && workspace.resources().selection().isStep());
+    }
+    void seekTimeline(top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback expected, int elapsed) {
+        if (!canSeekTimeline() || !timeline.seek(expected, elapsed)) return;
+        closeDialogueAudio(); if (auditioning()) stopAudition();
+        if (mode() == Mode.ACTION) actionPreview.pauseForSeek();
+        if (!timelineFramePending && view != null) { timelineFramePending = true; view.postOnAnimation(timelineFrame); }
+        notifyTimelineChanged();
+    }
+    void replayTimeline() { if (mode() == Mode.ACTION) actionPreview.play(); else restartStep(); }
     private ProjectDraft observedDraft;
     private ResourceKey observedDocument;
     private ResourceTree.Node observedSelection;
@@ -271,11 +333,13 @@ final class EditorPreviewHost {
             if (view != null) view.refresh();
             return;
         }
-        // Draft edits stop playback. Browsing a Step is a separate, explicit seek request.
+        // Draft edits prepare a silent frame at the cursor; explicit Step navigation plays normally.
         if (!draftChanged && selectionChanged && selected.isStep() && Objects.equals(selected.owner(), opened)) {
             startAt(selected.stepIndex());
         } else {
-            if (source != null && (source != draft || !Objects.equals(dialogue, opened))) stop();
+            if (selected.isStep() && Objects.equals(selected.owner(), opened) && source != draft && canOperate()) {
+                startAt(selected.stepIndex(), false, timeline.position());
+            } else if (source != null && (source != draft || !Objects.equals(dialogue, opened))) stop();
             if (!draftChanged && selectionChanged && selected.kind() == ResourceKind.DIALOGUE
                     && selected.type() == ResourceTree.Type.RESOURCE) stop();
         }
@@ -293,11 +357,15 @@ final class EditorPreviewHost {
     }
 
     private void startAt(int step) {
+        startAt(step, true, 0);
+    }
+    private void startAt(int step, boolean playNow, int seekTime) {
         // A new tree selection may supersede a pending start before the client snapshot arrives.
         if (!canOperate() || view == null || !view.isAttachedToWindow()) return;
         workspace.endEdit();
         stopAudition();
         closeDialogueAudio();
+        freezeTimelineFrame();
         // Keep the displayed session and controls until the replacement is ready.
         // Its callbacks are suspended while loading, then discarded by session identity.
         source = workspace.draft();
@@ -336,13 +404,14 @@ final class EditorPreviewHost {
                     if (advanceAfterLoad) playback.advance();
                     advanceAfterLoad = false;
                     if (running()) {
-                        dialogueAudio = audioScope(content.assets(), expected, false);
+                        if (playNow) dialogueAudio = audioScope(content.assets(), expected, false);
                         showingIdle = false;
                         fragment = new DialogueFragment(new PreviewActions(playback), DialogueFragment.CornerControls.DISPLAY_ONLY,
                                 assets.openImages(content.assets()));
                         owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, "editor-preview").commitNow();
                     }
                     render();
+                    if (!playNow && running()) seekTimeline(timeline.playback(), seekTime);
                 } catch (RuntimeException failure) {
                     closeDialogueAudio();
                     advanceAfterLoad = false;
@@ -381,6 +450,7 @@ final class EditorPreviewHost {
         if (mode() == Mode.ACTION) {
             reset(); actionPreview.stop(); return;
         }
+        if (timeline.manual()) { restartStep(); return; }
         reset();
         showIdleControls();
         refresh();
@@ -400,6 +470,9 @@ final class EditorPreviewHost {
     }
 
     private void reset() {
+        if (view != null) view.removeCallbacks(timelineFrame);
+        timelineFramePending = false;
+        timeline.clear(); notifyTimelineChanged();
         closeDialogueAudio();
         ++revision;
         loading = false;
@@ -441,10 +514,13 @@ final class EditorPreviewHost {
         };
         error = playback.error();
         if (running() && fragment != null) {
+            var calls = workspace.actions().calls();
+            bindTimeline(playback, playback.state().scenePlayback().orElse(null), calls == null ? 0 : calls.size(), true);
             if (dialogueAudio != null) dialogueAudio.render(playback.state(), playback.drainBgm());
-            fragment.render(playback.state());
+            if (!timeline.manual()) fragment.render(playback.state());
         }
         else {
+            timeline.clear(); notifyTimelineChanged();
             closeDialogueAudio();
             // Drop decoded definitions, history and simulated commands as soon as playback ends.
             playback = null;
@@ -471,6 +547,7 @@ final class EditorPreviewHost {
         if (view != null) view.refresh();
         audioChanged.run();
         changed.run();
+        notifyTimelineChanged();
     }
 
     DialogueFragment sceneFragment() { return sceneActions == null ? null : fragment; }
@@ -631,6 +708,8 @@ final class EditorPreviewHost {
         showingIdle = false;
         view = null;
         changed = () -> {};
+        timelineChanged = () -> {};
+        timelineObservers.clear(); timelineHoverOwner = null; playheadHovered = false;
     }
 
     void onViewReady() {
@@ -661,7 +740,7 @@ final class EditorPreviewHost {
             if (session == null) return;
             Core.getUiHandler().post(() -> {
                 // Old animation, text and destruction callbacks must never operate on a restarted preview.
-                if (disposed || loading || playback != session || !session.running()) return;
+                if (disposed || loading || timeline.manual() || playback != session || !session.running()) return;
                 action.accept(session);
                 render();
             });
@@ -678,11 +757,17 @@ final class EditorPreviewHost {
         }
         private void audio(Consumer<EditorDialogueAudio> action) {
             Core.getUiHandler().post(() -> {
-                if (!disposed && !loading && session != null && playback == session && session.running() && dialogueAudio != null)
+                if (!disposed && !loading && !timeline.manual() && session != null && playback == session && session.running() && dialogueAudio != null)
                     action.accept(dialogueAudio);
             });
         }
-        @Override public void audioFrame(long generation, long token, int elapsedMs) { audio(audio -> audio.frame(generation, token, elapsedMs)); }
+        @Override public void audioFrame(long generation, long token, int elapsedMs) {
+            Core.getUiHandler().post(() -> {
+                if (!disposed && !loading && playback == session && session != null && session.state().generation() == generation)
+                    followTimeline(session, token, elapsedMs);
+            });
+            audio(audio -> audio.frame(generation, token, elapsedMs));
+        }
         @Override public void textRevealed(long generation, long token, int end, boolean audible) { audio(audio -> audio.reveal(generation, token, end, audible)); }
         @Override public void closeFromUi() { dispatch(EditorPreviewSession::stop); }
         @Override public void onScreenDestroyed(DialogueScreenHandle screen) {

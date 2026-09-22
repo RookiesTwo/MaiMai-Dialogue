@@ -422,5 +422,21 @@
   "gui.maimai_dialogue_editor.browser.error.stale_source": "原始内容已发生变化，请重新打开此操作。",
   "gui.maimai_dialogue_editor.action.preview_scene": "预览场景",
   "gui.maimai_dialogue_editor.action.preview_empty_scene": "空场景",
-  "gui.maimai_dialogue_editor.action.preview_play": "播放动作"
+  "gui.maimai_dialogue_editor.action.preview_play": "播放动作",
+  "gui.maimai_dialogue_editor.timeline.replay": "重播当前动作时间轴",
+  "gui.maimai_dialogue_editor.timeline.stop": "停止并回到开头",
+  "gui.maimai_dialogue_editor.timeline.position": "时间位置（毫秒）",
+  "gui.maimai_dialogue_editor.timeline.automatic_fade": "默认对话框淡入",
+  "gui.maimai_dialogue_editor.timeline.action": "动作",
+  "gui.maimai_dialogue_editor.timeline.keyframe.at_playhead": "在播放头 %s ms 处添加“%s”关键帧（动作内 %s ms），初始值沿用该时刻的变化量。",
+  "gui.maimai_dialogue_editor.timeline.keyframe.playhead_hint": "播放头：拖动定位，右键在此添加关键帧",
+  "gui.maimai_dialogue_editor.timeline.keyframe.outside": "播放头不在此动作的时间范围内",
+  "gui.maimai_dialogue_editor.timeline.keyframe.zero_duration": "请先设置大于 0 的动作时长",
+  "gui.maimai_dialogue_editor.timeline.keyframe.duplicate": "此时间位置已有关键帧",
+  "gui.maimai_dialogue_editor.timeline.keyframe.no_track": "请先添加 X／Y 位移、缩放或不透明度变化项",
+  "gui.maimai_dialogue_editor.timeline.keyframe.no_action": "没有可添加关键帧的动作",
+  "gui.maimai_dialogue_editor.timeline.keyframe.readonly": "默认淡入为只读轨道",
+  "gui.maimai_dialogue_editor.timeline.keyframe.unavailable": "请选择动作并等待有效时间轴，随后在播放头位置添加关键帧",
+  "gui.maimai_dialogue_editor.timeline.keyframe.invalid": "请先修正动作中的无效数值",
+  "gui.maimai_dialogue_editor.timeline.keyframe.make_inline": "转为内联并添加"
 }
