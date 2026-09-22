@@ -25,6 +25,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     private final EditorPanel preview;
     private final EditorPreviewHost previewHost;
     private final EditorPanel actions;
+    private final ActionCallsView actionCalls;
     private final Button leftRail;
     private final Button rightRail;
     private final EditorSplitter leftSplitter;
@@ -61,9 +62,11 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             state.rightCollapsed = true;
             requestLayout();
         }, false);
+        EditorWidgets.propertyButtonScope(properties);
         document = new ResourceDocumentView(context, workspace);
         preview = new EditorPanel(context, "scene_preview", previewHost.createView(context), null, true);
-        actions = new EditorPanel(context, "actions", EditorWidgets.placeholder(context, "no_step"), null, true);
+        actionCalls = new ActionCallsView(context, workspace, previewHost);
+        actions = new EditorPanel(context, "actions", actionCalls, null, true);
         leftRail = EditorWidgets.icon(context, "›", "expand_left", () -> {
             state.leftCollapsed = false;
             requestLayout();
@@ -112,6 +115,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         browser.refresh();
         resourceProperties.refresh();
         document.refresh();
+        actionCalls.refresh();
         String message = workspace.errorReason() == null ? EditorWidgets.tr(workspace.message())
                 : EditorWidgets.tr("project.error." + workspace.errorReason()) + " " + workspace.errorDetail();
         String saveState = workspace.draft() == null ? "" : " · "

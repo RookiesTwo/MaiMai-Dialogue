@@ -107,6 +107,10 @@ public final class ProjectValidator {
                         for (String error : resolved.sceneErrors()) issue(key, field, "invalid_reference", error);
                         for (String error : resolved.visualErrors()) issue(key, dialogue ? field
                                 : error.startsWith("Background") ? "background" : "visual_objects", "invalid_reference", error);
+                        if (dialogue && resolved.sceneErrors().isEmpty() && resolved.visualErrors().isEmpty()) {
+                            top.rookiestwo.maimai_dialogue_editor.content.ActionValidation.sequence(content.dialogue(id).orElseThrow(), resolved.scene(), content::action)
+                                    .forEach((path, error) -> issue(key, path, "codec", error));
+                        }
                     } catch (RuntimeException failure) { issue(key, field, "invalid_reference", failure.getMessage()); }
                 }
             }
@@ -129,6 +133,8 @@ public final class ProjectValidator {
         if (!json.isJsonObject()) { issue(key, "$", "object", ""); return; }
         int before = issues.size();
         JsonObject object = json.getAsJsonObject();
+        top.rookiestwo.maimai_dialogue_editor.content.ActionValidation.definitions(key.kind(), object)
+                .forEach((field, error) -> issue(key, field, "codec", error));
         if (key.kind() == ResourceKind.THEME) {
             top.rookiestwo.maimai_dialogue_editor.document.ThemeFields.errors(object)
                     .forEach((field, reason) -> issue(key, field, reason.equals("edit.invalid_object") ? "object"

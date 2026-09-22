@@ -46,6 +46,8 @@ public record ScenePlayback(
     public SceneState stateAt(int elapsedMs) {
         SceneState state = start;
         for (ResolvedActionCall call : calls) {
+            // A keyframe/change at zero still starts at the call's delay, never before it.
+            if (elapsedMs < call.delayMs()) continue;
             if (call.action().audioOnly()) continue;
             if (call.target().equals("dialogue")) {
                 state = applyDialogue(state, call, elapsedMs);

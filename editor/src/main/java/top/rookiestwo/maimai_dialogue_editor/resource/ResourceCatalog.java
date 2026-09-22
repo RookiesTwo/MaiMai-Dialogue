@@ -82,7 +82,7 @@ public final class ResourceCatalog {
                     """).getAsJsonObject();
             case SPEAKER -> JsonParser.parseString("{\"name\":\"\"}").getAsJsonObject();
             case VISUAL_ASSET -> JsonParser.parseString("{\"variants\":{},\"sampling\":\"linear\"}").getAsJsonObject();
-            case SCENE, THEME -> new JsonObject();
+            case SCENE, THEME, ACTION -> new JsonObject();
             default -> throw new IllegalArgumentException("Resource editor is not available: " + kind);
         };
     }

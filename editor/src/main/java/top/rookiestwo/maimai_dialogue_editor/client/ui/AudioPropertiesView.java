@@ -3,10 +3,8 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 import icyllis.modernui.core.*;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.widget.*;
-import net.minecraft.client.Minecraft;
 import top.rookiestwo.maimai_dialogue_editor.document.AudioWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
-import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import java.util.*;
 import java.util.function.*;
 
@@ -31,7 +29,7 @@ final class AudioPropertiesView extends LinearLayout {
         preview.setAudioListener(this::refresh);
     }
     void refresh() {
-        var target = model.target();
+        var target = project.actions().inspecting() ? null : model.target();
         var next = new Binding(project.projectGeneration(), target, model.mode());
         refreshing = true;
         try {
@@ -80,7 +78,7 @@ final class AudioPropertiesView extends LinearLayout {
     }
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         Binding expected = binding;
-        var button = EditorWidgets.button(getContext(), "", () -> {});
+        var button = EditorWidgets.fieldButton(getContext(), "", () -> {});
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         EditorWidgets.bindMetrics(button, () -> button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0,
                 dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0));
@@ -104,7 +102,6 @@ final class AudioPropertiesView extends LinearLayout {
         input.setOnFocusChangeListener((view, focused) -> {
             if (!focused && accepts(expected)) { model.sound(input.getText().toString()); project.endEdit(); }
         });
-        EditorWidgets.propertyRow(body, "audio.sound", input, false);
         fields.put("sound", input);
         bindings.add(() -> {
             if (!input.isFocused() && !input.getText().toString().equals(model.sound())) input.setText(model.sound());
@@ -113,26 +110,11 @@ final class AudioPropertiesView extends LinearLayout {
         var button = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
         button.setOnClickListener(view -> {
             if (!accepts(expected)) return;
-            String namespace = project.draft().namespace();
-            var ids = new TreeSet<String>(); var catalog = project.resources().catalog();
-            catalog.keys().stream().filter(key -> key.kind() == ResourceKind.SOUND).map(catalog::displayName)
-                    .filter(event -> !event.isBlank()).forEach(event -> ids.add(namespace + ":" + event));
-            // Snapshot the sound registry on its owning thread; no resource list or reload is requested.
-            Minecraft.getInstance().execute(() -> {
-                var external = Minecraft.getInstance().getSoundManager().getAvailableSounds().stream()
-                        .filter(id -> !id.getNamespace().equals(namespace)).map(Object::toString).sorted().toList();
-                Core.getUiHandler().post(() -> {
-                    if (!accepts(expected)) return;
-                    var items = new ArrayList<ChoicePresenter.Item>();
-                    ids.forEach(id -> items.add(new ChoicePresenter.Item(id, id)));
-                    external.forEach(id -> items.add(new ChoicePresenter.Item(id, id)));
-                    choices.showSearchable(button, items, model.sound(), selected -> {
-                        if (accepts(expected)) { project.endEdit(); model.sound(selected); project.endEdit(); }
-                    });
-                });
+            EditorSoundChoices.show(project, choices, button, model.sound(), () -> accepts(expected), selected -> {
+                project.endEdit(); model.sound(selected); project.endEdit();
             });
         });
-        EditorWidgets.propertyRow(body, null, button, false);
+        EditorWidgets.referenceRow(body, "audio.sound", input, button);
         bindings.add(() -> EditorWidgets.enabled(button, model.active()));
     }
     private void number(AudioWorkspace.Number field) {
@@ -145,13 +127,10 @@ final class AudioPropertiesView extends LinearLayout {
     }
     private void audition() {
         Binding expected = binding;
-        var row = new LinearLayout(getContext()); body.addView(row);
+        var row = new EditorActionRow(getContext()); body.addView(row);
         var play = EditorWidgets.button(getContext(), "audio.audition", () -> { if (accepts(expected)) preview.audition(); });
         var stop = EditorWidgets.button(getContext(), "preview.stop", preview::stopAudition);
-        for (var button : List.of(play, stop)) {
-            row.addView(button);
-            EditorWidgets.bindMetrics(button, () -> button.setLayoutParams(new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1)));
-        }
+        for (var button : List.of(play, stop)) row.addView(button);
         var error = EditorWidgets.compactParagraph(getContext(), ""); error.setTextColor(EditorWidgets.ERROR); body.addView(error);
         bindings.add(() -> {
             EditorWidgets.enabled(play, model.active()); EditorWidgets.enabled(stop, preview.auditioning());

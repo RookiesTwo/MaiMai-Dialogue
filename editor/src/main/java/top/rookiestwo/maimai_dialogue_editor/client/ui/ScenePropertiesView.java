@@ -178,6 +178,9 @@ final class ScenePropertiesView extends LinearLayout {
         bindings.add(() -> control.refresh(model.active()));
     }
     private void field(String label, Supplier<String> value, Function<String, String> setter, boolean live) {
+        field(label, value, setter, live, null);
+    }
+    private void field(String label, Supplier<String> value, Function<String, String> setter, boolean live, Button picker) {
         String expected = binding;
         TextView error = EditorWidgets.compactParagraph(getContext(), ""); error.setTextColor(EditorWidgets.ERROR); error.setVisibility(GONE);
         boolean[] invalid = {false};
@@ -194,15 +197,25 @@ final class ScenePropertiesView extends LinearLayout {
                 error.setVisibility(invalid[0] ? VISIBLE : GONE); project.endEdit();
             }
         });
-        EditorWidgets.propertyRow(group, label, input, false); group.addView(error);
+        if (picker == null) EditorWidgets.propertyRow(group, label, input, false);
+        else EditorWidgets.referenceRow(group, label, input, picker);
+        group.addView(error);
         bindings.add(() -> {
             if (!input.isFocused() && !invalid[0] && !input.getText().toString().equals(value.get())) input.setText(value.get());
             input.setEnabled(model.active());
         });
     }
     private void reference(String label, ResourceKind kind, Supplier<String> value, Consumer<String> setter) {
-        field(label, value, text -> { setter.accept(text); return ""; }, false);
-        choice(null, value, () -> resourceItems(kind), setter);
+        String expected = binding;
+        Button picker = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
+        picker.setOnClickListener(view -> {
+            if (!accepts(expected)) return;
+            choices.showSearchable(picker, resourceItems(kind), value.get(), selected -> {
+                if (accepts(expected) && !selected.equals(value.get())) setter.accept(selected);
+            });
+        });
+        field(label, value, text -> { setter.accept(text); return ""; }, false, picker);
+        bindings.add(() -> EditorWidgets.enabled(picker, model.active()));
     }
     private List<ChoicePresenter.Item> resourceItems(ResourceKind kind) {
         if (project.draft() == null) return List.of();
@@ -215,18 +228,19 @@ final class ScenePropertiesView extends LinearLayout {
     }
     private Button choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;
-        Button button = EditorWidgets.button(getContext(), "", null);
+        Button button = EditorWidgets.fieldButton(getContext(), "", null);
         button.setOnClickListener(view -> { if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> {
             if (accepts(expected) && !selected.equals(value.get())) setter.accept(selected);
         }); });
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         EditorWidgets.bindMetrics(button, () -> {
-            button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
+            int padding = dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP);
+            button.setPadding(padding, 0, padding, 0);
         });
         EditorWidgets.propertyRow(group, label, button, false);
         bindings.add(() -> {
             String current = value.get();
-            String text = label == null ? EditorWidgets.tr("edit.choose_resource") : items.get().stream()
+            String text = items.get().stream()
                     .filter(item -> item.value().equals(current)).map(ChoicePresenter.Item::label).findFirst()
                     .orElse(current.isEmpty() ? EditorWidgets.tr("no_selection") : current);
             button.setText(text + " ▾"); button.setTooltipText(text); EditorWidgets.enabled(button, model.active());
@@ -236,7 +250,6 @@ final class ScenePropertiesView extends LinearLayout {
     private void action(LinearLayout row, String label, Runnable action, BooleanSupplier enabled) {
         String expected = binding;
         Button button = EditorWidgets.button(getContext(), label, () -> { if (accepts(expected)) action.run(); });
-        EditorWidgets.bindMetrics(button, () -> button.setLayoutParams(new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1)));
         row.addView(button); bindings.add(() -> EditorWidgets.enabled(button, model.active() && enabled.getAsBoolean()));
     }
     private static List<ChoicePresenter.Item> names(JsonObject data) {
@@ -252,5 +265,5 @@ final class ScenePropertiesView extends LinearLayout {
         group = section.body();
     }
     private void warning() { group.addView(EditorWidgets.compactParagraph(getContext(), "edit.invalid_object")); }
-    private LinearLayout row() { var row = new LinearLayout(getContext()); group.addView(row); return row; }
+    private LinearLayout row() { var row = new EditorActionRow(getContext()); group.addView(row); return row; }
 }

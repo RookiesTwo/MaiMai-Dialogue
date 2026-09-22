@@ -31,6 +31,8 @@ final class ContentPropertiesView extends LinearLayout {
     private final ProjectWorkspace workspace;
     private final ContentWorkspace content;
     private final ChoicePresenter choices;
+    private final EditorLayoutState layout;
+    private LinearLayout group;
     private final List<Runnable> bindings = new ArrayList<>();
     private ContentWorkspace.Snapshot state;
     private Binding binding;
@@ -38,11 +40,12 @@ final class ContentPropertiesView extends LinearLayout {
     private long focusedRevision = -1;
     private final java.util.Map<String, View> fields = new java.util.HashMap<>();
 
-    ContentPropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices) {
+    ContentPropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, EditorLayoutState layout) {
         super(context);
         this.workspace = workspace;
         content = workspace.content();
         this.choices = choices;
+        this.layout = layout;
         setOrientation(VERTICAL);
     }
 
@@ -68,7 +71,7 @@ final class ContentPropertiesView extends LinearLayout {
 
     private void focusIssue() {
         var issue = workspace.focusedIssue();
-        if (issue == null || !Objects.equals(issue.resource(), state.key())
+        if (issue == null || workspace.actions().inspecting() || !Objects.equals(issue.resource(), state.key())
                 || focusedRevision == workspace.issueFocusRevision()) return;
         focusedRevision = workspace.issueFocusRevision();
         String path = issue.field().replaceFirst("^steps\\[\\d+]\\.", "").replaceFirst("^end\\.", "");
@@ -88,6 +91,7 @@ final class ContentPropertiesView extends LinearLayout {
         View target = fields.get(label);
         if (target == null && path.equals("text")) target = fields.get("edit.text_mode");
         View selected = target;
+        if (selected != null) EditorPropertySection.expandAncestors(selected);
         long revision = focusedRevision;
         if (selected != null) post(() -> {
             if (isAttachedToWindow() && revision == workspace.issueFocusRevision() && workspace.focusedIssue() == issue) {
@@ -112,7 +116,7 @@ final class ContentPropertiesView extends LinearLayout {
 
     private boolean canEdit() {
         var selected = workspace.resources().selection();
-        return content.active() && state.key() != null && state.key().equals(selected.owner())
+        return !workspace.actions().inspecting() && content.active() && state.key() != null && state.key().equals(selected.owner())
                 && (selected.isStep() || state.key().kind() == ResourceKind.SPEAKER);
     }
     private boolean accepts(Binding expected) {
@@ -127,9 +131,11 @@ final class ContentPropertiesView extends LinearLayout {
     private String optionTargetType() { return string(object(get(selectedOption(), "target")), "type"); }
 
     private void build() {
+        group = this;
         if (state.key() == null) return;
         if (state.data() == null) { warning("edit.invalid_object"); return; }
         if (state.key().kind() == ResourceKind.SPEAKER) {
+            section("properties.general");
             field("browser.display_name", () -> string(state.data(), "name"), content::editSpeakerName, false);
             return;
         }
@@ -156,6 +162,7 @@ final class ContentPropertiesView extends LinearLayout {
             }
             return;
         }
+        section("edit.group.text");
         JsonElement text = node.get("text");
         if (text != null && !isString(text)) warning("edit.unsupported_text");
         else {
@@ -163,6 +170,7 @@ final class ContentPropertiesView extends LinearLayout {
                     () -> items("edit.text.", "absent", "plain"), content::setTextMode);
             if (text != null) field("edit.markdown", () -> string(selectedNode(), "text"), content::editText, true);
         }
+        section("edit.group.speaker");
         choice("edit.speaker", this::speakerMode, () -> items("edit.speaker.", "inherit", "set", "hide"), content::setSpeakerMode);
         if (speakerMode().equals("set")) reference("edit.speaker_id", ResourceKind.SPEAKER,
                 () -> string(object(get(selectedNode(), "speaker")), "id"), content::editSpeakerId);
@@ -170,12 +178,14 @@ final class ContentPropertiesView extends LinearLayout {
     }
 
     private void buildEnd() {
+        section("edit.group.exit");
         choice("edit.exit", () -> string(exit(state.data()), "type"),
                 () -> items("edit.exit.", "return", "dialogue", "options"), content::setExitType);
         String type = string(exit(state.data()), "type");
         if (type.equals("dialogue")) {
             reference("edit.target_dialogue", ResourceKind.DIALOGUE, () -> string(exit(state.data()), "dialogue"), content::editExitDialogue);
         } else if (type.equals("options")) {
+            section("edit.group.options");
             JsonArray options = options(state.data());
             if (options == null) { warning("edit.invalid_options"); return; }
             LinearLayout actions = row();
@@ -211,6 +221,9 @@ final class ContentPropertiesView extends LinearLayout {
     }
 
     private void field(String label, Supplier<String> value, Consumer<String> setter, boolean multiline) {
+        field(label, value, setter, multiline, null);
+    }
+    private void field(String label, Supplier<String> value, Consumer<String> setter, boolean multiline, Button picker) {
         Binding expected = binding;
         EditText input = EditorWidgets.compactInput(getContext(), value.get(), text -> {
             if (accepts(expected)) setter.accept(text);
@@ -224,7 +237,8 @@ final class ContentPropertiesView extends LinearLayout {
                 input.setMinimumHeight(dp(96));
             });
         }
-        EditorWidgets.propertyRow(this, label, input, multiline);
+        if (picker == null) EditorWidgets.propertyRow(group, label, input, multiline);
+        else EditorWidgets.referenceRow(group, label, input, picker);
         fields.put(label, input);
         bindings.add(() -> {
             String text = value.get();
@@ -234,36 +248,43 @@ final class ContentPropertiesView extends LinearLayout {
     }
 
     private void reference(String label, ResourceKind kind, Supplier<String> value, Consumer<String> setter) {
-        field(label, value, setter, false);
-        choice(null, value, () -> {
+        Binding expected = binding;
+        Button picker = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
+        picker.setOnClickListener(view -> {
+            if (!accepts(expected)) return;
             var draft = workspace.draft();
-            if (draft == null) return List.of();
+            if (draft == null) return;
             var catalog = workspace.resources().catalog();
-            return catalog.keys().stream().filter(key -> key.kind() == kind).map(key -> {
+            var items = catalog.keys().stream().filter(key -> key.kind() == kind).map(key -> {
                 String name = catalog.displayName(key);
                 String id = key.id(draft.namespace());
                 return new ChoicePresenter.Item(id, name.isBlank() ? id : name + " · " + id);
             }).toList();
-        }, setter);
+            choices.showSearchable(picker, items, value.get(), selected -> {
+                if (accepts(expected)) setter.accept(selected);
+            });
+        });
+        field(label, value, setter, false, picker);
+        bindings.add(() -> EditorWidgets.enabled(picker, canEdit()));
     }
 
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         Binding expected = binding;
-        Button button = EditorWidgets.button(getContext(), "", () -> {});
+        Button button = EditorWidgets.fieldButton(getContext(), "", () -> {});
         button.setOnClickListener(view -> {
             if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> {
                 if (accepts(expected)) setter.accept(selected);
             });
         });
-        EditorWidgets.propertyRow(this, label, button, false);
+        EditorWidgets.propertyRow(group, label, button, false);
         if (label != null) fields.put(label, button);
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         EditorWidgets.bindMetrics(button, () -> {
-            button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP),
-                    0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
+            int padding = dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP);
+            button.setPadding(padding, 0, padding, 0);
         });
         bindings.add(() -> {
-            String text = label == null ? EditorWidgets.tr("edit.choose_resource") : items.get().stream()
+            String text = items.get().stream()
                     .filter(item -> item.value().equals(value.get())).map(ChoicePresenter.Item::label).findFirst()
                     .orElse(EditorWidgets.tr("edit.unset"));
             button.setText(text + " ▾");
@@ -276,21 +297,22 @@ final class ContentPropertiesView extends LinearLayout {
         return Arrays.stream(values).map(value -> new ChoicePresenter.Item(value, EditorWidgets.tr(prefix + value))).toList();
     }
 
-    private void warning(String key) { addView(EditorWidgets.compactParagraph(getContext(), key)); }
+    private void section(String key) {
+        var section = new EditorPropertySection(getContext(), key, layout);
+        addView(section, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        bindings.add(section::refresh);
+        group = section.body();
+    }
+    private void warning(String key) { group.addView(EditorWidgets.compactParagraph(getContext(), key)); }
     private LinearLayout row() {
-        LinearLayout row = new LinearLayout(getContext());
-        addView(row, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        LinearLayout row = new EditorActionRow(getContext());
+        group.addView(row, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         return row;
     }
     private void action(LinearLayout row, String label, Runnable action, BooleanSupplier enabled) {
         Binding expected = binding;
         Button button = EditorWidgets.button(getContext(), label, () -> { if (accepts(expected)) action.run(); });
         row.addView(button);
-        EditorWidgets.bindMetrics(button, () -> {
-            button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0,
-                    dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
-            button.setLayoutParams(new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1));
-        });
         bindings.add(() -> EditorWidgets.enabled(button, canEdit() && enabled.getAsBoolean()));
     }
 }

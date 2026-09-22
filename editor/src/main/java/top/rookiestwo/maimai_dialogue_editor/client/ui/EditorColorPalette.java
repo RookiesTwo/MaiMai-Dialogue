@@ -97,7 +97,7 @@ final class EditorColorPalette extends LinearLayout {
         row.addView(readout);
         EditorWidgets.bindMetrics(readout, () -> readout.setLayoutParams(new LayoutParams(dp(44), dp(24))));
         readouts.add(() -> {
-            reset.setVisibility(control.getProgress() == fallback ? INVISIBLE : VISIBLE);
+            EditorWidgets.enabled(reset, control.isEnabled() && control.getProgress() != fallback);
             readout.setText(format.apply(control.getProgress()));
         });
         control.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {

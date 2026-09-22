@@ -24,7 +24,11 @@ final class EditorPropertyRow extends LinearLayout {
             addView(label, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         }
         addView(control, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        EditorWidgets.bindMetrics(this, () -> setPadding(0, dp(1), 0, dp(1)));
+        EditorWidgets.bindMetrics(this, () -> {
+            int inset = EditorWidgets.propertyAction(control) ? dp(3) : 0;
+            int vertical = EditorWidgets.propertyAction(control) ? dp(3) : dp(1);
+            setPadding(inset, vertical, inset, vertical);
+        });
     }
 
     @Override
@@ -40,9 +44,10 @@ final class EditorPropertyRow extends LinearLayout {
             label.setPadding(0, 0, inline ? dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP) : 0, 0);
         }
         LayoutParams params = (LayoutParams) control.getLayoutParams();
-        params.width = control instanceof Button ? Math.min(dp(280), available - labelWidth)
+        boolean action = EditorWidgets.propertyAction(control);
+        params.width = action ? LayoutParams.WRAP_CONTENT : control instanceof Button ? Math.min(dp(280), available - labelWidth)
                 : inline ? 0 : LayoutParams.MATCH_PARENT;
-        params.height = control instanceof Button ? dp(EditorWidgets.COMPACT_ROW_DP) : LayoutParams.WRAP_CONTENT;
+        params.height = control instanceof Button ? dp(action ? EditorWidgets.COMPACT_CONTROL_DP : EditorWidgets.COMPACT_ROW_DP) : LayoutParams.WRAP_CONTENT;
         params.weight = inline && !(control instanceof Button) ? 1 : 0;
         super.onMeasure(widthSpec, heightSpec);
     }

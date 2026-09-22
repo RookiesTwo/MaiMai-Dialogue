@@ -121,8 +121,7 @@ final class EditorNumberField extends LinearLayout {
         reset = slider == null ? null : EditorWidgets.icon(context, "↺", "reset_value", this::resetValue);
         if (reset != null) {
             line.addView(reset);
-            EditorWidgets.bindMetrics(reset, () -> reset.setLayoutParams(
-                    new LayoutParams(dp(EditorWidgets.COMPACT_CONTROL_DP), dp(EditorWidgets.COMPACT_CONTROL_DP))));
+            EditorWidgets.bindMetrics(reset, () -> reset.setLayoutParams(EditorWidgets.squareIconParams(reset)));
             syncReset(true);
         }
         line.addView(input, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
@@ -191,8 +190,7 @@ final class EditorNumberField extends LinearLayout {
         boolean changed;
         try { changed = new BigDecimal(current.strip()).compareTo(defaultValue) != 0; }
         catch (NumberFormatException ignored) { changed = true; }
-        // INVISIBLE reserves the slot between slider and input before editing and after resetting.
-        reset.setVisibility(changed || invalid ? VISIBLE : INVISIBLE);
+        // Keep Reset visible; the shared disabled style grays both its outline and glyph.
         EditorWidgets.enabled(reset, enabled && (changed || invalid));
     }
 
@@ -225,8 +223,14 @@ final class EditorNumberField extends LinearLayout {
         // Share the original input width with Reset, preserving the slider's available track length.
         int inputBudget = Math.min(dp(76), Math.max(0, MeasureSpec.getSize(widthSpec) / 2));
         int resetWidth = reset == null ? 0 : Math.min(dp(EditorWidgets.COMPACT_CONTROL_DP), inputBudget);
-        if (reset != null) reset.getLayoutParams().width = resetWidth;
-        params.width = slider == null ? LayoutParams.MATCH_PARENT : inputBudget - resetWidth;
+        int resetGap = reset == null ? 0 : Math.min(dp(4), inputBudget - resetWidth);
+        if (reset != null) {
+            var resetParams = (LayoutParams) reset.getLayoutParams();
+            resetParams.width = resetWidth;
+            resetParams.height = resetWidth;
+            resetParams.rightMargin = resetGap;
+        }
+        params.width = slider == null ? LayoutParams.MATCH_PARENT : inputBudget - resetWidth - resetGap;
         super.onMeasure(widthSpec, heightSpec);
     }
 }

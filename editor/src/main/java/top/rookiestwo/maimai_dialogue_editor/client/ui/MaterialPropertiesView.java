@@ -15,14 +15,17 @@ final class MaterialPropertiesView extends LinearLayout {
     private final ProjectWorkspace project;
     private final MaterialWorkspace model;
     private final ChoicePresenter choices;
+    private final EditorLayoutState layout;
+    private LinearLayout group;
     private final List<Runnable> bindings = new ArrayList<>();
     private ResourceKey key;
     private JsonObject data;
     private String binding = "";
     private boolean refreshing;
 
-    MaterialPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices) {
+    MaterialPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
         super(context); this.project = project; this.model = project.materials(); this.choices = choices;
+        this.layout = layout;
         setOrientation(VERTICAL);
     }
     void refresh() {
@@ -44,35 +47,38 @@ final class MaterialPropertiesView extends LinearLayout {
     private String variant() { return model.variant(key, data); }
     private String value(String field) { return data == null ? "" : MaterialPack.string(data.get(field)); }
     private void build() {
+        group = this;
         if (key == null || (!key.kind().material() && key.kind() != ResourceKind.VISUAL_ASSET)) return;
         if (data == null) { addView(EditorWidgets.compactParagraph(getContext(), "edit.invalid_object")); return; }
         if (key.kind() == ResourceKind.VISUAL_ASSET) {
             if (!(data.get("variants") instanceof JsonObject)) { addView(EditorWidgets.compactParagraph(getContext(), "edit.invalid_object")); return; }
+            section("material.group.settings");
             choice("material.sampling", () -> value("sampling").isEmpty() ? "linear" : value("sampling"),
                     () -> List.of(new ChoicePresenter.Item("linear", EditorWidgets.tr("material.linear")),
                             new ChoicePresenter.Item("nearest", EditorWidgets.tr("material.nearest"))), model::setSampling);
+            section("material.group.variants");
             Button add = EditorWidgets.button(getContext(), "material.add_variant", () -> { if (active()) model.addVariant(); });
-            EditorWidgets.propertyRow(this, null, add, false);
+            EditorWidgets.propertyRow(group, null, add, false);
             if (data.getAsJsonObject("variants").isEmpty()) return;
             choice("material.variant", this::variant, () -> data.getAsJsonObject("variants").keySet().stream()
                     .map(name -> new ChoicePresenter.Item(name, name)).toList(), model::selectVariant);
             variantNameField();
-            field("material.image_id", () -> MaterialPack.string(data.getAsJsonObject("variants").get(variant())), model::setVariantImage);
-            choice(null, () -> MaterialPack.string(data.getAsJsonObject("variants").get(variant())), () ->
+            reference("material.image_id", () -> MaterialPack.string(data.getAsJsonObject("variants").get(variant())), () ->
                     project.resources().catalog().keys().stream().filter(k -> k.kind() == ResourceKind.IMAGE)
                             .map(k -> new ChoicePresenter.Item(MaterialPack.imageId(k, project.draft().namespace()), k.path())).toList(), model::setVariantImage);
             Button remove = EditorWidgets.button(getContext(), "material.delete_variant", () -> { if (active()) model.deleteVariant(); });
-            EditorWidgets.propertyRow(this, null, remove, false);
+            EditorWidgets.propertyRow(group, null, remove, false);
         } else {
-            TextView info = EditorWidgets.compactParagraph(getContext(), ""); addView(info);
+            section("material.group.file");
+            TextView info = EditorWidgets.compactParagraph(getContext(), ""); group.addView(info);
             bindings.add(() -> info.setText(key.kind() == ResourceKind.IMAGE
                     ? MaterialPack.imageId(key, project.draft().namespace()) + "\n" + number("width") + " × " + number("height")
                     : key.id(project.draft().namespace()) + ".ogg\n" + number("channels") + " ch · " + number("sample_rate") + " Hz"));
             Button replace = EditorWidgets.button(getContext(), "material.replace", () -> { if (active()) model.begin(key); });
-            EditorWidgets.propertyRow(this, null, replace, false);
+            EditorWidgets.propertyRow(group, null, replace, false);
             if (key.kind() == ResourceKind.SOUND) {
-                field("material.event", () -> value("event"), model::setEvent);
-                choice(null, () -> value("event"), () -> project.resources().catalog().keys().stream()
+                section("material.group.sound_event");
+                reference("material.event", () -> value("event"), () -> project.resources().catalog().keys().stream()
                         .filter(k -> k.kind() == ResourceKind.SOUND).map(k -> project.resources().catalog().displayName(k))
                         .filter(name -> !name.isBlank()).distinct().map(name -> new ChoicePresenter.Item(name, name)).toList(), model::setEvent);
                 choice("material.stream", () -> String.valueOf(data.has("stream") && data.get("stream").isJsonPrimitive()
@@ -110,7 +116,7 @@ final class MaterialPropertiesView extends LinearLayout {
             }
             project.endEdit();
         });
-        EditorWidgets.propertyRow(this, "material.variant_name", input, false); addView(error);
+        EditorWidgets.propertyRow(group, "material.variant_name", input, false); group.addView(error);
         bindings.add(() -> {
             String current = variant();
             if (!boundVariant[0].equals(current)) {
@@ -123,17 +129,28 @@ final class MaterialPropertiesView extends LinearLayout {
             }
         });
     }
-    private void field(String label, Supplier<String> value, Consumer<String> setter) {
+    private void reference(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;
+        Button picker = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
+        picker.setOnClickListener(view -> {
+            if (!active() || !binding.equals(expected)) return;
+            choices.showSearchable(picker, items.get(), value.get(), selected -> {
+                if (active() && binding.equals(expected)) setter.accept(selected);
+            });
+        });
         EditText input = EditorWidgets.compactInput(getContext(), value.get(), text -> {
             if (active() && binding.equals(expected)) setter.accept(text);
         }, project::endEdit);
-        EditorWidgets.propertyRow(this, label, input, false);
-        bindings.add(() -> { if (!input.getText().toString().equals(value.get())) input.setText(value.get()); });
+        EditorWidgets.referenceRow(group, label, input, picker);
+        bindings.add(() -> {
+            if (!input.getText().toString().equals(value.get())) input.setText(value.get());
+            input.setEnabled(project.content().active());
+            EditorWidgets.enabled(picker, project.content().active());
+        });
     }
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;
-        Button button = EditorWidgets.button(getContext(), "", null);
+        Button button = EditorWidgets.fieldButton(getContext(), "", null);
         button.setOnClickListener(view -> {
             if (active() && binding.equals(expected)) choices.show(button, items.get(), value.get(), selected -> {
                 if (active() && binding.equals(expected)) setter.accept(selected);
@@ -141,14 +158,21 @@ final class MaterialPropertiesView extends LinearLayout {
         });
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         EditorWidgets.bindMetrics(button, () -> {
-            button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
+            int padding = dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP);
+            button.setPadding(padding, 0, padding, 0);
         });
-        EditorWidgets.propertyRow(this, label, button, false);
+        EditorWidgets.propertyRow(group, label, button, false);
         bindings.add(() -> {
             EditorWidgets.enabled(button, project.content().active());
-            String text = label == null ? EditorWidgets.tr("edit.choose_resource") : items.get().stream()
+            String text = items.get().stream()
                     .filter(item -> item.value().equals(value.get())).map(ChoicePresenter.Item::label).findFirst().orElse(value.get());
             button.setText(text + " ▾"); button.setTooltipText(text);
         });
+    }
+    private void section(String key) {
+        var section = new EditorPropertySection(getContext(), key, layout);
+        addView(section, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        bindings.add(section::refresh);
+        group = section.body();
     }
 }

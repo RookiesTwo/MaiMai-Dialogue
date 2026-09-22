@@ -25,6 +25,7 @@ final class EditorWidgets {
     static final int COMPACT_ROW_DP = 22;
     static final int COMPACT_HORIZONTAL_PADDING_DP = 4;
     static final int COMPACT_CONTROL_DP = 24;
+    static final int CONTROL_CORNER_DP = 4;
 
     // 白色内容区、浅灰框架和亮蓝交互反馈；文字使用深灰以保持可读性。
     static final int BACKGROUND = 0xFFF2F4F7;
@@ -47,6 +48,9 @@ final class EditorWidgets {
     private static final int METRICS_TAG = 0x6D650001;
     private static final int TOOLTIP_STYLE_TAG = 0x6D650002;
     static final int DEFERRED_INPUT_TAG = 0x6D650003;
+    private static final int PROPERTY_BUTTON_SCOPE_TAG = 0x6D650004;
+    private static final int BUTTON_ROLE_TAG = 0x6D650005;
+    private enum ButtonRole { ACTION, FIELD, SECTION }
 
     private EditorWidgets() {
     }
@@ -76,7 +80,27 @@ final class EditorWidgets {
     }
 
     static Button button(Context context, String key, Runnable action) {
-        Button button = new Button(context);
+        return button(context, key, action, ButtonRole.ACTION);
+    }
+
+    static Button fieldButton(Context context, String key, Runnable action) {
+        return button(context, key, action, ButtonRole.FIELD);
+    }
+
+    static Button sectionButton(Context context, String key, Runnable action) {
+        return button(context, key, action, ButtonRole.SECTION);
+    }
+
+    private static Button button(Context context, String key, Runnable action, ButtonRole role) {
+        Button button = new Button(context) {
+            @Override
+            protected void onAttachedToWindow() {
+                super.onAttachedToWindow();
+                // The parent chain is available here, including for asynchronously rebuilt fields.
+                if (inPropertyPanel(this)) refreshButtonStyle(this);
+            }
+        };
+        button.setTag(BUTTON_ROLE_TAG, role);
         button.setText(tr(key));
         button.setSingleLine(true);
         button.setEllipsize(TextUtils.TruncateAt.END);
@@ -95,7 +119,7 @@ final class EditorWidgets {
         bindMetrics(button, () -> {
             button.setTextSize(13);
             button.setPadding(button.dp(8), 0, button.dp(8), 0);
-            button.setBackground(buttonBackground());
+            refreshButtonStyle(button);
         });
         return button;
     }
@@ -111,9 +135,16 @@ final class EditorWidgets {
         return button;
     }
 
+    static LinearLayout.LayoutParams squareIconParams(View icon) {
+        var params = new LinearLayout.LayoutParams(icon.dp(COMPACT_CONTROL_DP), icon.dp(COMPACT_CONTROL_DP));
+        params.topMargin = icon.dp(2);
+        params.bottomMargin = icon.dp(2);
+        return params;
+    }
+
     static void enabled(Button button, boolean enabled) {
         button.setEnabled(enabled);
-        button.setTextColor(enabled ? TEXT : DISABLED_TEXT);
+        button.setTextColor(buttonTextColor(button));
     }
 
     static EditText input(Context context, String value, Consumer<String> changed, Runnable endEdit) {
@@ -124,7 +155,9 @@ final class EditorWidgets {
         bindMetrics(input, () -> {
             input.setTextSize(14);
             input.setPadding(input.dp(8), input.dp(6), input.dp(8), input.dp(6));
-            input.setBackground(shape(PANEL, input.dp(1)));
+            ShapeDrawable background = shape(PANEL, input.dp(1));
+            background.setCornerRadius(input.dp(CONTROL_CORNER_DP));
+            input.setBackground(background);
             input.setMinimumHeight(input.dp(34));
         });
         input.addTextChangedListener(new TextWatcher() {
@@ -172,6 +205,10 @@ final class EditorWidgets {
                 new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
+    static void referenceRow(LinearLayout container, String key, EditText input, Button picker) {
+        propertyRow(container, key, new EditorReferenceField(input, picker), false);
+    }
+
     static TextView compactParagraph(Context context, String key) {
         TextView text = paragraph(context, key);
         bindMetrics(text, () -> text.setPadding(0, text.dp(2), 0, text.dp(2)));
@@ -195,7 +232,7 @@ final class EditorWidgets {
         return scroll;
     }
 
-    // 编辑器组件统一使用直角，正常、悬停、按下与禁用状态保持一致。
+    // 通用背景保持直角，属性控件按操作、值选择和分组标题分别设置样式。
     static ShapeDrawable shape(int color, int stroke) {
         ShapeDrawable shape = new ShapeDrawable();
         shape.setColor(color);
@@ -203,6 +240,55 @@ final class EditorWidgets {
         if (stroke > 0) {
             shape.setStroke(stroke, BORDER);
         }
+        return shape;
+    }
+
+    static void propertyButtonScope(View root) {
+        root.setTag(PROPERTY_BUTTON_SCOPE_TAG, Boolean.TRUE);
+    }
+
+    private static boolean inPropertyPanel(View view) {
+        while (view != null) {
+            if (Boolean.TRUE.equals(view.getTag(PROPERTY_BUTTON_SCOPE_TAG))) return true;
+            view = view.getParent() instanceof View parent ? parent : null;
+        }
+        return false;
+    }
+
+    static boolean propertyAction(View view) {
+        return view instanceof Button && view.getTag(BUTTON_ROLE_TAG) == ButtonRole.ACTION;
+    }
+
+    private static int buttonTextColor(Button button) {
+        if (!button.isEnabled()) return DISABLED_TEXT;
+        if (inPropertyPanel(button)) return ACCENT;
+        return TEXT;
+    }
+
+    private static void refreshButtonStyle(Button button) {
+        boolean property = inPropertyPanel(button);
+        if (property && button.getTag(BUTTON_ROLE_TAG) != ButtonRole.SECTION) {
+            StateListDrawable background = new StateListDrawable();
+            background.addState(new int[]{-R.attr.state_enabled}, propertyButtonShape(button, PANEL, BORDER));
+            background.addState(new int[]{R.attr.state_pressed}, propertyButtonShape(button, BUTTON_PRESSED, ACCENT));
+            background.addState(new int[]{R.attr.state_selected}, propertyButtonShape(button, BUTTON_PRESSED, ACCENT));
+            background.addState(new int[]{R.attr.state_hovered}, propertyButtonShape(button, BUTTON_HOVER, ACCENT));
+            background.addState(new int[]{R.attr.state_focused}, propertyButtonShape(button, BUTTON_HOVER, ACCENT));
+            background.addState(StateSet.WILD_CARD, propertyButtonShape(button, PANEL, ACCENT));
+            button.setBackground(background);
+        } else {
+            button.setBackground(buttonBackground());
+        }
+        // ModernUI 3.13 setBackground() does not apply the View state to the new drawable.
+        // Synchronize now: otherwise a fresh StateListDrawable stays on its disabled entry until input.
+        button.refreshDrawableState();
+        if (property) button.setTextColor(buttonTextColor(button));
+    }
+
+    private static ShapeDrawable propertyButtonShape(Button button, int color, int border) {
+        ShapeDrawable shape = shape(color, 0);
+        shape.setStroke(1, border);
+        shape.setCornerRadius(button.dp(CONTROL_CORNER_DP));
         return shape;
     }
 

@@ -66,7 +66,8 @@ final class SceneLayoutPropertiesView extends LinearLayout {
                         EditorWidgets.tr("scene.anchor." + anchor.serializedName()))).toList(), model::setBoxAnchor);
         String expected = binding;
         var reset = EditorWidgets.button(getContext(), "scene.reset_box", () -> { if (accepts(expected)) model.resetBox(); });
-        group.addView(reset); bindings.add(() -> EditorWidgets.enabled(reset, model.active() && model.data().has("dialogue_box")));
+        EditorWidgets.propertyRow(group, null, reset, false);
+        bindings.add(() -> EditorWidgets.enabled(reset, model.active() && model.data().has("dialogue_box")));
     }
     private void reference(String label, String field, ResourceKind kind, String fallback) {
         String expected = binding;
@@ -79,12 +80,21 @@ final class SceneLayoutPropertiesView extends LinearLayout {
                 project.endEdit();
             }
         });
-        EditorWidgets.propertyRow(group, label, input, false);
+        var choose = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
+        choose.setOnClickListener(view -> {
+            if (!accepts(expected)) return;
+            choices.showSearchable(choose, resourceItems(kind), value(field, fallback), selected -> {
+                if (accepts(expected) && !selected.equals(value(field, fallback))) {
+                    project.endEdit(); model.setTheme(selected); project.endEdit();
+                }
+            });
+        });
+        EditorWidgets.referenceRow(group, label, input, choose);
         bindings.add(() -> {
             if (!input.isFocused() && !input.getText().toString().equals(value(field, fallback))) input.setText(value(field, fallback));
             input.setEnabled(model.active());
+            EditorWidgets.enabled(choose, model.active());
         });
-        choice(null, () -> value(field, fallback), () -> resourceItems(kind), selected -> model.setTheme(selected));
     }
     private List<ChoicePresenter.Item> resourceItems(ResourceKind kind) {
         if (project.draft() == null) return List.of();
@@ -103,17 +113,19 @@ final class SceneLayoutPropertiesView extends LinearLayout {
     }
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;
-        var button = EditorWidgets.button(getContext(), "", null);
+        var button = EditorWidgets.fieldButton(getContext(), "", null);
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        EditorWidgets.bindMetrics(button, () -> button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0,
-                dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0));
+        EditorWidgets.bindMetrics(button, () -> {
+            int padding = dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP);
+            button.setPadding(padding, 0, padding, 0);
+        });
         button.setOnClickListener(view -> { if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> {
             if (accepts(expected) && !selected.equals(value.get())) { project.endEdit(); setter.accept(selected); project.endEdit(); }
         }); });
         EditorWidgets.propertyRow(group, label, button, false);
         bindings.add(() -> {
             String current = value.get();
-            String text = label == null ? EditorWidgets.tr("edit.choose_resource") : items.get().stream()
+            String text = items.get().stream()
                     .filter(item -> item.value().equals(current)).map(ChoicePresenter.Item::label).findFirst().orElse(current);
             button.setText(text + " ▾"); button.setTooltipText(text); EditorWidgets.enabled(button, model.active());
         });

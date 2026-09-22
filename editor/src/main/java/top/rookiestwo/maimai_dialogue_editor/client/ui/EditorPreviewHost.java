@@ -280,6 +280,10 @@ final class EditorPreviewHost {
     void start() {
         startAt(0);
     }
+    void restartStep() {
+        var selected = workspace.resources().selection();
+        if (selected.isStep()) startAt(selected.stepIndex());
+    }
 
     private void startAt(int step) {
         // A new tree selection may supersede a pending start before the client snapshot arrives.
@@ -576,6 +580,7 @@ final class EditorPreviewHost {
     }
 
     void releaseView() {
+        workspace.actions().endGesture(true);
         workspace.audio().endGesture(true);
         stopAudition(); closeDialogueAudio(); audioChanged = () -> {};
         workspace.scenes().endNumberDrag(true);

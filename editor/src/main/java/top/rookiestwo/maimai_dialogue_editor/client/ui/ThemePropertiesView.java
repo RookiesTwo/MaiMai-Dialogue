@@ -54,7 +54,7 @@ final class ThemePropertiesView extends LinearLayout {
                 }
             }
             var reset = EditorWidgets.button(getContext(), "theme.reset_group", () -> { if (accepts(expected)) model.resetGroup(group); });
-            body.addView(reset);
+            EditorWidgets.propertyRow(body, null, reset, false);
             bindings.add(() -> EditorWidgets.enabled(reset, model.active() && model.snapshot().data().has(group)));
         }
     }

@@ -20,6 +20,7 @@ final class ResourcePropertiesView extends LinearLayout {
     private final DialogueScenePropertiesView dialogueScene;
     private final ThemePropertiesView themes;
     private final AudioPropertiesView audio;
+    private final ActionPropertiesView actions;
 
     ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, EditorLayoutState layout, EditorPreviewHost preview) {
         super(context);
@@ -31,9 +32,9 @@ final class ResourcePropertiesView extends LinearLayout {
         diagnostic = EditorWidgets.compactParagraph(context, "");
         diagnostic.setTextIsSelectable(true);
         addView(diagnostic);
-        content = new ContentPropertiesView(context, workspace, choices);
+        content = new ContentPropertiesView(context, workspace, choices, layout);
         addView(content, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        materials = new MaterialPropertiesView(context, workspace, choices);
+        materials = new MaterialPropertiesView(context, workspace, choices, layout);
         addView(materials, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         scenes = new ScenePropertiesView(context, workspace, choices, layout);
         addView(scenes, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
@@ -45,6 +46,8 @@ final class ResourcePropertiesView extends LinearLayout {
         addView(themes, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         audio = new AudioPropertiesView(context, workspace, choices, layout, preview);
         addView(audio, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        actions = new ActionPropertiesView(context, workspace, choices, layout);
+        addView(actions, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         refresh();
     }
 
@@ -52,7 +55,8 @@ final class ResourcePropertiesView extends LinearLayout {
         ResourceTree.Node node = workspace.resources().selection();
         ResourceKey key = node.owner();
         boolean opened = key != null && key.equals(workspace.resources().opened());
-        boolean editing = opened && (node.isStep() || key.kind() == ResourceKind.SPEAKER);
+        boolean editingAction = workspace.actions().inspecting();
+        boolean editing = !editingAction && opened && (node.isStep() || key.kind() == ResourceKind.SPEAKER);
         boolean editingMaterial = opened && (key.kind().material() || key.kind() == ResourceKind.VISUAL_ASSET);
         var issue = workspace.focusedIssue();
         boolean showIssue = issue != null && key != null && key.equals(issue.resource());
@@ -60,6 +64,9 @@ final class ResourcePropertiesView extends LinearLayout {
         diagnostic.setText(showIssue ? issue.field() + "\n" + ExportMenu.describe(issue) : "");
         if (workspace.draft() == null || node.type() == ResourceTree.Type.PROJECT) {
             details.setText(EditorWidgets.tr("no_selection"));
+        } else if (editingAction && node.isStep()) {
+            details.setText(EditorWidgets.tr("action.call") + " " + (workspace.actions().selected() + 1)
+                    + " · " + key.id(workspace.draft().namespace()));
         } else {
             String text = EditorWidgets.tr("resource." + node.kind().key());
             if (key != null) {
@@ -92,5 +99,6 @@ final class ResourcePropertiesView extends LinearLayout {
         themes.setVisibility(opened && key.kind() == ResourceKind.THEME ? VISIBLE : GONE);
         themes.refresh();
         audio.refresh();
+        actions.refresh();
     }
 }

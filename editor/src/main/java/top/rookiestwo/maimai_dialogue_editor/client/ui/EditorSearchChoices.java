@@ -6,7 +6,7 @@ import icyllis.modernui.widget.*;
 import java.util.*;
 import java.util.function.Consumer;
 
-/** Bounded View creation for registries containing thousands of sound events. */
+/** Shared resource search with bounded View creation for large registries. */
 final class EditorSearchChoices extends LinearLayout {
     private final List<ChoicePresenter.Item> source;
     private final LinearLayout results;
@@ -21,12 +21,13 @@ final class EditorSearchChoices extends LinearLayout {
         results = new LinearLayout(context); results.setOrientation(VERTICAL);
         more = EditorWidgets.button(context, "audio.more", this::append);
         var search = EditorWidgets.compactInput(context, "", this::filter, () -> {});
-        search.setHint(EditorWidgets.tr("audio.search"));
+        search.setHint(EditorWidgets.tr("edit.search_resources"));
         addView(search); addView(results); addView(more); filter("");
     }
     private void filter(String query) {
         String needle = query.strip().toLowerCase(Locale.ROOT);
-        filtered = source.stream().filter(item -> item.label().toLowerCase(Locale.ROOT).contains(needle)).toList();
+        filtered = source.stream().filter(item -> item.label().toLowerCase(Locale.ROOT).contains(needle)
+                || item.value().toLowerCase(Locale.ROOT).contains(needle)).toList();
         results.removeAllViews(); shown = 0; append();
         if (filtered.isEmpty()) results.addView(EditorWidgets.compactParagraph(getContext(), "browser.empty"));
     }

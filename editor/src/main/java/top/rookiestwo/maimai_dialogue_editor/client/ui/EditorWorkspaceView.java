@@ -45,6 +45,9 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
             @Override public void show(View anchor, List<Item> items, String selected, Consumer<String> chosen) {
                 showChoices(anchor, items, selected, chosen);
             }
+            @Override public void showMenu(View anchor, List<Item> items, String selected, Consumer<String> chosen) {
+                showChoices(anchor, items, selected, chosen, false);
+            }
             @Override public void showSearchable(View anchor, List<Item> items, String selected, Consumer<String> chosen) {
                 if (!workspace.content().active() || !workspace.windowFocused() || !anchor.isAttachedToWindow()) return;
                 dismissChoices(); workspace.endEdit();
@@ -52,7 +55,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
                     dismissChoices();
                     if (anchor.isAttachedToWindow() && workspace.content().active()) chosen.accept(value);
                 });
-                choices = EditorDropdownMenu.forField(content, anchor, EditorWorkspaceView.this::dismissChoices);
+                choices = resourceChoices(content, anchor);
                 workbench.setDescendantFocusability(FOCUS_BLOCK_DESCENDANTS);
                 addView(choices, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
                 choices.requestFocus();
@@ -134,6 +137,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     }
 
     void escape() {
+        if (workspace.actions().editing()) { workspace.actions().endGesture(false); return; }
         if (workspace.audio().editing()) { workspace.audio().endGesture(false); return; }
         if (workspace.themes().editing()) {
             workspace.themes().endGesture(false);
@@ -176,13 +180,25 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         return super.dispatchTouchEvent(event);
     }
 
+    private EditorDropdownMenu resourceChoices(View content, View anchor) {
+        // Resource menus retain their reading width when their launch button follows its text width.
+        return EditorWidgets.propertyAction(anchor)
+                ? EditorDropdownMenu.forContent(content, anchor, 280, this::dismissChoices)
+                : EditorDropdownMenu.forField(content, anchor, this::dismissChoices);
+    }
+
     private void showChoices(View anchor, List<ChoicePresenter.Item> items, String selected, Consumer<String> chosen) {
+        showChoices(anchor, items, selected, chosen, true);
+    }
+
+    private void showChoices(View anchor, List<ChoicePresenter.Item> items, String selected, Consumer<String> chosen, boolean matchAnchorWidth) {
         if (!workspace.content().active() || !workspace.windowFocused() || !anchor.isAttachedToWindow()) return;
         dismissChoices();
         workspace.endEdit();
         LinearLayout list = new LinearLayout(getContext());
         list.setOrientation(LinearLayout.VERTICAL);
-        EditorDropdownMenu menu = EditorDropdownMenu.forField(list, anchor, this::dismissChoices);
+        EditorDropdownMenu menu = matchAnchorWidth ? resourceChoices(list, anchor)
+                : EditorDropdownMenu.forContent(list, anchor, 180, this::dismissChoices);
         for (ChoicePresenter.Item item : items) {
             Button button = EditorWidgets.button(getContext(), "", () -> {
                 if (choices != menu) return;

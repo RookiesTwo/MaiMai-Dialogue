@@ -10,6 +10,8 @@ import java.util.function.Supplier;
 interface ChoicePresenter {
     record Item(String value, String label) {}
     void show(View anchor, List<Item> items, String selected, Consumer<String> chosen);
+    /** Command menus keep their own width instead of inheriting an icon button's width. */
+    void showMenu(View anchor, List<Item> items, String selected, Consumer<String> chosen);
     void showSearchable(View anchor, List<Item> items, String selected, Consumer<String> chosen);
     void showColor(View anchor, Supplier<String> value, Consumer<String> changed);
     void showColor(View anchor, Supplier<String> value, Consumer<String> changed,

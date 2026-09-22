@@ -131,6 +131,8 @@ public final class ProjectContentSnapshot implements DialogueContentLookup {
         var json = draft.resource(key);
         // The project's namespace is authoritative; an old installed pack must not fill a missing draft.
         if (json == null) return Optional.empty();
+        var actionErrors = ActionValidation.definitions(kind, json);
+        if (!actionErrors.isEmpty()) throw new IllegalArgumentException(kind.key() + " " + id + ": " + actionErrors);
         if (kind == ResourceKind.THEME && json instanceof com.google.gson.JsonObject object) {
             var errors = top.rookiestwo.maimai_dialogue_editor.document.ThemeFields.errors(object);
             if (!errors.isEmpty()) throw new IllegalArgumentException("Theme " + id + ": " + String.join(", ", errors.keySet()));

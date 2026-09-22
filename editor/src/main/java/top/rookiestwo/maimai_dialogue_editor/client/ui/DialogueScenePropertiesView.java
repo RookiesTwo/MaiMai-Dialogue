@@ -30,17 +30,16 @@ final class DialogueScenePropertiesView extends LinearLayout {
                 project.endEdit();
             }
         });
-        EditorWidgets.propertyRow(section.body(), "edit.scene", input, false);
         choose = EditorWidgets.button(context, "edit.choose_resource", () -> {
             ResourceKey expected = bound; long expectedGeneration = generation;
             if (!accepts(expected, expectedGeneration)) return;
-            choices.show(chooseButton(), items(), value(), selected -> {
+            choices.showSearchable(chooseButton(), items(), value(), selected -> {
                 if (accepts(expected, expectedGeneration)) {
                     project.endEdit(); project.content().editScene(selected); project.endEdit();
                 }
             });
         });
-        EditorWidgets.propertyRow(section.body(), null, choose, false);
+        EditorWidgets.referenceRow(section.body(), "edit.scene", input, choose);
     }
 
     private Button chooseButton() { return choose; }
