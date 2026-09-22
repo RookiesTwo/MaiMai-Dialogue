@@ -71,7 +71,10 @@ public final class ScenePreviewSession {
     public static Prepared prepare(ProjectDraft draft, ResourceKey key, ClientContentSnapshot external) throws java.io.IOException {
         if (key.kind() != ResourceKind.SCENE) throw new IllegalArgumentException("Expected a Scene");
         var id = ResourceLocation.fromNamespaceAndPath(draft.namespace(), key.path());
-        var content = new ProjectContentSnapshot(draft, external).prepare(key.kind(), id);
+        return prepare(draft, id, external);
+    }
+    public static Prepared prepare(ProjectDraft draft, ResourceLocation id, ClientContentSnapshot external) throws java.io.IOException {
+        var content = new ProjectContentSnapshot(draft, external).prepare(ResourceKind.SCENE, id);
         var source = content.scene(id).orElseThrow(() -> new IllegalArgumentException("Missing Scene: " + id));
         var resolved = SceneResolver.resolve(source, content::theme, content::visualAsset);
         var errors = new ArrayList<>(resolved.visualErrors());

@@ -15,6 +15,8 @@ public final class ActionWorkspace {
     private final Runnable changed;
     private final Map<Context, Integer> selections = new HashMap<>();
     private final Map<ProjectDraft, Selection> history = new WeakHashMap<>();
+    public record PreviewContext(String scene, String target) {}
+    private final Map<ResourceKey, PreviewContext> previewContexts = new HashMap<>();
     private ProjectDraft seen;
     private Context seenContext;
     private long seenNavigation = -1;
@@ -23,7 +25,7 @@ public final class ActionWorkspace {
     public ActionWorkspace(ProjectWorkspace project, Runnable changed) { this.project = project; this.changed = changed; }
     public Context context() {
         if (projectGeneration != project.projectGeneration()) {
-            projectGeneration = project.projectGeneration(); selections.clear(); history.clear(); gesture = null;
+            projectGeneration = project.projectGeneration(); selections.clear(); history.clear(); previewContexts.clear(); gesture = null;
             seen = null; seenContext = null; seenNavigation = -1;
         }
         var selected = project.resources().selection(); var key = selected.owner();
@@ -32,6 +34,19 @@ public final class ActionWorkspace {
         return selected.isStep() ? new Context(key, selected.stepIndex()) : null;
     }
     public boolean active() { return project.content().active() && context() != null; }
+    /** Editor-only context, retained across View rebuilds and never serialized into the action. */
+    public PreviewContext previewContext() {
+        var context = context();
+        return context == null ? new PreviewContext("", "dialogue") : previewContexts.getOrDefault(context.resource(), new PreviewContext("", "dialogue"));
+    }
+    public void previewScene(String scene) {
+        if (!active() || !context().standalone()) return;
+        previewContexts.put(context().resource(), new PreviewContext(scene, "dialogue")); changed.run();
+    }
+    public void previewTarget(String target) {
+        if (!active() || !context().standalone()) return;
+        previewContexts.put(context().resource(), new PreviewContext(previewContext().scene(), target)); changed.run();
+    }
     public JsonObject data() { return project.content().snapshot().data(); }
     public JsonObject node() { var context = context(); return context == null ? null : context.standalone() ? data() : DialogueDraft.node(data(), context.step()); }
     public JsonArray calls() { return context() == null || context().standalone() ? null : array(node(), "actions"); }
@@ -112,6 +127,13 @@ public final class ActionWorkspace {
             else { spec.remove("action"); spec.addProperty("id", ""); }
             call.add("action", spec);
         });
+    }
+    public void extract() {
+        if (!active() || context().standalone() || definition() == null) return;
+        endGesture(true); project.endEdit();
+        var context = context();
+        project.resources().beginExtract(InlineResource.action(project.draft(), context.resource(), context.step(), selected()),
+                context.resource().path() + "_action");
     }
     public void set(boolean call, String path, JsonElement value) {
         edit(call, path, object -> ActionFields.set(object, path, value == null ? null : value.deepCopy()));

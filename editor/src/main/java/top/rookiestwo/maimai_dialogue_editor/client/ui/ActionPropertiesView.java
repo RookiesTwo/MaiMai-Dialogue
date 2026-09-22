@@ -54,7 +54,8 @@ final class ActionPropertiesView extends LinearLayout {
         for (String key : ActionFields.COMPONENTS) {
             var value = data.get(key); parts.add(key + ":" + (value == null ? "absent" : value instanceof JsonArray array ? array.size() : value instanceof JsonObject ? "object" : "invalid"));
         }
-        parts.add(model.text(false, "bgm.type", "")); return String.join("/", parts);
+        parts.add(model.text(false, "bgm.type", ""));
+        parts.add(Boolean.toString(model.context().standalone() && model.previewContext().scene().isEmpty())); return String.join("/", parts);
     }
     private boolean accepts(Binding expected) {
         return !refreshing && isAttachedToWindow() && expected.equals(binding) && model.active()
@@ -101,6 +102,12 @@ final class ActionPropertiesView extends LinearLayout {
                 return targets;
             }, target -> model.set(true, "target", target.isEmpty() ? null : new JsonPrimitive(target)));
             number(body, "action.delay_ms", true, ActionFields.time("delay_ms", 0));
+            if (model.definition() != null) {
+                var expected = binding;
+                var extract = EditorWidgets.button(getContext(), "browser.extract", () -> { if (accepts(expected)) model.extract(); });
+                EditorWidgets.propertyRow(body, null, extract, false);
+                bindings.add(() -> EditorWidgets.enabled(extract, model.active()));
+            }
         }
         if (model.definition() == null) return;
         var body = section("action.settings");
@@ -179,9 +186,10 @@ final class ActionPropertiesView extends LinearLayout {
         number(body, "action.at", false, ActionFields.fraction(field + ".at", 0, false));
         if (field.equals("visible")) choice(body, "action.visible_value", () -> model.text(false, "visible.value", "true"), this::booleans,
                 value -> model.set(false, "visible.value", new JsonPrimitive(Boolean.parseBoolean(value))));
-        else if (model.context().standalone()) field(body, "action.variant_value", false, "variant.value");
+        else if (model.context().standalone() && model.previewContext().scene().isEmpty()) field(body, "action.variant_value", false, "variant.value");
         else choice(body, "action.variant_value", () -> model.text(false, "variant.value", ""),
-                () -> scene == null ? List.of() : scene.variants(model.text(true, "target", "")).stream().map(value -> new ChoicePresenter.Item(value, value)).toList(),
+                () -> scene == null ? List.of() : scene.variants(model.context().standalone() ? model.previewContext().target() : model.text(true, "target", ""))
+                        .stream().map(value -> new ChoicePresenter.Item(value, value)).toList(),
                 value -> model.set(false, "variant.value", new JsonPrimitive(value)));
     }
     private void audio(String field) {
@@ -248,7 +256,7 @@ final class ActionPropertiesView extends LinearLayout {
 
     private void prepareScene() {
         var context = model.context();
-        String id = !model.inspecting() || context.standalone() ? "" : ActionFields.text(model.data(), "scene", "");
+        String id = !model.inspecting() ? "" : context.standalone() ? model.previewContext().scene() : ActionFields.text(model.data(), "scene", "");
         String signature = id.isEmpty() ? "" : project.projectGeneration() + "/" + ActionSceneContext.signature(project.draft(), id);
         if (signature.equals(sceneSignature)) return;
         sceneSignature = signature; long request = ++metadataRequest; scene = null; contextError = "";

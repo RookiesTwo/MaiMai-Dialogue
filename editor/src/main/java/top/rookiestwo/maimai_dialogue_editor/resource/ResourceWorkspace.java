@@ -13,7 +13,7 @@ import java.util.function.Supplier;
 
 /** Per-project navigation, open document and resource operations. All calls run on the owning UI thread. */
 public final class ResourceWorkspace {
-    public enum Form { NONE, CREATE, COPY, DELETE }
+    public enum Form { NONE, CREATE, COPY, DELETE, EXTRACT }
     private final Supplier<ProjectDraft> current;
     private final Consumer<ProjectDraft> edit;
     private final BooleanSupplier enabled;
@@ -31,6 +31,7 @@ public final class ResourceWorkspace {
     private String createFolder = "";
     private boolean suggestFormPath;
     private ResourceKey source;
+    private InlineResource extraction;
     private String error;
     private long revealRevision;
     private long selectionRevision;
@@ -89,6 +90,7 @@ public final class ResourceWorkspace {
         query = "";
         form = Form.NONE;
         source = null;
+        extraction = null;
         error = null;
         revealRevision++;
         selectionRevision++;
@@ -191,6 +193,15 @@ public final class ResourceWorkspace {
     public void beginCopy() { beginSelected(Form.COPY); }
     public void beginDelete() { beginSelected(Form.DELETE); }
 
+    public void beginExtract(InlineResource value, String suggestedPath) {
+        if (!active() || form != Form.NONE || !value.current(current.get())) return;
+        navigationRequest++;
+        extraction = value; source = value.owner(); form = Form.EXTRACT; formKind = value.kind();
+        formPath = catalog().unusedPath(formKind, ResourceKey.validPath(suggestedPath) ? suggestedPath : "new_" + formKind.key());
+        error = null;
+        changed.run();
+    }
+
     private void beginSelected(Form next) {
         if (!canModifySelected()) return;
         if (!whenLoaded(selection.resource(), () -> beginSelected(next))) return;
@@ -215,7 +226,7 @@ public final class ResourceWorkspace {
     }
 
     public void setFormPath(String path) {
-        if (!active() || (form != Form.CREATE && form != Form.COPY)) return;
+        if (!active() || (form != Form.CREATE && form != Form.COPY && form != Form.EXTRACT)) return;
         // Once edited, keep the user's value even if it later matches a suggested name again.
         if (!formPath.equals(path)) suggestFormPath = false;
         formPath = path;
@@ -227,6 +238,7 @@ public final class ResourceWorkspace {
         if (form == Form.NONE || !enabled.getAsBoolean()) return;
         form = Form.NONE;
         source = null;
+        extraction = null;
         error = null;
         changed.run();
     }
@@ -244,14 +256,20 @@ public final class ResourceWorkspace {
             if (!ResourceKey.validPath(formPath)) { fail("invalid_path"); return; }
             if (!draft.hasResourceGroup(formKind)) { fail("invalid_group"); return; }
             if (index.contains(target)) { fail("duplicate"); return; }
-            JsonElement value = form == Form.CREATE ? ResourceCatalog.emptyDraft(formKind) : draft.resource(source);
-            if (value == null) { fail("missing"); return; }
-            edit.accept(draft.withResource(target, value));
-            reveal(target);
-            opened = target;
+            if (form == Form.EXTRACT) {
+                if (extraction == null || !extraction.current(draft)) { fail("stale_source"); return; }
+                edit.accept(extraction.apply(draft, target));
+            } else {
+                JsonElement value = form == Form.CREATE ? ResourceCatalog.emptyDraft(formKind) : draft.resource(source);
+                if (value == null) { fail("missing"); return; }
+                edit.accept(draft.withResource(target, value));
+                reveal(target);
+                opened = target;
+            }
         }
         form = Form.NONE;
         source = null;
+        extraction = null;
         error = null;
         synchronize();
         changed.run();

@@ -33,7 +33,7 @@ import java.util.function.Consumer;
 
 /** UI-thread owner of one embedded runtime Fragment. Client callbacks cross back through the UI handler. */
 final class EditorPreviewHost {
-    enum Mode { DIALOGUE, IMAGE, SOUND, SCENE, THEME, EMPTY }
+    enum Mode { DIALOGUE, IMAGE, SOUND, SCENE, THEME, ACTION, EMPTY }
     private final Fragment owner;
     private final ProjectWorkspace workspace;
     private final EditorPreviewAssets assets;
@@ -47,6 +47,8 @@ final class EditorPreviewHost {
     private String auditionError = "";
     private Runnable audioChanged = () -> {};
     private final ScenePreviewSession scenes;
+    private final EditorActionPreview actionPreview;
+    private DialogueImageSource actionImages;
     private final int containerId = View.generateViewId();
     private EditorPreviewView view;
     private EditorPreviewSession playback;
@@ -104,11 +106,12 @@ final class EditorPreviewHost {
             });
             return future;
         }, task -> Core.getUiHandler().post(task), this::refresh);
+        actionPreview = new EditorActionPreview(this);
     }
 
-    EditorPreviewView createView(Context context) {
+    EditorPreviewView createView(Context context, ChoicePresenter choices) {
         releasingView = false;
-        view = new EditorPreviewView(context, this, containerId);
+        view = new EditorPreviewView(context, this, containerId, choices);
         workspace.scenes().setLiveListener(immediate -> { if (view != null) view.requestSceneFrame(immediate); });
         workspace.themes().setLiveListener(this::requestThemeFrame);
         return view;
@@ -129,7 +132,7 @@ final class EditorPreviewHost {
     }
 
     boolean canStart() {
-        return canOperate();
+        return mode() == Mode.ACTION ? actionPreview.canPlay() : canOperate();
     }
 
     private boolean canOperate() {
@@ -153,10 +156,12 @@ final class EditorPreviewHost {
             case SOUND -> Mode.SOUND;
             case SCENE -> Mode.SCENE;
             case THEME -> Mode.THEME;
+            case ACTION -> Mode.ACTION;
             default -> Mode.EMPTY;
         };
     }
     AudioPreviewSession audio() { return audio; }
+    EditorActionPreview actionPreview() { return actionPreview; }
     void setAudioListener(Runnable listener) { audioChanged = listener; }
     boolean auditioning() { return auditionLoading || audition != null && audition.active(); }
     String auditionError() { return auditionError; }
@@ -274,10 +279,12 @@ final class EditorPreviewHost {
             if (!draftChanged && selectionChanged && selected.kind() == ResourceKind.DIALOGUE
                     && selected.type() == ResourceTree.Type.RESOURCE) stop();
         }
+        actionPreview.synchronize();
         if (view != null) view.refresh();
     }
 
     void start() {
+        if (mode() == Mode.ACTION) { actionPreview.play(); return; }
         startAt(0);
     }
     void restartStep() {
@@ -287,7 +294,7 @@ final class EditorPreviewHost {
 
     private void startAt(int step) {
         // A new tree selection may supersede a pending start before the client snapshot arrives.
-        if (!canStart() || view == null || !view.isAttachedToWindow()) return;
+        if (!canOperate() || view == null || !view.isAttachedToWindow()) return;
         workspace.endEdit();
         stopAudition();
         closeDialogueAudio();
@@ -354,6 +361,7 @@ final class EditorPreviewHost {
     }
 
     void advance() {
+        if (mode() == Mode.ACTION) { actionPreview.play(); return; }
         if (!canStart()) return;
         if (loading) {
             // Apply a click to the requested Step once ready, never to the old displayed session.
@@ -370,6 +378,9 @@ final class EditorPreviewHost {
     }
 
     void stop() {
+        if (mode() == Mode.ACTION) {
+            reset(); actionPreview.stop(); return;
+        }
         reset();
         showIdleControls();
         refresh();
@@ -377,7 +388,7 @@ final class EditorPreviewHost {
 
     private void showIdleControls() {
         if (disposed || view == null || !view.isAttachedToWindow()) return;
-        if (mode() == Mode.SCENE || mode() == Mode.THEME) return;
+        if (mode() == Mode.SCENE || mode() == Mode.THEME || mode() == Mode.ACTION) return;
         if (mode() != Mode.DIALOGUE) { clearFragments(); return; }
         FragmentManager manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return;
@@ -402,6 +413,7 @@ final class EditorPreviewHost {
     }
 
     private void clearFragments() {
+        actionImages = null;
         displayedTheme = null; displayedThemeExample = -1;
         fragment = null;
         sceneActions = null; displayedScene = null; sceneDocument = null; sceneProject = -1;
@@ -455,13 +467,31 @@ final class EditorPreviewHost {
         }
     }
 
-    private void refresh() {
+    void refresh() {
         if (view != null) view.refresh();
         audioChanged.run();
         changed.run();
     }
 
     DialogueFragment sceneFragment() { return sceneActions == null ? null : fragment; }
+
+    boolean actionViewReady() {
+        return !disposed && !releasingView && view != null && view.isAttachedToWindow() && mode() == Mode.ACTION
+                && !owner.getChildFragmentManager().isDestroyed() && !owner.getChildFragmentManager().isStateSaved();
+    }
+    void clearActionPreview() {
+        if (!releasingView && sceneDocument != null && sceneDocument.kind() == ResourceKind.ACTION) clearFragments();
+    }
+    void showAction(DialogueScreenState state, DialogueUiActions actions, DialogueImageSource images) {
+        if (!actionViewReady()) return;
+        // Replay can reuse the mounted views; changing the scene/assets gets a fresh set of image handles.
+        if (fragment == null || actionImages != images) {
+            clearFragments();
+            fragment = new DialogueFragment(actions, DialogueFragment.CornerControls.DISPLAY_ONLY, images.fork(), false);
+            owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, "editor-action-preview").commitNow();
+            actionImages = images; sceneDocument = workspace.resources().opened(); sceneProject = workspace.projectGeneration();
+        } else fragment.render(state);
+    }
 
     void clearScenePreview() {
         if (sceneActions != null && sceneDocument != null && sceneDocument.kind() == ResourceKind.SCENE && !releasingView) clearFragments();
@@ -590,6 +620,7 @@ final class EditorPreviewHost {
         if (view != null) view.removeCallbacks(themeFrame);
         themeFramePending = false;
         releasingView = true;
+        actionPreview.release(); actionImages = null;
         audio.stop();
         finishSceneDrag(false);
         scenes.select(workspace.projectGeneration(), null, null);
@@ -613,6 +644,7 @@ final class EditorPreviewHost {
 
     void dispose() {
         disposed = true;
+        actionPreview.dispose();
         scenes.dispose();
         releaseView();
     }

@@ -403,7 +403,7 @@
   "gui.maimai_dialogue_editor.action.add_keyframe": "Add keyframe",
   "gui.maimai_dialogue_editor.action.at": "Action progress (0–1)",
   "gui.maimai_dialogue_editor.action.delta": "Delta",
-  "gui.maimai_dialogue_editor.action.variant_value": "Variant",
+  "gui.maimai_dialogue_editor.action.variant_value": "Target variant",
   "gui.maimai_dialogue_editor.action.visible_value": "Visible",
   "gui.maimai_dialogue_editor.action.apply_preset": "Apply preset",
   "gui.maimai_dialogue_editor.action.preset.custom": "Custom action",
@@ -416,5 +416,11 @@
   "gui.maimai_dialogue_editor.action.preset.hide": "Hide object",
   "gui.maimai_dialogue_editor.action.preset.sound": "Play sound",
   "gui.maimai_dialogue_editor.action.preset.stop_bgm": "Stop music",
-  "gui.maimai_dialogue_editor.action.invalid_number": "Enter a finite value in range; milliseconds must be an integer."
+  "gui.maimai_dialogue_editor.action.invalid_number": "Enter a finite value in range; milliseconds must be an integer.",
+  "gui.maimai_dialogue_editor.browser.extract": "Save as resource…",
+  "gui.maimai_dialogue_editor.browser.extract_title": "Save as resource",
+  "gui.maimai_dialogue_editor.browser.error.stale_source": "The source has changed. Please reopen this operation.",
+  "gui.maimai_dialogue_editor.action.preview_scene": "Preview scene",
+  "gui.maimai_dialogue_editor.action.preview_empty_scene": "Empty scene",
+  "gui.maimai_dialogue_editor.action.preview_play": "Play action"
 }

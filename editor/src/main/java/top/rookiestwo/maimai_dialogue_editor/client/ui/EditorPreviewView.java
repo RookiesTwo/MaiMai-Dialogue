@@ -30,6 +30,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     private final ImageView materialImage;
     private final EditorAudioPreviewView audio;
     private final EditorScenePreviewView scene;
+    private final EditorActionPreviewControls actionControls;
     private EditorPreviewHost.Mode mode = EditorPreviewHost.Mode.EMPTY;
     private int imageWidth, imageHeight;
     private EditorPreviewHost.ImagePreview displayedImage;
@@ -41,7 +42,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     private int viewportHeight;
     private boolean refreshContentPending;
 
-    EditorPreviewView(Context context, EditorPreviewHost host, int containerId) {
+    EditorPreviewView(Context context, EditorPreviewHost host, int containerId, ChoicePresenter choices) {
         super(context);
         this.host = host;
         setBackground(EditorWidgets.shape(EditorWidgets.PREVIEW, 0));
@@ -62,6 +63,8 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         toolbar.setBackground(EditorWidgets.shape(EditorWidgets.HEADER, 0));
         toolbar.addView(controls, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
         addView(toolbar);
+        actionControls = new EditorActionPreviewControls(context, host, choices);
+        addView(actionControls);
 
         canvas = new EditorPreviewViewport(context);
         surface = new EditorPreviewSurface(context, containerId);
@@ -103,23 +106,26 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         boolean material = mode == EditorPreviewHost.Mode.IMAGE;
         boolean dialogue = mode == EditorPreviewHost.Mode.DIALOGUE;
         boolean theme = mode == EditorPreviewHost.Mode.THEME;
+        boolean action = mode == EditorPreviewHost.Mode.ACTION;
+        actionControls.setVisibility(action ? VISIBLE : GONE);
+        if (action) actionControls.refresh();
         toolbar.setVisibility(dialogue || theme ? VISIBLE : GONE);
         for (var control : new Button[]{advance, restart, stop}) control.setVisibility(dialogue ? VISIBLE : GONE);
         for (int index = 0; index < themeExamples.length; index++) {
             themeExamples[index].setVisibility(theme ? VISIBLE : GONE);
             EditorWidgets.enabled(themeExamples[index], index != host.themeExample());
         }
-        canvas.setVisibility(material || dialogue || theme || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
+        canvas.setVisibility(material || dialogue || theme || action || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         scene.setVisibility(mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         if (mode == EditorPreviewHost.Mode.SCENE) scene.refresh(host.scenes()); else scene.release();
         if (theme) host.refreshTheme();
-        String themeIssue = theme ? host.themeError() : "";
-        themeError.setText(themeIssue.isEmpty() ? "" : EditorWidgets.tr("theme.invalid") + " " + themeIssue);
+        String themeIssue = theme ? host.themeError() : action ? host.actionPreview().error() : "";
+        themeError.setText(themeIssue.isEmpty() ? "" : (theme ? EditorWidgets.tr("theme.invalid") + " " : "") + themeIssue);
         themeError.setVisibility(themeIssue.isEmpty() ? GONE : VISIBLE);
         audio.setVisibility(mode == EditorPreviewHost.Mode.SOUND ? VISIBLE : GONE);
         audio.refresh();
         materialImage.setVisibility(material ? VISIBLE : GONE);
-        surface.setVisibility(dialogue || theme || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
+        surface.setVisibility(dialogue || theme || action || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         var nextImage = material ? host.imagePreview() : null;
         if (!java.util.Objects.equals(nextImage, displayedImage)) {
             var previous = displayedImage;
@@ -178,7 +184,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         int width = MeasureSpec.getSize(widthSpec);
         int height = MeasureSpec.getSize(heightSpec);
         toolbarHeight = mode == EditorPreviewHost.Mode.DIALOGUE || mode == EditorPreviewHost.Mode.THEME
-                ? Math.min(height, dp(EditorWidgets.COMPACT_ROW_DP)) : 0;
+                ? Math.min(height, dp(EditorWidgets.COMPACT_ROW_DP)) : mode == EditorPreviewHost.Mode.ACTION ? Math.min(height, dp(52)) : 0;
         int availableHeight = Math.max(0, height - toolbarHeight);
         if (mode == EditorPreviewHost.Mode.IMAGE) {
             viewportWidth = width; viewportHeight = availableHeight;
@@ -187,6 +193,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
             viewportHeight = (int)Math.min(availableHeight, viewportWidth * 9L / 16L);
         }
         EditorPanel.measureExact(toolbar, width, toolbarHeight);
+        EditorPanel.measureExact(actionControls, width, toolbarHeight);
         EditorPanel.measureExact(canvas, viewportWidth, viewportHeight);
         EditorPanel.measureExact(audio, width, height);
         setMeasuredDimension(width, height);
@@ -194,6 +201,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
 
     @Override protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         toolbar.layout(0, 0, right - left, toolbarHeight);
+        actionControls.layout(0, 0, right - left, toolbarHeight);
         int x = (right - left - viewportWidth) / 2;
         int y = toolbarHeight + (bottom - top - toolbarHeight - viewportHeight) / 2;
         canvas.layout(x, y, x + viewportWidth, y + viewportHeight);

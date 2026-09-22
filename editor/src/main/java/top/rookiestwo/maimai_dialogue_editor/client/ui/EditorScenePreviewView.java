@@ -78,20 +78,13 @@ final class EditorScenePreviewView extends FrameLayout {
     }
     private void publish(ScenePreviewSession.Prepared prepared, DialogueImageSource images, Map<ResourceLocation, Image> loaded) {
         // The Fragment owns a fork of preloaded handles, so a replacement never clears the old scene mid-load.
-        try (var ready = new ReadyImages(loaded)) {
+        try (var ready = new EditorReadyImages(loaded)) {
             if (host.showScene(prepared, ready)) {
                 displayed = prepared; baseFrame = renderedFrame = ScenePreviewFrame.initial(prepared.scene()); overlay.invalidate();
             } else requested = null;
         } catch (RuntimeException failure) {
             loadError = String.valueOf(failure.getMessage()); showError("");
         } finally { images.close(); pendingImages = null; }
-    }
-    private static final class ReadyImages implements DialogueImageSource {
-        private final Map<ResourceLocation, Image> images = new LinkedHashMap<>();
-        ReadyImages(Map<ResourceLocation, Image> source) { source.forEach((id, image) -> images.put(id, image.clone())); }
-        @Override public DialogueImageSource fork() { return new ReadyImages(images); }
-        @Override public void load(ResourceLocation id, java.util.function.Consumer<Image> ready) { ready.accept(images.get(id)); }
-        @Override public void close() { images.values().forEach(Image::close); images.clear(); }
     }
     private void showError(String preparationError) {
         String message = preparationError.isEmpty() ? loadError : preparationError;

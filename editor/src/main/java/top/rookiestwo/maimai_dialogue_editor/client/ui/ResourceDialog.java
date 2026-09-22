@@ -45,6 +45,7 @@ final class ResourceDialog extends FrameLayout {
             case CREATE -> "browser.create_title";
             case COPY -> "browser.copy_title";
             case DELETE -> "browser.delete_title";
+            case EXTRACT -> "browser.extract_title";
             default -> throw new IllegalStateException("No resource form");
         };
         TextView title = EditorWidgets.label(context, titleKey, 18, EditorWidgets.ACCENT);

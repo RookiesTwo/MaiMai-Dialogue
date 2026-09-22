@@ -403,7 +403,7 @@
   "gui.maimai_dialogue_editor.action.add_keyframe": "添加关键帧",
   "gui.maimai_dialogue_editor.action.at": "动作进度 (0–1)",
   "gui.maimai_dialogue_editor.action.delta": "变化量",
-  "gui.maimai_dialogue_editor.action.variant_value": "差分",
+  "gui.maimai_dialogue_editor.action.variant_value": "差分变化目标",
   "gui.maimai_dialogue_editor.action.visible_value": "显示",
   "gui.maimai_dialogue_editor.action.apply_preset": "应用预设",
   "gui.maimai_dialogue_editor.action.preset.custom": "自定义动作",
@@ -416,5 +416,11 @@
   "gui.maimai_dialogue_editor.action.preset.hide": "隐藏对象",
   "gui.maimai_dialogue_editor.action.preset.sound": "播放音效",
   "gui.maimai_dialogue_editor.action.preset.stop_bgm": "停止背景音乐",
-  "gui.maimai_dialogue_editor.action.invalid_number": "请输入允许范围内的有限数值；毫秒数必须为整数。"
+  "gui.maimai_dialogue_editor.action.invalid_number": "请输入允许范围内的有限数值；毫秒数必须为整数。",
+  "gui.maimai_dialogue_editor.browser.extract": "保存为独立资源…",
+  "gui.maimai_dialogue_editor.browser.extract_title": "保存为独立资源",
+  "gui.maimai_dialogue_editor.browser.error.stale_source": "原始内容已发生变化，请重新打开此操作。",
+  "gui.maimai_dialogue_editor.action.preview_scene": "预览场景",
+  "gui.maimai_dialogue_editor.action.preview_empty_scene": "空场景",
+  "gui.maimai_dialogue_editor.action.preview_play": "播放动作"
 }

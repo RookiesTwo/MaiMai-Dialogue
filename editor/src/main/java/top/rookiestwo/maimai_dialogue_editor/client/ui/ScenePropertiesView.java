@@ -94,7 +94,14 @@ final class ScenePropertiesView extends LinearLayout {
                 if (model.part(Part.OBJECT).has("asset")) {
                     reference("scene.asset", ResourceKind.VISUAL_ASSET, () -> value(Part.OBJECT, "asset", ""), model::setAsset);
                     initialVariant(Part.OBJECT);
-                } else variants(Part.OBJECT);
+                } else {
+                    variants(Part.OBJECT);
+                    action(row(), "browser.extract", () -> {
+                        project.endEdit();
+                        project.resources().beginExtract(InlineResource.visualAsset(project.draft(), model.snapshot().key(), model.objectId()),
+                                model.snapshot().key().path() + "_" + model.objectId());
+                    }, () -> model.variantMap(Part.OBJECT) != null);
+                }
                 for (NumberField field : OBJECT_NUMBERS) number(Part.OBJECT, field);
                 choice("scene.anchor", () -> value(Part.OBJECT, "anchor", "center"),
                         () -> Arrays.stream(VisualAnchor.values()).map(anchor -> new ChoicePresenter.Item(anchor.serializedName(),
