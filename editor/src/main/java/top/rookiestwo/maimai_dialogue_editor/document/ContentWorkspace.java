@@ -22,7 +22,9 @@ import static top.rookiestwo.maimai_dialogue_editor.document.DialogueDraft.*;
 
 /** Basic document editing. Cursor/history bookkeeping never enters the resource JSON. */
 public final class ContentWorkspace {
-    public record Cursor(int step, int option) {}
+    public record Cursor(int step, int option, int variant) {
+        public Cursor(int step, int option) { this(step, option, 0); }
+    }
     private record Navigation(ResourceKey resource, Cursor cursor) {}
     public record Snapshot(ResourceKey key, JsonObject data, Cursor cursor) {}
     private final Supplier<ProjectDraft> current;
@@ -74,7 +76,9 @@ public final class ContentWorkspace {
         int step = cursor.step() >= 0 && steps != null && cursor.step() < steps.size() ? cursor.step() : END;
         JsonArray options = options(data);
         int option = options == null || options.isEmpty() ? -1 : Math.clamp(cursor.option(), 0, options.size() - 1);
-        cursor = new Cursor(step, option);
+        var text = get(node(data, step), "text");
+        int variants = text != null && text.isJsonArray() ? text.getAsJsonArray().size() : 0;
+        cursor = new Cursor(step, option, variants == 0 ? 0 : Math.clamp(cursor.variant(), 0, variants - 1));
         cursors.put(key, cursor);
         resources.reconcileStep(key, step);
         seen = draft;
@@ -143,7 +147,7 @@ public final class ContentWorkspace {
         Snapshot state = snapshot();
         if (!editable(state, ResourceKind.DIALOGUE)) return;
         state.data().addProperty("scene", value.strip());
-        write(state, "scene", state.cursor());
+        write(state, "scene", state.cursor(), !resources.selection().isStep());
     }
 
     public void editSpeakerName(String value) {
@@ -154,7 +158,7 @@ public final class ContentWorkspace {
         Snapshot state = snapshot();
         if (!active() || state.key() == null || state.data() == null) return;
         if (field.apply(state.key().kind(), state.data(), state.cursor(), value))
-            write(state, field.group(), state.cursor());
+            write(state, field.group(), state.cursor(), field == ContentTextField.REQUIRES || field == ContentTextField.SKIP_SUMMARY);
     }
 
     public void addStep() { insertStep(false); }
@@ -197,11 +201,66 @@ public final class ContentWorkspace {
     }
 
     public void setTextMode(String mode) {
+        if (!List.of("absent", "plain", "random").contains(mode)) return;
         editNode(null, node -> {
             JsonElement text = node.get("text");
-            if (text != null && !isString(text)) return; // Preserve random/unsupported text until its editor is available.
+            if (text != null && !isString(text) && !text.isJsonArray()) return;
             if (mode.equals("absent")) node.remove("text");
-            else if (mode.equals("plain") && !node.has("text")) node.addProperty("text", "");
+            else if (mode.equals("plain") && !isString(text)) {
+                var values = text != null && text.isJsonArray() ? text.getAsJsonArray() : new JsonArray();
+                node.addProperty("text", values.isEmpty() ? "" : string(values.get(Math.min(snapshot().cursor().variant(), values.size() - 1))));
+            } else if (mode.equals("random") && (text == null || !text.isJsonArray())) {
+                var values = new JsonArray(); values.add(string(text)); node.add("text", values);
+            }
+        });
+    }
+    public void selectVariant(int index) {
+        var state = snapshot(); var values = get(node(state.data(), state.cursor().step()), "text");
+        if (!editable(state, ResourceKind.DIALOGUE) || values == null || !values.isJsonArray()
+                || index < 0 || index >= values.getAsJsonArray().size()) return;
+        select(state, new Cursor(state.cursor().step(), state.cursor().option(), index));
+    }
+    public void changeVariants(String operation) {
+        var state = snapshot(); var values = get(node(state.data(), state.cursor().step()), "text");
+        if (!editable(state, ResourceKind.DIALOGUE) || values == null || !values.isJsonArray()) return;
+        var array = values.getAsJsonArray(); int index = state.cursor().variant();
+        switch (operation) {
+            case "add" -> { array.add(""); index = array.size() - 1; }
+            case "delete" -> { if (array.isEmpty()) return; array.remove(index); index = Math.max(0, index - 1); }
+            case "up", "down" -> {
+                int next = index + (operation.equals("up") ? -1 : 1);
+                if (next < 0 || next >= array.size()) return;
+                move(array, index, next); index = next;
+            }
+            default -> { return; }
+        }
+        write(state, null, new Cursor(state.cursor().step(), state.cursor().option(), index));
+    }
+    public void rootOption(String field, boolean enabled) {
+        if (!List.of("requires", "skip_summary", "must_complete").contains(field)) return;
+        var state = snapshot(); if (!editable(state, ResourceKind.DIALOGUE)) return;
+        if (!enabled) state.data().remove(field);
+        else if (field.equals("must_complete")) state.data().addProperty(field, true);
+        else if (!state.data().has(field)) state.data().addProperty(field, "");
+        write(state, null, state.cursor(), true);
+    }
+    public void intervalDefault(boolean inherited) {
+        editNode(null, node -> {
+            if (inherited) node.remove("typewriter_interval_ms");
+            else if (!node.has("typewriter_interval_ms")) node.addProperty("typewriter_interval_ms", 30);
+        });
+    }
+    public String editInterval(String value) {
+        int number;
+        try { number = new java.math.BigDecimal(value).intValueExact(); }
+        catch (RuntimeException invalid) { return "edit.invalid_interval"; }
+        if (number < 0 || number > 1000) return "edit.invalid_interval";
+        editNode("typewriter_interval_ms", node -> node.addProperty("typewriter_interval_ms", number)); return "";
+    }
+    public void commandsEnabled(boolean enabled) {
+        editOption(null, option -> {
+            if (!enabled) option.remove("command");
+            else if (!option.has("command")) option.addProperty("command", "");
         });
     }
     public void editText(String text) {
@@ -317,6 +376,9 @@ public final class ContentWorkspace {
                 && "options".equals(string(exit(state.data()), "type"));
     }
     private void write(Snapshot state, String group, Cursor cursor) {
+        write(state, group, cursor, false);
+    }
+    private void write(Snapshot state, String group, Cursor cursor, boolean keepSelection) {
         ProjectDraft before = current.get();
         ProjectDraft after = before.withResource(state.key(), state.data());
         if (before.equals(after)) return;
@@ -328,7 +390,7 @@ public final class ContentWorkspace {
         navigation.put(after, new Navigation(state.key(), cursor));
         seen = after;
         seenResource = state.key();
-        notifyChange(state.key(), false);
+        if (keepSelection) changed.run(); else notifyChange(state.key(), false);
     }
     private void notifyChange(ResourceKey key, boolean reveal) {
         if (key.kind() == ResourceKind.DIALOGUE) resources.focusStep(key, cursors.get(key).step(), reveal);

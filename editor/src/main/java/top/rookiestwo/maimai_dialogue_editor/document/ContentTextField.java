@@ -9,7 +9,8 @@ import static top.rookiestwo.maimai_dialogue_editor.document.DialogueDraft.*;
 public enum ContentTextField {
     NAME("name", "name"), TEXT("text", "text"), SPEAKER_ID("speaker.id", "id"),
     EXIT_DIALOGUE("exit.dialogue", "dialogue"), OPTION_TEXT("option.text", "text"),
-    OPTION_DIALOGUE("option.target.dialogue", "dialogue");
+    OPTION_DIALOGUE("option.target.dialogue", "dialogue"), RANDOM_TEXT("random_text", "text"),
+    REQUIRES("requires", "requires"), SKIP_SUMMARY("skip_summary", "skip_summary"), OPTION_COMMANDS("option.command", "command");
 
     private final String group;
     private final String property;
@@ -17,8 +18,20 @@ public enum ContentTextField {
     public String group() { return group; }
 
     public boolean apply(ResourceKind kind, JsonObject data, ContentWorkspace.Cursor cursor, String value) {
+        if (this == RANDOM_TEXT) {
+            if (kind != ResourceKind.DIALOGUE) return false;
+            var text = get(node(data, cursor.step()), "text");
+            if (text == null || !text.isJsonArray() || cursor.variant() < 0 || cursor.variant() >= text.getAsJsonArray().size()) return false;
+            text.getAsJsonArray().set(cursor.variant(), new com.google.gson.JsonPrimitive(value)); return true;
+        }
         JsonObject target = target(kind, data, cursor);
         if (target == null) return false;
+        if (this == OPTION_COMMANDS) {
+            String[] lines = value.split("\\R", -1);
+            if (lines.length == 1 && !target.get("command").isJsonArray()) target.addProperty("command", value);
+            else { var commands = new com.google.gson.JsonArray(); for (String line : lines) commands.add(line); target.add("command", commands); }
+            return true;
+        }
         target.addProperty(property, value);
         return true;
     }
@@ -26,6 +39,7 @@ public enum ContentTextField {
     private JsonObject target(ResourceKind kind, JsonObject data, ContentWorkspace.Cursor cursor) {
         if (this == NAME) return kind == ResourceKind.SPEAKER ? data : null;
         if (kind != ResourceKind.DIALOGUE) return null;
+        if (this == REQUIRES || this == SKIP_SUMMARY) return data.has(property) ? data : null;
         JsonObject node = node(data, cursor.step());
         if (node == null) return null;
         if (this == TEXT) return isString(node.get("text")) ? node : null;
@@ -39,6 +53,7 @@ public enum ContentTextField {
         if (!"options".equals(string(exit, "type"))) return null;
         JsonObject option = option(data, cursor.option());
         if (option == null || this == OPTION_TEXT) return option;
+        if (this == OPTION_COMMANDS) return option.has("command") ? option : null;
         JsonObject target = object(option.get("target"));
         return "dialogue".equals(string(target, "type")) ? target : null;
     }

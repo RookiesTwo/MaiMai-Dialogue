@@ -149,6 +149,7 @@ public final class ProjectValidator {
             if (object.has("dialogue_box")) check(key, object.get("dialogue_box"), "dialogue_box",
                     top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout.CODEC);
         } else if (key.kind() == ResourceKind.DIALOGUE) {
+            for (String field : java.util.List.of("requires", "skip_summary", "must_complete")) dialogueField(key, object, field, field);
             if (object.has("bgm")) audio(key, object.get("bgm"), "bgm", true);
             check(key, object.get("scene"), "scene", ResourceLocation.CODEC);
             JsonElement steps = object.get("steps");
@@ -169,6 +170,7 @@ public final class ProjectValidator {
         if (!json.isJsonObject()) { issue(key, path, "object", ""); return; }
         int before = issues.size();
         JsonObject node = json.getAsJsonObject();
+        dialogueField(key, node, "typewriter_interval_ms", path + ".typewriter_interval_ms");
         if (node.has("typewriter_sound")) audio(key, node.get("typewriter_sound"), path + ".typewriter_sound", false);
         if (node.has("text")) check(key, node.get("text"), path + ".text", DialogueText.CODEC);
         if (node.has("speaker")) {
@@ -188,6 +190,7 @@ public final class ProjectValidator {
                     if (option.isJsonObject()) {
                         var data = option.getAsJsonObject();
                         int optionBefore = issues.size();
+                        dialogueField(key, data, "command", location + ".command");
                         requiredText(key, data.get("text"), location + ".text");
                         target(key, data.get("target"), location + ".target", OptionTarget.CODEC);
                         if (data.has("icon")) check(key, data.get("icon"), location + ".icon", OptionIcon.CODEC);
@@ -205,6 +208,12 @@ public final class ProjectValidator {
 
     private void requiredText(ResourceKey key, JsonElement value, String path) {
         if (text(value).isBlank()) issue(key, path, "required", "");
+    }
+
+    private void dialogueField(ResourceKey key, JsonObject object, String field, String path) {
+        if (!object.has(field)) return;
+        String error = top.rookiestwo.maimai_dialogue_editor.document.DialogueFields.error(field, object.get(field));
+        if (!error.isEmpty()) issue(key, path, "codec", error);
     }
     private void audio(ResourceKey key, JsonElement value, String path, boolean bgm) {
         int before = issues.size();

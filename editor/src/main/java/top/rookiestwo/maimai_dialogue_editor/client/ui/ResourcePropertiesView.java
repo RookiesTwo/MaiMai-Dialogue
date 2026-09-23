@@ -21,6 +21,7 @@ final class ResourcePropertiesView extends LinearLayout {
     private final ThemePropertiesView themes;
     private final AudioPropertiesView audio;
     private final ActionPropertiesView actions;
+    private final DialogueSimulationView simulation;
 
     ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, EditorLayoutState layout, EditorPreviewHost preview) {
         super(context);
@@ -48,6 +49,8 @@ final class ResourcePropertiesView extends LinearLayout {
         addView(audio, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         actions = new ActionPropertiesView(context, workspace, choices, layout, preview);
         addView(actions, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        simulation = new DialogueSimulationView(context, workspace, preview, choices, layout);
+        addView(simulation, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         refresh();
     }
 
@@ -56,7 +59,8 @@ final class ResourcePropertiesView extends LinearLayout {
         ResourceKey key = node.owner();
         boolean opened = key != null && key.equals(workspace.resources().opened());
         boolean editingAction = workspace.actions().inspecting();
-        boolean editing = !editingAction && opened && (node.isStep() || key.kind() == ResourceKind.SPEAKER);
+        boolean editing = !editingAction && opened && (node.isStep() || key.kind() == ResourceKind.SPEAKER
+                || key.kind() == ResourceKind.DIALOGUE && node.type() == ResourceTree.Type.RESOURCE);
         boolean editingMaterial = opened && (key.kind().material() || key.kind() == ResourceKind.VISUAL_ASSET);
         var issue = workspace.focusedIssue();
         boolean showIssue = issue != null && key != null && key.equals(issue.resource());
@@ -100,5 +104,7 @@ final class ResourcePropertiesView extends LinearLayout {
         themes.refresh();
         audio.refresh();
         actions.refresh();
+        simulation.setVisibility(editing && key.kind() == ResourceKind.DIALOGUE ? VISIBLE : GONE);
+        simulation.refresh();
     }
 }

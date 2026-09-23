@@ -133,6 +133,10 @@ public final class ProjectContentSnapshot implements DialogueContentLookup {
         if (json == null) return Optional.empty();
         var actionErrors = ActionValidation.definitions(kind, json);
         if (!actionErrors.isEmpty()) throw new IllegalArgumentException(kind.key() + " " + id + ": " + actionErrors);
+        if (kind == ResourceKind.DIALOGUE) {
+            var errors = top.rookiestwo.maimai_dialogue_editor.document.DialogueFields.errors(json);
+            if (!errors.isEmpty()) throw new IllegalArgumentException("dialogue " + id + ": " + errors);
+        }
         if (kind == ResourceKind.THEME && json instanceof com.google.gson.JsonObject object) {
             var errors = top.rookiestwo.maimai_dialogue_editor.document.ThemeFields.errors(object);
             if (!errors.isEmpty()) throw new IllegalArgumentException("Theme " + id + ": " + String.join(", ", errors.keySet()));

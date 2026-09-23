@@ -64,12 +64,16 @@ public record EditorSessionState(int version, Layout layout, Navigation navigati
         }
     }
     public record Preview(int themeExample, List<Choice> sceneObjects, List<Choice> materialVariants,
-                          List<ActionPreview> actions) {
+                          List<ActionPreview> actions, top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario simulation) {
         public Preview {
             themeExample = Math.clamp(themeExample, 0, 2);
             sceneObjects = sceneObjects == null ? List.of() : List.copyOf(sceneObjects);
             materialVariants = materialVariants == null ? List.of() : List.copyOf(materialVariants);
             actions = actions == null ? List.of() : List.copyOf(actions);
+            simulation = simulation == null ? top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario.defaults() : simulation;
+        }
+        public Preview(int themeExample, List<Choice> sceneObjects, List<Choice> materialVariants, List<ActionPreview> actions) {
+            this(themeExample, sceneObjects, materialVariants, actions, null);
         }
         public static Preview defaults() { return new Preview(0, null, null, null); }
     }

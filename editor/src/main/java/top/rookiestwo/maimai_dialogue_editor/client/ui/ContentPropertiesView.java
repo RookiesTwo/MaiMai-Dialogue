@@ -12,6 +12,7 @@ import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentTextField;
+import top.rookiestwo.maimai_dialogue_editor.document.DialogueFields;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
@@ -87,6 +88,11 @@ final class ContentPropertiesView extends LinearLayout {
             case "exit.dialogue", "target.dialogue" -> "edit.target_dialogue";
             case "target", "target.type" -> "edit.target";
             case "icon" -> "edit.icon";
+            case "requires" -> "edit.requires_expression";
+            case "skip_summary" -> "edit.skip_summary_text";
+            case "must_complete" -> "edit.must_complete";
+            case "typewriter_interval_ms" -> "edit.typewriter_interval";
+            case "command" -> "edit.commands_text";
             default -> "";
         };
         View target = fields.get(label);
@@ -105,21 +111,25 @@ final class ContentPropertiesView extends LinearLayout {
     private String shape() {
         if (state.data() == null) return "invalid";
         if (state.key().kind() == ResourceKind.SPEAKER) return "speaker";
+        if (rootSelected()) return "root/" + state.data().has("requires") + "/" + state.data().has("skip_summary");
         JsonObject node = selectedNode();
         JsonElement text = get(node, "text");
         JsonArray options = options(state.data());
         return (node == null ? (state.data().has("end") ? "invalid_node" : "missing_end") : "node")
-                + "/" + (text == null ? "absent" : isString(text) ? "plain" : "unsupported")
+                + "/" + (text == null ? "absent" : isString(text) ? "plain" : text.isJsonArray() ? "random/" + text.getAsJsonArray().size() : "unsupported")
+                + "/" + (node != null && node.has("typewriter_interval_ms"))
                 + "/" + speakerMode() + "/" + string(exit(state.data()), "type")
                 + "/" + (options == null ? "invalid_options" : options.size())
-                + "/" + (selectedOption() == null ? "no_option" : optionTargetType());
+                + "/" + (selectedOption() == null ? "no_option" : optionTargetType() + "/" + selectedOption().has("command"));
     }
 
     private boolean canEdit() {
         var selected = workspace.resources().selection();
         return !workspace.actions().inspecting() && content.active() && state.key() != null && state.key().equals(selected.owner())
-                && (selected.isStep() || state.key().kind() == ResourceKind.SPEAKER);
+                && (selected.isStep() || rootSelected() || state.key().kind() == ResourceKind.SPEAKER);
     }
+    private boolean rootSelected() { return state.key() != null && state.key().kind() == ResourceKind.DIALOGUE
+            && workspace.resources().selection().type() == top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree.Type.RESOURCE; }
     private boolean accepts(Binding expected) {
         return !refreshing && isAttachedToWindow() && Objects.equals(expected, binding) && canEdit();
     }
@@ -141,6 +151,7 @@ final class ContentPropertiesView extends LinearLayout {
             return;
         }
         if (state.key().kind() != ResourceKind.DIALOGUE) return;
+        if (rootSelected()) { buildRoot(); return; }
         var heading = EditorWidgets.compactParagraph(getContext(), "");
         heading.setText(EditorWidgets.tr(state.cursor().step() == END ? "edit.end" : "edit.step")
                 + (state.cursor().step() == END ? "" : " " + (state.cursor().step() + 1)));
@@ -165,17 +176,87 @@ final class ContentPropertiesView extends LinearLayout {
         }
         section("edit.group.text");
         JsonElement text = node.get("text");
-        if (text != null && !isString(text)) warning("edit.unsupported_text");
+        if (text != null && !isString(text) && !text.isJsonArray()) warning("edit.unsupported_text");
         else {
-            choice("edit.text_mode", () -> get(selectedNode(), "text") == null ? "absent" : "plain",
-                    () -> items("edit.text.", "absent", "plain"), content::setTextMode);
-            if (text != null) field("edit.markdown", () -> string(selectedNode(), "text"), ContentTextField.TEXT, true);
+            choice("edit.text_mode", () -> get(selectedNode(), "text") == null ? "absent" : isString(get(selectedNode(), "text")) ? "plain" : "random",
+                    () -> items("edit.text.", "absent", "plain", "random"), content::setTextMode);
+            if (text != null && text.isJsonArray()) buildVariants();
+            else if (text != null) field("edit.markdown", () -> string(selectedNode(), "text"), ContentTextField.TEXT, true);
         }
+        error(() -> DialogueFields.error("text", get(selectedNode(), "text")));
+        buildInterval();
         section("edit.group.speaker");
         choice("edit.speaker", this::speakerMode, () -> items("edit.speaker.", "inherit", "set", "hide"), content::setSpeakerMode);
         if (speakerMode().equals("set")) reference("edit.speaker_id", ResourceKind.SPEAKER,
                 () -> string(object(get(selectedNode(), "speaker")), "id"), ContentTextField.SPEAKER_ID);
         if (state.cursor().step() == END) buildEnd();
+    }
+
+    private void buildRoot() {
+        section("edit.group.behavior");
+        choice("edit.must_complete", () -> Boolean.toString(get(state.data(), "must_complete") instanceof com.google.gson.JsonPrimitive value
+                        && value.isBoolean() && value.getAsBoolean()), () -> items("edit.boolean.", "false", "true"),
+                value -> content.rootOption("must_complete", Boolean.parseBoolean(value)));
+        error(() -> DialogueFields.error("must_complete", get(state.data(), "must_complete")));
+        section("edit.requires");
+        choice("edit.requires", () -> Boolean.toString(state.data().has("requires")), () -> items("edit.boolean.", "false", "true"),
+                value -> content.rootOption("requires", Boolean.parseBoolean(value)));
+        if (state.data().has("requires")) {
+            field("edit.requires_expression", () -> string(state.data(), "requires"), ContentTextField.REQUIRES, false);
+            ((EditText) fields.get("edit.requires_expression")).setHint("chapter.start && !chapter.end");
+            error(() -> DialogueFields.error("requires", get(state.data(), "requires")));
+        }
+        section("edit.skip_summary");
+        choice("edit.skip_summary", () -> Boolean.toString(state.data().has("skip_summary")), () -> items("edit.boolean.", "false", "true"),
+                value -> content.rootOption("skip_summary", Boolean.parseBoolean(value)));
+        if (state.data().has("skip_summary")) {
+            field("edit.skip_summary_text", () -> string(state.data(), "skip_summary"), ContentTextField.SKIP_SUMMARY, true);
+            error(() -> DialogueFields.error("skip_summary", get(state.data(), "skip_summary")));
+        }
+    }
+    private JsonArray variants() { return array(selectedNode(), "text"); }
+    private void buildVariants() {
+        var actions = row();
+        action(actions, "edit.add_variant", () -> content.changeVariants("add"), () -> true);
+        action(actions, "browser.delete", () -> content.changeVariants("delete"), () -> !variants().isEmpty());
+        if (variants().isEmpty()) return;
+        choice("edit.variant", () -> Integer.toString(state.cursor().variant()), () -> {
+            var items = new ArrayList<ChoicePresenter.Item>();
+            for (int i = 0; i < variants().size(); i++) items.add(new ChoicePresenter.Item(Integer.toString(i),
+                    (i + 1) + " · " + string(variants().get(i)).replace('\n', ' ')));
+            return items;
+        }, value -> content.selectVariant(Integer.parseInt(value)));
+        var order = row();
+        action(order, "edit.up", () -> content.changeVariants("up"), () -> state.cursor().variant() > 0);
+        action(order, "edit.down", () -> content.changeVariants("down"), () -> state.cursor().variant() + 1 < variants().size());
+        field("edit.markdown", () -> string(variants().get(state.cursor().variant())), ContentTextField.RANDOM_TEXT, true);
+        choice("edit.preview_variant", () -> Integer.toString(workspace.simulation().variant(state.key().id(workspace.draft().namespace()), state.cursor().step())), () -> {
+            var items = new ArrayList<ChoicePresenter.Item>(); items.add(new ChoicePresenter.Item("-1", EditorWidgets.tr("edit.text.random")));
+            for (int i = 0; i < variants().size(); i++) items.add(new ChoicePresenter.Item(Integer.toString(i), EditorWidgets.tr("edit.variant") + " " + (i + 1)));
+            return items;
+        }, value -> workspace.simulation(workspace.simulation().withVariant(state.key().id(workspace.draft().namespace()), state.cursor().step(), Integer.parseInt(value))));
+    }
+    private void buildInterval() {
+        section("edit.typewriter");
+        choice("edit.typewriter_mode", () -> selectedNode().has("typewriter_interval_ms") ? "custom" : "default",
+                () -> items("edit.interval.", "default", "custom"), value -> content.intervalDefault(value.equals("default")));
+        if (!selectedNode().has("typewriter_interval_ms")) return;
+        var expected = binding;
+        var field = new top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.NumberField("typewriter_interval_ms", 30, 0, 1000, true);
+        Supplier<String> value = () -> { var number = get(selectedNode(), "typewriter_interval_ms"); return number != null && number.isJsonPrimitive() ? number.getAsString() : ""; };
+        var input = new EditorNumberField(getContext(), field, value, content::editInterval, () -> accepts(expected), workspace::endEdit,
+                () -> new top.rookiestwo.maimai_dialogue_editor.document.EditGesture() {
+                    final Object draft = workspace.draft(); String pending;
+                    public boolean update(String text) { if (!accepts(expected) || workspace.draft() != draft) return false; pending = text; return true; }
+                    public void finish(boolean commit) { if (commit && pending != null && accepts(expected) && workspace.draft() == draft) content.editInterval(pending); }
+                }, "edit.typewriter_interval", 1000);
+        EditorWidgets.propertyRow(group, "edit.typewriter_interval", input, false); fields.put("edit.typewriter_interval", input);
+        bindings.add(() -> input.refresh(canEdit()));
+        error(() -> DialogueFields.error("typewriter_interval_ms", get(selectedNode(), "typewriter_interval_ms")));
+    }
+    private void error(Supplier<String> issue) {
+        var label = EditorWidgets.compactParagraph(getContext(), ""); label.setTextColor(EditorWidgets.ERROR); group.addView(label);
+        bindings.add(() -> { String text = issue.get(); label.setText(text); label.setVisibility(text.isEmpty() ? GONE : VISIBLE); });
     }
 
     private void buildEnd() {
@@ -207,6 +288,13 @@ final class ContentPropertiesView extends LinearLayout {
                     () -> items("edit.target.", "return", "close", "dialogue"), content::setOptionTarget);
             if (optionTargetType().equals("dialogue")) reference("edit.target_dialogue", ResourceKind.DIALOGUE,
                     () -> string(object(get(selectedOption(), "target")), "dialogue"), ContentTextField.OPTION_DIALOGUE);
+            section("edit.commands");
+            choice("edit.commands", () -> Boolean.toString(selectedOption().has("command")), () -> items("edit.boolean.", "false", "true"),
+                    value -> content.commandsEnabled(Boolean.parseBoolean(value)));
+            if (selectedOption().has("command")) {
+                field("edit.commands_text", () -> DialogueFields.commands(get(selectedOption(), "command")), ContentTextField.OPTION_COMMANDS, true);
+                error(() -> DialogueFields.error("command", get(selectedOption(), "command")));
+            }
         }
     }
 

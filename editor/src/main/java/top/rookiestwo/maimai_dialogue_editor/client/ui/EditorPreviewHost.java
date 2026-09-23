@@ -59,6 +59,7 @@ final class EditorPreviewHost {
     private long revision;
     private boolean loading;
     private boolean advanceAfterLoad;
+    private boolean skipAfterLoad;
     private boolean staleDialogueSession;
     private top.rookiestwo.maimai_dialogue.client.session.PlaybackPhase advancePhaseAfterLoad;
     private boolean disposed;
@@ -164,6 +165,17 @@ final class EditorPreviewHost {
     private ResourceTree.Node observedSelection;
     private long observedSelectionRevision = -1;
     private boolean publishingPosition;
+    private top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario observedSimulation;
+    private java.util.List<EditorPreviewSession.SimulationResult> simulationResults = java.util.List.of();
+    private Runnable simulationChanged = () -> {};
+    void setSimulationListener(Runnable listener) { simulationChanged = listener; }
+    java.util.List<EditorPreviewSession.SimulationResult> simulationResults() { return simulationResults; }
+    boolean canSimulateSkip() { return canOperate() && !loading && running() && playback.state().canSkipToEnd(); }
+    void simulateSkip() {
+        if (!canSimulateSkip()) return;
+        if (staleDialogueSession) { restartStep(); skipAfterLoad = true; return; }
+        playback.skipToEnd(); render();
+    }
     private SceneActions sceneActions;
     private ScenePreviewSession.Prepared displayedScene;
     private ResourceKey sceneDocument;
@@ -357,6 +369,9 @@ final class EditorPreviewHost {
         ResourceTree.Node selected = resources.selection();
         boolean draftChanged = draft != observedDraft;
         boolean projectChanged = observedProject != workspace.projectGeneration();
+        boolean simulationUpdated = !Objects.equals(observedSimulation, workspace.simulation());
+        observedSimulation = workspace.simulation();
+        if (projectChanged || !Objects.equals(observedDocument, opened)) simulationResults = java.util.List.of();
         observedProject = workspace.projectGeneration();
         boolean selectionChanged = observedSelectionRevision != resources.selectionRevision()
                 || !Objects.equals(observedSelection, selected) || !Objects.equals(observedDocument, opened);
@@ -371,7 +386,7 @@ final class EditorPreviewHost {
         if (draftChanged && !projectChanged && !selectionChanged) acceptCanvasCommit();
         // Restoring a Step enters it just like a click; sampling at zero would freeze its entrance effects invisible.
         // Only edits to an already open document preserve the manual timeline position.
-        if ((projectChanged || !draftChanged && selectionChanged) && selected.isStep() && Objects.equals(selected.owner(), opened)) {
+        if ((projectChanged || simulationUpdated || !draftChanged && selectionChanged) && selected.isStep() && Objects.equals(selected.owner(), opened)) {
             startAt(selected.stepIndex());
         } else {
             if (selected.isStep() && Objects.equals(selected.owner(), opened) && source != draft && canOperate()) {
@@ -431,10 +446,12 @@ final class EditorPreviewHost {
         source = workspace.draft();
         dialogue = workspace.resources().opened();
         ProjectDraft captured = source;
+        var capturedSimulation = workspace.simulation();
         ResourceKey capturedKey = dialogue;
         long expected = ++revision;
         loading = true;
         advanceAfterLoad = false;
+        skipAfterLoad = false;
         advancePhaseAfterLoad = null;
         refresh();
         // Read the loaded resource snapshot on the client thread; never replace the global repository.
@@ -458,17 +475,19 @@ final class EditorPreviewHost {
                     return;
                 }
                 loading = false;
-                if (captured != workspace.draft() || !Objects.equals(capturedKey, workspace.resources().opened())) {
+                if (captured != workspace.draft() || !capturedSimulation.equals(workspace.simulation()) || !Objects.equals(capturedKey, workspace.resources().opened())) {
                     stop();
                     return;
                 }
                 try {
                     if (preparationFailure != null) throw new java.util.concurrent.CompletionException(preparationFailure);
                     var prepared = new EditorPreviewSession(content.content(),
-                            ResourceLocation.fromNamespaceAndPath(captured.namespace(), capturedKey.path()), interval, step);
+                            ResourceLocation.fromNamespaceAndPath(captured.namespace(), capturedKey.path()), interval, step, capturedSimulation);
                     if (playback != null) playback.stop();
                     playback = prepared;
                     staleDialogueSession = false;
+                    if (skipAfterLoad) playback.skipToEnd();
+                    skipAfterLoad = false;
                     if (advanceAfterLoad) {
                         if (advancePhaseAfterLoad == null) playback.advance();
                         else playback.advanceAfterRefresh(advancePhaseAfterLoad);
@@ -557,6 +576,7 @@ final class EditorPreviewHost {
         loading = false;
         advanceAfterLoad = false;
         staleDialogueSession = false; advancePhaseAfterLoad = null;
+        skipAfterLoad = false;
         if (playback != null) playback.stop();
         playback = null;
         source = null;
@@ -585,6 +605,7 @@ final class EditorPreviewHost {
 
     private void render() {
         if (playback == null) return;
+        simulationResults = playback.simulationResults();
         followPosition();
         message = switch (playback.status()) {
             case RUNNING -> "preview.running";
@@ -625,6 +646,7 @@ final class EditorPreviewHost {
 
     void refresh() {
         if (view != null) view.refresh();
+        simulationChanged.run();
         audioChanged.run();
         notifyTimelineChanged();
     }
@@ -795,6 +817,7 @@ final class EditorPreviewHost {
         view = null;
         timelineChanged = () -> {};
         timelineObservers.clear(); timelineHoverOwner = null; playheadHovered = false;
+        simulationChanged = () -> {};
     }
 
     void onViewReady() {

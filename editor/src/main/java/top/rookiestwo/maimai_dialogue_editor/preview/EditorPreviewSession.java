@@ -17,6 +17,10 @@ public final class EditorPreviewSession {
     public enum Status { RUNNING, FINISHED, STOPPED, FAILED }
 
     private final DialogueContentLookup content;
+    private final PreviewScenario scenario;
+    public record SimulationResult(String kind, String detail) {}
+    private final List<SimulationResult> simulationResults = new ArrayList<>();
+    public List<SimulationResult> simulationResults() { return List.copyOf(simulationResults); }
     private final List<String> simulatedCommands = new ArrayList<>();
     private final List<DialogueSessionEffect.ApplyBgm> bgm = new ArrayList<>();
     private DialogueSession session;
@@ -31,17 +35,22 @@ public final class EditorPreviewSession {
 
     /** A step index of -1 selects End. Earlier steps are settled through the real runtime. */
     public EditorPreviewSession(DialogueContentLookup content, ResourceLocation root, int defaultIntervalMs, int startStep) {
-        this.content = content;
+        this(content, root, defaultIntervalMs, startStep, PreviewScenario.defaults());
+    }
+    public EditorPreviewSession(DialogueContentLookup content, ResourceLocation root, int defaultIntervalMs, int startStep, PreviewScenario scenario) {
+        this.scenario = scenario;
+        this.content = scenario.wrap(content);
         try {
-            DialogueDefinition definition = content.dialogue(root).orElseThrow(() ->
+            DialogueDefinition definition = this.content.dialogue(root).orElseThrow(() ->
                     new IllegalArgumentException("Missing dialogue: " + root));
-            if (!allowed(definition)) throw new IllegalArgumentException("Requires unmet: " + root);
+            if (!allowed(root, definition)) throw new IllegalArgumentException("Requires unmet: " + root);
             int target = startStep == -1 ? definition.steps().size() : startStep;
             if (target < 0 || target > definition.steps().size()) {
                 throw new IllegalArgumentException("Invalid preview step: " + startStep);
             }
-            // No completion token: even must_complete drafts cannot grant real progress.
-            session = new DialogueSession(content, root, definition, 1L, () -> defaultIntervalMs);
+            // 完成令牌只存在于本地解释器中，完成效果只记入模拟结果。
+            session = new DialogueSession(this.content, root, definition, 1L, () -> defaultIntervalMs,
+                    definition.mustComplete() ? java.util.Optional.of(new java.util.UUID(0, 1)) : java.util.Optional.empty());
             status = Status.RUNNING;
             apply(session.start());
             // Never traverse End's exit while seeking; the requested node still plays normally.
@@ -94,6 +103,7 @@ public final class EditorPreviewSession {
 
     private void apply(DialogueSessionUpdate first) {
         ArrayDeque<DialogueSessionUpdate> pending = new ArrayDeque<>();
+        Set<DialogueSessionUpdate> simulatedFailures = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         pending.add(first);
         while (!pending.isEmpty() && running()) {
             var update = pending.removeFirst();
@@ -112,10 +122,16 @@ public final class EditorPreviewSession {
                         // Record only, then simulate successful execution to preserve normal target navigation.
                         var source = content.dialogue(command.sourceDialogue()).orElseThrow();
                         if (source.end().exit() instanceof top.rookiestwo.maimai_dialogue.dialogue.branch.ChoiceExit choices) {
-                            simulatedCommands.addAll(choices.options().get(command.optionIndex()).commands());
+                            for (String line : choices.options().get(command.optionIndex()).commands()) {
+                                simulatedCommands.add(line);
+                                simulationResults.add(new SimulationResult(scenario.commandFailure() ? "command_failed" : "command", line));
+                                if (scenario.commandFailure()) break;
+                            }
                         }
-                        pending.add(session.handleOptionCommandResult(command.requestId(), command.sourceDialogue(),
-                                command.optionIndex(), OptionCommandDecision.EXECUTED));
+                        var response = session.handleOptionCommandResult(command.requestId(), command.sourceDialogue(),
+                                command.optionIndex(), scenario.commandFailure() ? OptionCommandDecision.COMMAND_FAILED : OptionCommandDecision.EXECUTED);
+                        if (scenario.commandFailure()) simulatedFailures.add(response);
+                        pending.add(response);
                     }
                     case DialogueSessionEffect.Close ignored -> {
                         bgm.clear();
@@ -123,9 +139,13 @@ public final class EditorPreviewSession {
                         session = null;
                         state = DialogueScreenState.empty(0);
                     }
-                    case DialogueSessionEffect.ReportError report -> throw new IllegalArgumentException(report.message());
+                    case DialogueSessionEffect.ReportError report -> {
+                        // 人为模拟的命令失败由运行时错误状态呈现，保留当前选项；其他准备错误仍阻止预览。
+                        if (!simulatedFailures.contains(update)) throw new IllegalArgumentException(report.message());
+                    }
                     case DialogueSessionEffect.ApplyBgm operation -> bgm.add(operation);
-                    case DialogueSessionEffect.CompleteRequiredDialogue ignored -> { /* Never persist progress. */ }
+                    case DialogueSessionEffect.CompleteRequiredDialogue completed ->
+                            simulationResults.add(new SimulationResult("completed", completed.rootDialogueId().toString()));
                 }
                 if (!running()) break;
             }
@@ -133,14 +153,18 @@ public final class EditorPreviewSession {
     }
 
     private DialogueAccessDecision access(ResourceLocation target) {
-        return content.dialogue(target).map(definition -> allowed(definition)
+        return content.dialogue(target).map(definition -> allowed(target, definition)
                 ? DialogueAccessDecision.ALLOWED : DialogueAccessDecision.REQUIREMENTS_NOT_MET)
                 .orElse(DialogueAccessDecision.DIALOGUE_NOT_FOUND);
     }
 
-    private static boolean allowed(DialogueDefinition definition) {
-        // A fresh local progress set; configurable simulation is introduced in step 11.
-        return definition.requires().map(requirement -> requirement.evaluate(Set.of())).orElse(true);
+    private boolean allowed(ResourceLocation id, DialogueDefinition definition) {
+        boolean allowed = definition.requires().map(requirement -> requirement.evaluate(scenario.nodes())).orElse(true);
+        definition.requires().ifPresent(requirement -> {
+            var result = new SimulationResult(allowed ? "allowed" : "blocked", id + " · " + requirement.source());
+            if (!simulationResults.contains(result)) simulationResults.add(result);
+        });
+        return allowed;
     }
 
     private void fail(RuntimeException failure) {

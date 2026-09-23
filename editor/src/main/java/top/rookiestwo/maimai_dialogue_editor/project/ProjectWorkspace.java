@@ -35,6 +35,12 @@ public final class ProjectWorkspace {
     private EditorSessionStore sessionStore;
     private EditorSessionState.Layout layoutPreferences = EditorSessionState.Layout.defaults();
     private int themeExample;
+    private top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario simulation = top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario.defaults();
+    public top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario simulation() { return simulation; }
+    public void simulation(top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario value) {
+        if (disposed || busy || draft() == null || simulation.equals(value)) return;
+        endEdit(); simulation = value; notifyChanged();
+    }
     private long startupRequest, sessionSaveRequest;
     private EditorSessionState queuedSession;
     private Path queuedSessionDirectory;
@@ -241,6 +247,7 @@ public final class ProjectWorkspace {
         autoSave = state.autoSave();
         layoutPreferences = state.layout();
         themeExample = state.preview().themeExample();
+        simulation = state.preview().simulation();
         materials.restoreVariantPreferences(state.preview().materialVariants());
         scenes.restoreObjectPreferences(state.preview().sceneObjects());
         actions.restorePreviewPreferences(state.preview().actions());
@@ -248,7 +255,7 @@ public final class ProjectWorkspace {
 
     public EditorSessionState sessionState() {
         return new EditorSessionState(EditorSessionState.VERSION, layoutPreferences, resources.sessionState(),
-                new EditorSessionState.Preview(themeExample, scenes.objectPreferences(), materials.variantPreferences(), actions.previewPreferences()), autoSave);
+                new EditorSessionState.Preview(themeExample, scenes.objectPreferences(), materials.variantPreferences(), actions.previewPreferences(), simulation), autoSave);
     }
 
     /** Coalesce rapid navigation/gestures; disk work never runs on the UI or Minecraft thread. */
