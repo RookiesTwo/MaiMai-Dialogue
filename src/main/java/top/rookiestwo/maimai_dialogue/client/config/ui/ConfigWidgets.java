@@ -125,6 +125,8 @@ final class ConfigWidgets {
                 createButtonShape(button, BUTTON_COLOR, CARD_STROKE_COLOR)
         );
         button.setBackground(background);
+        // Custom backgrounds have no content insets; keep text clear of the outline at every GUI scale.
+        button.setPadding(button.dp(12), button.dp(6), button.dp(12), button.dp(6));
         });
         return button;
     }
