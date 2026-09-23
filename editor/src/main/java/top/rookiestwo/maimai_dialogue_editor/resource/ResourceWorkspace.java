@@ -156,14 +156,6 @@ public final class ResourceWorkspace {
         changed.run();
     }
 
-    public void closeDocument() {
-        if (!active() || form != Form.NONE) return;
-        navigationRequest++;
-        opened = null;
-        selectionRevision++;
-        changed.run();
-    }
-
     public boolean canCreate() {
         return active() && form == Form.NONE && !selection().isStep()
                 && (selection.kind() == null || selection.kind().creatable());

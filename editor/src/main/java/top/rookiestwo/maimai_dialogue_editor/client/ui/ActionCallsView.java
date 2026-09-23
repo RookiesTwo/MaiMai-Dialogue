@@ -35,18 +35,20 @@ final class ActionCallsView extends LinearLayout {
     ActionCallsView(Context context, ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices) {
         super(context); this.project = project; this.preview = preview; model = project.actions(); setOrientation(VERTICAL); keyframes = new EditorActionKeyframes(project, preview, choices);
         var toolbar = new LinearLayout(context); toolbar.setGravity(Gravity.CENTER_VERTICAL);
+        toolbar.setBaselineAligned(false);
+        EditorWidgets.propertyButtonScope(toolbar);
         var toolbarScroll = new HorizontalScrollView(context); toolbarScroll.setHorizontalScrollBarEnabled(false);
         toolbarScroll.addView(toolbar, new HorizontalScrollView.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
         addView(toolbarScroll);
         EditorWidgets.bindMetrics(toolbarScroll, () -> toolbarScroll.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(28))));
-        button(toolbar, "+", "action.add", () -> model.add("custom"));
-        button(toolbar, "↗", "action.add_reference", () -> model.add("reference"));
-        button(toolbar, "⧉", "browser.copy", model::copy);
-        button(toolbar, "−", "browser.delete", model::delete);
-        button(toolbar, "↑", "edit.up", () -> model.move(-1));
-        button(toolbar, "↓", "edit.down", () -> model.move(1));
-        button(toolbar, "▶", "timeline.replay", preview::replayTimeline);
-        button(toolbar, "■", "timeline.stop", () -> preview.seekTimeline(preview.timelinePlayback(), 0));
+        button(toolbar, EditorButtonIcon.ADD, "action.add", () -> model.add("custom"));
+        button(toolbar, EditorButtonIcon.REFERENCE, "action.add_reference", () -> model.add("reference"));
+        button(toolbar, EditorButtonIcon.COPY, "browser.copy", model::copy);
+        button(toolbar, EditorButtonIcon.REMOVE, "browser.delete", model::delete);
+        button(toolbar, EditorButtonIcon.MOVE_UP, "edit.up", () -> model.move(-1));
+        button(toolbar, EditorButtonIcon.MOVE_DOWN, "edit.down", () -> model.move(1));
+        button(toolbar, EditorButtonIcon.PLAY, "timeline.replay", preview::replayTimeline);
+        button(toolbar, EditorButtonIcon.STOP, "timeline.stop", () -> preview.seekTimeline(preview.timelinePlayback(), 0));
         position = EditorWidgets.compactInput(context, "0", ignored -> {}, () -> {});
         position.setTooltipText(EditorWidgets.tr("timeline.position"));
         toolbar.addView(position);
@@ -97,11 +99,13 @@ final class ActionCallsView extends LinearLayout {
         addView(scroll, new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1));
         preview.setTimelineListener(this::refreshTimeline);
     }
-    private Button button(LinearLayout toolbar, String icon, String label, Runnable action) {
+    private Button button(LinearLayout toolbar, EditorButtonIcon icon, String label, Runnable action) {
         var button = EditorWidgets.icon(getContext(), icon, label, action); toolbar.addView(button); controls.add(button);
         EditorWidgets.bindMetrics(button, () -> {
-            var params = new LayoutParams(dp(EditorWidgets.COMPACT_CONTROL_DP), dp(EditorWidgets.COMPACT_CONTROL_DP));
-            params.setMargins(dp(2), dp(2), dp(2), dp(2)); button.setLayoutParams(params);
+            var params = EditorWidgets.squareIconParams(button);
+            params.leftMargin = dp(3); params.rightMargin = dp(3);
+            params.gravity = Gravity.CENTER_VERTICAL;
+            button.setLayoutParams(params);
         }); return button;
     }
     void refresh() {

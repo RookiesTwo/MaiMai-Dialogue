@@ -3,7 +3,6 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
-import icyllis.modernui.view.ViewTreeObserver;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
@@ -33,9 +32,6 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     private final EditorSplitter actionsSplitter;
     private EditorLayout layout;
     private EditorLayout dragStart;
-    private ViewTreeObserver tooltipObserver;
-    private final ViewTreeObserver.OnGlobalLayoutListener tooltipLayoutListener =
-            () -> EditorWidgets.styleTooltips(this);
 
     EditorWorkbench(Context context, EditorLayoutState state, ProjectWorkspace workspace, Runnable closeAction,
                     ChoicePresenter choices, EditorPreviewHost previewHost, ExportWorkspace exports) {
@@ -263,18 +259,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     }
 
     @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        tooltipObserver = getViewTreeObserver();
-        tooltipObserver.addOnGlobalLayoutListener(tooltipLayoutListener);
-    }
-
-    @Override
     protected void onDetachedFromWindow() {
-        if (tooltipObserver != null && tooltipObserver.isAlive()) {
-            tooltipObserver.removeOnGlobalLayoutListener(tooltipLayoutListener);
-        }
-        tooltipObserver = null;
         cancelDrags();
         super.onDetachedFromWindow();
     }

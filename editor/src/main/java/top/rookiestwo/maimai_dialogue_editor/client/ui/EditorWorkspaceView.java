@@ -6,6 +6,7 @@ import icyllis.modernui.view.KeyEvent;
 import icyllis.modernui.view.MotionEvent;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.View;
+import icyllis.modernui.view.ViewTreeObserver;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.LinearLayout;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
@@ -33,6 +34,9 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     private EditorColorPalette colorPalette;
     private long paletteRevision;
     private MaterialImportConfirmation materialDialog;
+    private ViewTreeObserver tooltipObserver;
+    private final ViewTreeObserver.OnGlobalLayoutListener tooltipLayoutListener =
+            () -> EditorWidgets.styleTooltips(this);
 
     EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace, EditorPreviewHost preview,
                         ExportWorkspace exports) {
@@ -285,6 +289,8 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
+        tooltipObserver = getViewTreeObserver();
+        tooltipObserver.addOnGlobalLayoutListener(tooltipLayoutListener);
         post(() -> {
             if (isAttachedToWindow()) refresh();
         });
@@ -292,6 +298,10 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
 
     @Override
     protected void onDetachedFromWindow() {
+        if (tooltipObserver != null && tooltipObserver.isAlive()) {
+            tooltipObserver.removeOnGlobalLayoutListener(tooltipLayoutListener);
+        }
+        tooltipObserver = null;
         releaseDropdown();
         super.onDetachedFromWindow();
     }

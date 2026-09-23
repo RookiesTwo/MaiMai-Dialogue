@@ -1,10 +1,14 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.R;
+import icyllis.modernui.ModernUI;
 import icyllis.modernui.core.Context;
+import icyllis.modernui.graphics.Canvas;
+import icyllis.modernui.graphics.Paint;
 import icyllis.modernui.graphics.drawable.ShapeDrawable;
 import icyllis.modernui.graphics.drawable.StateListDrawable;
 import icyllis.modernui.text.TextUtils;
+import icyllis.modernui.text.Typeface;
 import icyllis.modernui.util.StateSet;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.View;
@@ -15,6 +19,8 @@ import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.ScrollView;
 import icyllis.modernui.widget.TextView;
 import net.minecraft.client.resources.language.I18n;
+import top.rookiestwo.maimai_dialogue.client.config.ClientConfig;
+import top.rookiestwo.maimai_dialogue.client.ui.style.DialogueTypography;
 import icyllis.modernui.text.Editable;
 import icyllis.modernui.text.TextWatcher;
 
@@ -50,7 +56,12 @@ final class EditorWidgets {
     static final int DEFERRED_INPUT_TAG = 0x6D650003;
     private static final int PROPERTY_BUTTON_SCOPE_TAG = 0x6D650004;
     private static final int BUTTON_ROLE_TAG = 0x6D650005;
+    private static final int EDITOR_TEXT_TAG = 0x6D650006;
     private enum ButtonRole { ACTION, FIELD, SECTION }
+    // UI-thread cache: resolving a configured family creates a new fallback chain.
+    private static String fontFamily;
+    private static Typeface fallbackTypeface;
+    private static Typeface editorTypeface;
 
     private EditorWidgets() {
     }
@@ -59,8 +70,25 @@ final class EditorWidgets {
         return I18n.get("gui.maimai_dialogue_editor." + key);
     }
 
+    private static Typeface configuredTypeface() {
+        String family = ClientConfig.get().fontFamily();
+        Typeface fallback = ModernUI.getSelectedTypeface();
+        if (editorTypeface == null || !family.equals(fontFamily) || fallback != fallbackTypeface) {
+            editorTypeface = DialogueTypography.resolveTypeface(family);
+            fontFamily = family;
+            fallbackTypeface = fallback;
+        }
+        return editorTypeface;
+    }
+
+    private static void bindTypeface(TextView text) {
+        text.setTag(EDITOR_TEXT_TAG, Boolean.TRUE);
+        text.setTypeface(configuredTypeface());
+    }
+
     static TextView label(Context context, String key, int size, int color) {
         TextView text = new TextView(context);
+        bindTypeface(text);
         text.setText(tr(key));
         text.setTextColor(color);
         text.setSingleLine(true);
@@ -92,7 +120,19 @@ final class EditorWidgets {
     }
 
     private static Button button(Context context, String key, Runnable action, ButtonRole role) {
+        return button(context, key, action, role, null);
+    }
+
+    private static Button button(Context context, String key, Runnable action, ButtonRole role, EditorButtonIcon icon) {
         Button button = new Button(context) {
+            private final Paint iconPaint = icon == null ? null : new Paint();
+
+            @Override
+            protected void onDraw(Canvas canvas) {
+                super.onDraw(canvas);
+                if (icon != null) icon.draw(canvas, this, iconPaint);
+            }
+
             @Override
             protected void onAttachedToWindow() {
                 super.onAttachedToWindow();
@@ -100,6 +140,7 @@ final class EditorWidgets {
                 if (inPropertyPanel(this)) refreshButtonStyle(this);
             }
         };
+        bindTypeface(button);
         button.setTag(BUTTON_ROLE_TAG, role);
         button.setText(tr(key));
         button.setSingleLine(true);
@@ -121,6 +162,17 @@ final class EditorWidgets {
             button.setPadding(button.dp(8), 0, button.dp(8), 0);
             refreshButtonStyle(button);
         });
+        return button;
+    }
+
+    static Button icon(Context context, EditorButtonIcon icon, String tooltip, Runnable action) {
+        Button button = button(context, tooltip, action, ButtonRole.ACTION, icon);
+        button.setText("");
+        // Geometry uses the visible button bounds, not TextView's wide single-line layout.
+        button.setHorizontallyScrolling(false);
+        button.setContentDescription(tr(tooltip));
+        button.setTooltipText(tr(tooltip));
+        bindMetrics(button, () -> button.setPadding(0, 0, 0, 0));
         return button;
     }
 
@@ -149,6 +201,7 @@ final class EditorWidgets {
 
     static EditText input(Context context, String value, Consumer<String> changed, Runnable endEdit) {
         EditText input = new EditText(context);
+        bindTypeface(input);
         input.setSingleLine(true);
         input.setTextColor(TEXT);
         input.setText(value);
@@ -315,6 +368,15 @@ final class EditorWidgets {
     // 为新创建的编辑器提示框应用浅色直角样式，不修改其他界面或反复触发布局。
     @SuppressWarnings("UnstableApiUsage")
     static void styleTooltips(View owner) {
+        styleTooltips(owner, configuredTypeface());
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    private static void styleTooltips(View owner, Typeface typeface) {
+        // Only editor-owned text is updated; embedded Dialogue views keep their runtime typography.
+        if (owner instanceof TextView text && owner.getTag(EDITOR_TEXT_TAG) == Boolean.TRUE) {
+            text.setTypeface(typeface);
+        }
         View tooltip = owner.getTooltipView();
         if (tooltip != null && tooltip.getTag(TOOLTIP_STYLE_TAG) == null) {
             tooltip.setTag(TOOLTIP_STYLE_TAG, Boolean.TRUE);
@@ -323,9 +385,10 @@ final class EditorWidgets {
                 text.setTextColor(TEXT);
             }
         }
+        if (tooltip instanceof TextView text) text.setTypeface(typeface);
         if (owner instanceof ViewGroup group) {
             for (int index = 0; index < group.getChildCount(); index++) {
-                styleTooltips(group.getChildAt(index));
+                styleTooltips(group.getChildAt(index), typeface);
             }
         }
     }

@@ -2,6 +2,7 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.Rect;
+import icyllis.modernui.text.TextPaint;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.EditText;
@@ -20,8 +21,7 @@ import java.nio.file.Path;
 
 /** Search and tree bindings. Resource data and navigation survive outside this View. */
 final class ResourceBrowserView extends LinearLayout {
-    private static final int INDENT_DP = 10;
-    private static final int TOGGLE_WIDTH_DP = 18;
+    private static final int RESOURCE_LEAF_GAP_DP = 6;
     private record Controls(ResourceTree.Row row, LinearLayout line, Button label, Button toggle) {}
     private final ProjectWorkspace workspace;
     private final ResourceWorkspace resources;
@@ -130,7 +130,7 @@ final class ResourceBrowserView extends LinearLayout {
             displayedCatalog = resources.catalog();
             restoreOffset = Objects.equals(displayedDirectory, workspace.directory()) ? scroll.getScrollY() : 0;
             displayedDirectory = workspace.directory();
-            rows.removeAllViews();
+            rows.clearRows();
             controls.clear();
             for (ResourceTree.Row row : visible) addRow(row);
         }
@@ -171,11 +171,17 @@ final class ResourceBrowserView extends LinearLayout {
     private void addRow(ResourceTree.Row row) {
         LinearLayout line = new LinearLayout(getContext());
         line.setGravity(Gravity.CENTER_VERTICAL);
-        rows.addView(line);
+        line.setBaselineAligned(false);
         EditorWidgets.bindMetrics(line, () -> {
-            int indent = Math.min(row.depth(), 6) * INDENT_DP + (row.branch() ? 0 : TOGGLE_WIDTH_DP);
+            // Leaf resources need a small connector gap, not an unused full-width expand button.
+            int leading = row.branch() ? 0 : row.node().type() == ResourceTree.Type.RESOURCE
+                    ? RESOURCE_LEAF_GAP_DP : ResourceSelectionLayout.TOGGLE_WIDTH_DP;
+            int indent = ResourceSelectionLayout.indent(row.depth())
+                    + leading;
             line.setPadding(dp(indent), 0, dp(4), 0);
-            line.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP)));
+            var params = new LayoutParams(LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP));
+            if (row.node().type() == ResourceTree.Type.CATEGORY) params.topMargin = dp(4);
+            line.setLayoutParams(params);
         });
         Button toggle = null;
         if (row.branch()) {
@@ -183,25 +189,36 @@ final class ResourceBrowserView extends LinearLayout {
                     () -> resources.toggle(row.node()));
             line.addView(toggle);
             Button arrow = toggle;
-            EditorWidgets.bindMetrics(arrow, () -> arrow.setLayoutParams(new LayoutParams(dp(TOGGLE_WIDTH_DP), LayoutParams.MATCH_PARENT)));
+            EditorWidgets.bindMetrics(arrow, () -> arrow.setLayoutParams(new LayoutParams(
+                    dp(ResourceSelectionLayout.TOGGLE_WIDTH_DP), LayoutParams.MATCH_PARENT)));
         }
         Button label = EditorWidgets.button(getContext(), "", () -> resources.select(row.node()));
         label.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        if (row.node().type() == ResourceTree.Type.PROJECT || row.node().type() == ResourceTree.Type.CATEGORY)
+            label.setTextStyle(TextPaint.BOLD);
+        ResourceTreeIcon icon = row.node().isStep() ? null : new ResourceTreeIcon(row.node());
         EditorWidgets.bindMetrics(label, () -> {
             label.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP),
                     0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
+            if (icon != null) {
+                icon.setBounds(0, 0, dp(ResourceTreeIcon.SIZE_DP), dp(ResourceTreeIcon.SIZE_DP));
+                label.setCompoundDrawables(icon, null, null, null);
+                label.setCompoundDrawablePadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP));
+            }
             label.setBackground(EditorWidgets.treeRowBackground());
         });
         line.addView(label, new LayoutParams(0, LayoutParams.MATCH_PARENT, 1));
+        rows.addTreeRow(line, row.depth(), row.branch() && row.expanded(), toggle == null ? label : toggle, toggle != null);
         controls.add(new Controls(row, line, label, toggle));
         if (row.node().type() == ResourceTree.Type.CATEGORY && row.expanded()
                 && resources.catalog().keys().stream().noneMatch(key -> key.kind() == row.node().kind())) {
             boolean validGroup = workspace.draft().hasResourceGroup(row.node().kind());
             TextView hint = EditorWidgets.label(getContext(), !validGroup ? "browser.error.invalid_group"
                     : row.node().kind().available() ? "browser.empty" : "unavailable", 12, EditorWidgets.MUTED);
-            rows.addView(hint);
+            rows.addTreeRow(hint, row.depth() + 1, false, hint, false);
             EditorWidgets.bindMetrics(hint, () -> {
-                int indent = Math.min(row.depth() + 1, 6) * INDENT_DP + TOGGLE_WIDTH_DP + EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP;
+                int indent = ResourceSelectionLayout.indent(row.depth() + 1) + RESOURCE_LEAF_GAP_DP
+                        + ResourceTreeIcon.SIZE_DP + EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP * 2;
                 hint.setPadding(dp(indent), 0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
                 hint.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP)));
             });
