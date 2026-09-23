@@ -40,6 +40,12 @@ public final class ActionTimeline {
         if (expected == null || expected != playback) return false;
         manual = true; position = Math.clamp(time, 0, duration()); return true;
     }
+    // 接纳已提交的关键帧，保留播放头、暂停状态和所属预览会话。
+    public boolean replace(ScenePlayback expected, ScenePlayback next, int authoredCount) {
+        if (!manual || expected == null || playback != expected || next == null || next.token() != expected.token()) return false;
+        playback = next; lanes = describe(next, authoredCount); position = Math.clamp(position, 0, duration());
+        return true;
+    }
     public static List<Lane> describe(ScenePlayback playback, int authoredCount) {
         var result = new ArrayList<Lane>();
         // The runtime prepends its default first-step dialogue fade; it is visible but not an authored call.

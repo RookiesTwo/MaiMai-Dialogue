@@ -18,8 +18,21 @@ final class SceneCanvasOverlay extends View {
         float x(RectF bounds) { return bounds.left + bounds.width() * x; }
         float y(RectF bounds) { return bounds.top + bounds.height() * y; }
     }
-    private final EditorScenePreviewView host;
-    private final SceneWorkspace model;
+    interface Host {
+        boolean canInteract();
+        java.util.Map<String, RectF> objectBounds();
+        RectF objectAnchor(String id);
+        String objectId();
+        void selectObject(String id);
+        boolean beginPositionDrag(String id);
+        SceneWorkspace.Transform dragPosition();
+        void endPositionDrag(boolean commit);
+        void moveObject(float dx, float dy);
+        void resizeObject(SceneWorkspace.Transform origin, float dx, float dy, float scaleX, float scaleY);
+        default boolean uniformResize() { return false; }
+        default boolean canResize() { return true; }
+    }
+    private final Host host;
     private final Paint paint = new Paint();
     private String hovered = "";
     private boolean dragging, moved, shiftPressed;
@@ -30,7 +43,23 @@ final class SceneCanvasOverlay extends View {
     private SceneWorkspace.Transform initialTransform;
 
     SceneCanvasOverlay(Context context, EditorScenePreviewView host, SceneWorkspace model) {
-        super(context); this.host = host; this.model = model;
+        this(context, new Host() {
+            public boolean canInteract() { return host.canInteract(); }
+            public java.util.Map<String, RectF> objectBounds() { return host.objectBounds(); }
+            public RectF objectAnchor(String id) { return host.objectAnchor(id); }
+            public String objectId() { return model.objectId(); }
+            public void selectObject(String id) { model.selectObject(id); }
+            public boolean beginPositionDrag(String id) { return model.beginPositionDrag(id); }
+            public SceneWorkspace.Transform dragPosition() { return model.dragPosition(); }
+            public void endPositionDrag(boolean commit) { model.endPositionDrag(commit); }
+            public void moveObject(float dx, float dy) { host.moveObject(dx, dy); }
+            public void resizeObject(SceneWorkspace.Transform origin, float dx, float dy, float sx, float sy) {
+                host.resizeObject(origin, dx, dy, sx, sy);
+            }
+        });
+    }
+    SceneCanvasOverlay(Context context, Host host) {
+        super(context); this.host = host;
         setFocusable(true); setFocusableInTouchMode(true); setClickable(true); setWillNotDraw(false);
         paint.setAntiAlias(true);
     }
@@ -42,10 +71,11 @@ final class SceneCanvasOverlay extends View {
     }
     private Handle hitHandle(float x, float y) {
         if (!host.canInteract()) return null;
-        var bounds = host.objectBounds().get(model.objectId()); if (bounds == null) return null;
+        var bounds = host.objectBounds().get(host.objectId()); if (bounds == null) return null;
         float radius = Math.max(4, dp(6)), nearest = Float.MAX_VALUE;
         Handle found = null;
         for (Handle handle : Handle.values()) {
+            if (handle != Handle.CENTER && !host.canResize()) continue;
             float dx = x - handle.x(bounds), dy = y - handle.y(bounds), distance = dx * dx + dy * dy;
             if (Math.abs(dx) <= radius && Math.abs(dy) <= radius && distance < nearest) { found = handle; nearest = distance; }
         }
@@ -59,11 +89,12 @@ final class SceneCanvasOverlay extends View {
                 shiftPressed = event.isShiftPressed();
                 lastDeltaX = lastDeltaY = 0;
                 activeHandle = hitHandle(startX, startY);
-                String id = activeHandle == null ? hit(startX, startY) : model.objectId();
-                model.selectObject(id); hovered = id;
+                String id = activeHandle == null ? hit(startX, startY) : host.objectId();
+                host.selectObject(id); hovered = id;
+                if (id.isEmpty()) { invalidate(); return false; }
                 initialBounds = host.objectBounds().get(id); initialAnchor = host.objectAnchor(id);
                 if (!id.isEmpty() && initialBounds != null && initialAnchor != null) {
-                    dragging = model.beginPositionDrag(id); initialTransform = model.dragPosition();
+                    dragging = host.beginPositionDrag(id); initialTransform = host.dragPosition();
                 }
                 if (dragging) { setPressed(true); getParent().requestDisallowInterceptTouchEvent(true); }
                 invalidate(); return true;
@@ -107,7 +138,7 @@ final class SceneCanvasOverlay extends View {
         float minX = Math.max(1, dp(2)) / Math.max(1, initialBounds.width());
         float minY = Math.max(1, dp(2)) / Math.max(1, initialBounds.height());
         float scaleX, scaleY;
-        if (shiftPressed) {
+        if (shiftPressed || host.uniformResize()) {
             // Remove the existing axis stretch before projecting onto the image's original diagonal.
             // FIT_CENTER and the common scale preserve aspect; equal absolute axis scales restore it.
             double baseX = (double) vx / initialTransform.scaleX();
@@ -131,10 +162,10 @@ final class SceneCanvasOverlay extends View {
     void finish(boolean commit) {
         boolean hadGesture = dragging;
         abandonGesture();
-        if (hadGesture) model.endPositionDrag(commit);
+        if (hadGesture) host.endPositionDrag(commit);
     }
     void synchronize() {
-        if (dragging && model.dragPosition() == null) abandonGesture();
+        if (dragging && host.dragPosition() == null) abandonGesture();
         if (!host.canInteract() && !dragging) { hovered = ""; hoverHandle = null; }
         invalidate();
     }
@@ -146,13 +177,13 @@ final class SceneCanvasOverlay extends View {
     @Override public boolean onHoverEvent(MotionEvent event) {
         Handle handle = event.getAction() == MotionEvent.ACTION_HOVER_EXIT ? null : hitHandle(event.getX(), event.getY());
         if (handle != hoverHandle) { hoverHandle = handle; invalidate(); }
-        String next = event.getAction() == MotionEvent.ACTION_HOVER_EXIT ? "" : handle == null ? hit(event.getX(), event.getY()) : model.objectId();
+        String next = event.getAction() == MotionEvent.ACTION_HOVER_EXIT ? "" : handle == null ? hit(event.getX(), event.getY()) : host.objectId();
         if (!Objects.equals(next, hovered)) { hovered = next; invalidate(); }
         return !next.isEmpty() || super.onHoverEvent(event);
     }
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        var bounds = host.objectBounds(); String selected = model.objectId();
+        var bounds = host.objectBounds(); String selected = host.objectId();
         RectF hover = bounds.get(hovered);
         if (hover != null && !hovered.equals(selected)) {
             paint.setStroke(false); paint.setColor(0x180088FF); canvas.drawRect(hover, paint);
@@ -172,6 +203,7 @@ final class SceneCanvasOverlay extends View {
         }
         float radius = Math.max(2, dp(3));
         for (Handle handle : Handle.values()) {
+            if (handle != Handle.CENTER && !host.canResize()) continue;
             float x = handle.x(selectedBounds), y = handle.y(selectedBounds);
             paint.setStroke(false);
             paint.setColor(handle == activeHandle || handle == hoverHandle ? EditorWidgets.ACCENT : EditorWidgets.PANEL);

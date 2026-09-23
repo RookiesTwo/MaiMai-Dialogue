@@ -43,6 +43,13 @@ public final class ActionPreviewSession {
         this.backend = backend; this.ui = ui; this.changed = changed;
     }
     public Prepared prepared() { return prepared; }
+    // 数值关键帧不改变场景或素材，可沿用已经准备好的资源。
+    public boolean replaceAction(Request expected, Request next, SceneAction action) {
+        if (disposed || pending != null || requested != expected || prepared == null || !error.isEmpty()
+                || expected == null || next == null || action == null || expected.project() != next.project()
+                || !expected.key().equals(next.key()) || !expected.context().equals(next.context())) return false;
+        requested = next; prepared = new Prepared(prepared.scene(), action, ""); return true;
+    }
     public String error() { return error; }
     public void select(Request next) {
         if (disposed || Objects.equals(requested, next)) return;

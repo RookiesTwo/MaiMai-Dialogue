@@ -11,7 +11,7 @@ final class ActionTimelineStrip extends View {
     static final int EDGE_INSET_DP = 10;
     static final int RULER_HANDLE_DP = 8;
     private final EditorPreviewHost host;
-    private final ActionTimeline.Lane lane;
+    private ActionTimeline.Lane lane;
     private final Runnable select;
     private final EditorActionKeyframes keyframes;
     private final Paint paint = new Paint();
@@ -28,6 +28,11 @@ final class ActionTimelineStrip extends View {
         paint.setAntiAlias(true);
     }
     private int duration() { return host.timelinePlayback() == null ? 0 : host.timeline().duration(); }
+    void updateLane(ActionTimeline.Lane next) {
+        lane = next;
+        if (dragging != null && dragging != host.timelinePlayback()) finish();
+        invalidate();
+    }
     private float inset() { return Math.min(dp(EDGE_INSET_DP), getWidth() / 2f); }
     private float span() { return Math.max(0, getWidth() - 2 * inset()); }
     private float x(int time) { return inset() + Math.clamp(time / (float)Math.max(1, duration()), 0, 1) * span(); }

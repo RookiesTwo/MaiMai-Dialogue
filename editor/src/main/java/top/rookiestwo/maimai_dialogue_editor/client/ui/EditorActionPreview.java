@@ -14,6 +14,7 @@ import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueOption;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorDialogueAudio;
 import top.rookiestwo.maimai_dialogue_editor.preview.*;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -54,6 +55,14 @@ final class EditorActionPreview {
     boolean canPlay() { return host.mode() == EditorPreviewHost.Mode.ACTION && workspace.actions().active(); }
     boolean playing() { return playing || playRequested; }
     boolean canSeek() { return canPlay() && displayed != null && displayed == session.prepared() && pendingImages == null; }
+    boolean acceptCanvasCommit(ProjectDraft before, top.rookiestwo.maimai_dialogue.presentation.action.SceneAction action) {
+        if (!canSeek() || playing || playRequested || request == null || request.draft() != before) return false;
+        var next = new ActionPreviewSession.Request(workspace.projectGeneration(), workspace.draft(),
+                workspace.resources().opened(), workspace.actions().previewContext());
+        if (!session.replaceAction(request, next, action)) return false;
+        request = next; preparing = displayed = session.prepared(); restorePosition = null;
+        return true;
+    }
     void pauseForSeek() {
         boolean changed = playing || playRequested || audio != null;
         closeAudio(); playRequested = playing = false;

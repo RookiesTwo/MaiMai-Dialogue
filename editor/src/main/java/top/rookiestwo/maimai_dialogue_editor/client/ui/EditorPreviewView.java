@@ -30,6 +30,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     private final ImageView materialImage;
     private final EditorAudioPreviewView audio;
     private final EditorScenePreviewView scene;
+    private final EditorActionCanvas actionCanvas;
     private final EditorActionPreviewControls actionControls;
     private EditorPreviewHost.Mode mode = EditorPreviewHost.Mode.EMPTY;
     private int imageWidth, imageHeight;
@@ -74,6 +75,8 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         canvas.addView(materialImage, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         scene = new EditorScenePreviewView(context, host, surface);
         canvas.addView(scene, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+        actionCanvas = new EditorActionCanvas(context, host, surface);
+        canvas.addView(actionCanvas, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         themeError = EditorWidgets.compactParagraph(context, "");
         themeError.setTextColor(EditorWidgets.ERROR);
         canvas.addView(themeError, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
@@ -118,6 +121,8 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         canvas.setVisibility(material || dialogue || theme || action || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         scene.setVisibility(mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         if (mode == EditorPreviewHost.Mode.SCENE) scene.refresh(host.scenes()); else scene.release();
+        actionCanvas.setVisibility(dialogue || action ? VISIBLE : GONE);
+        actionCanvas.synchronize();
         if (theme) host.refreshTheme();
         String themeIssue = theme ? host.themeError() : action ? host.actionPreview().error() : "";
         themeError.setText(themeIssue.isEmpty() ? "" : (theme ? EditorWidgets.tr("theme.invalid") + " " : "") + themeIssue);
@@ -170,7 +175,8 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         surface.setReferenceHeight(height);
         scene.setReferenceHeight(height);
     }
-    void finishSceneDrag(boolean commit) { scene.endDrag(commit); }
+    void finishSceneDrag(boolean commit) { scene.endDrag(commit); actionCanvas.finish(commit); }
+    void refreshActionCanvas() { actionCanvas.synchronize(); }
     void requestSceneFrame(boolean immediate) { if (mode == EditorPreviewHost.Mode.SCENE) scene.requestFrame(immediate); }
 
     void refreshContentAfterLayout() {

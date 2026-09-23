@@ -67,6 +67,11 @@ public final class EditorPreviewSession {
     }
 
     public void advance() { update(DialogueSession::advance); }
+    // 手动采样期间修改动作后，用户推进时按原阶段恢复语义，再推进最新定义。
+    public void advanceAfterRefresh(PlaybackPhase previous) {
+        if (previous == PlaybackPhase.READY && state.playbackPhase() == PlaybackPhase.PLAYING) advance();
+        advance();
+    }
     public void skipToEnd() { update(DialogueSession::skipToEnd); }
     public void selectOption(DialogueOption option) { update(current -> current.selectOption(option)); }
     public void completeScene(long generation, long token) { update(current -> current.completeScene(generation, token)); }

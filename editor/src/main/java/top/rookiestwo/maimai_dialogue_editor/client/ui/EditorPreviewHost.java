@@ -59,6 +59,8 @@ final class EditorPreviewHost {
     private long revision;
     private boolean loading;
     private boolean advanceAfterLoad;
+    private boolean staleDialogueSession;
+    private top.rookiestwo.maimai_dialogue.client.session.PlaybackPhase advancePhaseAfterLoad;
     private boolean disposed;
     private String message = "preview.idle";
     private String error = "";
@@ -67,10 +69,15 @@ final class EditorPreviewHost {
     private record TimelineBinding(long project, ProjectDraft draft, top.rookiestwo.maimai_dialogue_editor.document.ActionWorkspace.Context context) {}
     private TimelineBinding timelineBinding;
     private boolean timelineFramePending;
+    private top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback canvasBase, canvasFrame;
+    private top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback sampledPlayback;
+    private int sampledPosition;
     private final Runnable timelineFrame = () -> {
         timelineFramePending = false;
-        if (!disposed && timeline.manual() && canSeekTimeline())
-            fragment.renderScenePlaybackPreview(timeline.playback(), timeline.position());
+        if (!disposed && timeline.manual() && canSeekTimeline()) {
+            freezeTimelineFrame();
+            if (view != null) view.refreshActionCanvas();
+        }
     };
     private TimelineBinding currentTimelineBinding() {
         return new TimelineBinding(workspace.projectGeneration(), workspace.draft(), workspace.actions().context());
@@ -102,15 +109,41 @@ final class EditorPreviewHost {
     }
 
     void bindTimeline(Object owner, top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback scene, int calls, boolean playing) {
+        canvasBase = canvasFrame = null;
+        sampledPlayback = null;
         timelineBinding = currentTimelineBinding();
         timeline.bind(owner, scene, calls, playing); notifyTimelineChanged();
     }
     void followTimeline(Object owner, long token, int elapsed) {
         if (timeline.follow(owner, token, elapsed)) notifyTimelineChanged();
     }
-    void clearTimeline(Object owner) { timeline.clear(owner); notifyTimelineChanged(); }
+    void clearTimeline(Object owner) {
+        timeline.clear(owner);
+        if (canvasBase != timeline.playback()) canvasBase = canvasFrame = null;
+        if (sampledPlayback != timeline.playback()) sampledPlayback = null;
+        notifyTimelineChanged();
+    }
     void freezeTimelineFrame() {
-        if (fragment != null && timeline.playback() != null) fragment.renderScenePlaybackPreview(timeline.playback(), timeline.position());
+        if (fragment != null && timeline.playback() != null) {
+            fragment.renderScenePlaybackPreview(
+                canvasBase == timeline.playback() && canvasFrame != null ? canvasFrame : timeline.playback(), timeline.position());
+            sampledPlayback = timeline.playback(); sampledPosition = timeline.position();
+        }
+    }
+    boolean timelineCanvasReady() {
+        return timeline.manual() && sampledPlayback == timelinePlayback() && sampledPosition == timeline.position();
+    }
+    DialogueFragment timelineFragment() { return canSeekTimeline() ? fragment : null; }
+    void renderCanvasFrame(top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback expected,
+                           top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback frame, boolean immediate) {
+        if (expected != timeline.playback()) return;
+        canvasBase = expected; canvasFrame = frame;
+        if (immediate) {
+            if (view != null) view.removeCallbacks(timelineFrame);
+            timelineFramePending = false; freezeTimelineFrame();
+        } else if (!timelineFramePending && view != null) {
+            timelineFramePending = true; view.postOnAnimation(timelineFrame);
+        }
     }
     boolean canSeekTimeline() {
         return timelinePlayback() != null && fragment != null && !loading && (mode() == Mode.ACTION ? actionPreview.canSeek()
@@ -118,6 +151,7 @@ final class EditorPreviewHost {
     }
     void seekTimeline(top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback expected, int elapsed) {
         if (!canSeekTimeline() || !timeline.seek(expected, elapsed)) return;
+        canvasBase = canvasFrame = null;
         closeDialogueAudio(); if (auditioning()) stopAudition();
         if (mode() == Mode.ACTION) actionPreview.pauseForSeek();
         if (!timelineFramePending && view != null) { timelineFramePending = true; view.postOnAnimation(timelineFrame); }
@@ -334,6 +368,7 @@ final class EditorPreviewHost {
             if (view != null) view.refresh();
             return;
         }
+        if (draftChanged && !projectChanged && !selectionChanged) acceptCanvasCommit();
         // Restoring a Step enters it just like a click; sampling at zero would freeze its entrance effects invisible.
         // Only edits to an already open document preserve the manual timeline position.
         if ((projectChanged || !draftChanged && selectionChanged) && selected.isStep() && Objects.equals(selected.owner(), opened)) {
@@ -348,6 +383,27 @@ final class EditorPreviewHost {
         actionPreview.synchronize();
         if (!loading && !running()) showIdleControls();
         if (view != null) view.refresh();
+    }
+
+    // 拖动结束时只更换采样数据，已挂载的 Fragment、图片和播放头保持原位。
+    private void acceptCanvasCommit() {
+        var commit = workspace.actions().canvasCommit();
+        if (commit == null || disposed || loading || fragment == null || timelineBinding == null || !timeline.manual()
+                || timelineBinding.project() != workspace.projectGeneration() || timelineBinding.draft() != commit.before()
+                || !Objects.equals(commit.context(), workspace.actions().context())
+                || commit.index() != workspace.actions().selected() || commit.original() != timeline.playback()
+                || canvasBase != commit.original() || canvasFrame != commit.updated()) return;
+        if (commit.context().standalone()) {
+            if (!actionPreview.acceptCanvasCommit(commit.before(), commit.updated().calls().getFirst().action())) return;
+        } else if (!running() || source != commit.before()) return;
+        var calls = workspace.actions().calls();
+        if (!timeline.replace(commit.original(), commit.updated(), commit.context().standalone() ? 1 : calls.size())) return;
+        timelineBinding = currentTimelineBinding();
+        canvasBase = canvasFrame = null;
+        sampledPlayback = timeline.playback(); sampledPosition = timeline.position();
+        // Dialogue 会话保持暂停；显式播放／推进仍从最新草稿重新开始，避免使用旧定义。
+        if (!commit.context().standalone()) { source = workspace.draft(); staleDialogueSession = true; }
+        notifyTimelineChanged();
     }
 
     void start() {
@@ -379,6 +435,7 @@ final class EditorPreviewHost {
         long expected = ++revision;
         loading = true;
         advanceAfterLoad = false;
+        advancePhaseAfterLoad = null;
         refresh();
         // Read the loaded resource snapshot on the client thread; never replace the global repository.
         Minecraft.getInstance().execute(() -> {
@@ -411,8 +468,13 @@ final class EditorPreviewHost {
                             ResourceLocation.fromNamespaceAndPath(captured.namespace(), capturedKey.path()), interval, step);
                     if (playback != null) playback.stop();
                     playback = prepared;
-                    if (advanceAfterLoad) playback.advance();
+                    staleDialogueSession = false;
+                    if (advanceAfterLoad) {
+                        if (advancePhaseAfterLoad == null) playback.advance();
+                        else playback.advanceAfterRefresh(advancePhaseAfterLoad);
+                    }
                     advanceAfterLoad = false;
+                    advancePhaseAfterLoad = null;
                     if (running()) {
                         if (playNow) dialogueAudio = audioScope(content.assets(), expected, false);
                         showingIdle = false;
@@ -451,6 +513,12 @@ final class EditorPreviewHost {
             startAt(selected.isStep() && selected.owner().equals(workspace.resources().opened()) ? selected.stepIndex() : 0);
             return;
         }
+        if (staleDialogueSession) {
+            var phase = playback.state().playbackPhase();
+            startAt(workspace.resources().selection().stepIndex());
+            advanceAfterLoad = true; advancePhaseAfterLoad = phase;
+            return;
+        }
         playback.advance();
         render();
     }
@@ -481,11 +549,14 @@ final class EditorPreviewHost {
     private void reset() {
         if (view != null) view.removeCallbacks(timelineFrame);
         timelineFramePending = false;
+        canvasBase = canvasFrame = null;
+        sampledPlayback = null;
         timeline.clear(); notifyTimelineChanged();
         closeDialogueAudio();
         ++revision;
         loading = false;
         advanceAfterLoad = false;
+        staleDialogueSession = false; advancePhaseAfterLoad = null;
         if (playback != null) playback.stop();
         playback = null;
         source = null;

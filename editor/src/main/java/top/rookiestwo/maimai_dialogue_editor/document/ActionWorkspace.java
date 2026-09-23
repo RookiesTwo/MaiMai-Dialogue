@@ -22,10 +22,17 @@ public final class ActionWorkspace {
     private long seenNavigation = -1;
     private long projectGeneration = -1;
     private Gesture gesture;
+    private CanvasGesture canvasGesture;
+    public record CanvasCommit(ProjectDraft before, Context context, int index,
+                               top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback original,
+                               top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback updated) {}
+    private CanvasCommit canvasCommit;
+    // 只在本次草稿提交的同步通知中有效，不能误用于后续编辑或撤销。
+    public CanvasCommit canvasCommit() { return canvasCommit; }
     public ActionWorkspace(ProjectWorkspace project, Runnable changed) { this.project = project; this.changed = changed; }
     public Context context() {
         if (projectGeneration != project.projectGeneration()) {
-            projectGeneration = project.projectGeneration(); selections.clear(); history.clear(); previewContexts.clear(); gesture = null;
+            projectGeneration = project.projectGeneration(); selections.clear(); history.clear(); previewContexts.clear(); gesture = null; canvasGesture = null;
             seen = null; seenContext = null; seenNavigation = -1;
         }
         var selected = project.resources().selection(); var key = selected.owner();
@@ -241,12 +248,59 @@ public final class ActionWorkspace {
         seen = project.draft(); seenContext = context;
         if (group == null) project.endEdit();
     }
-    public boolean editing() { return gesture != null && gesture.valid(); }
+    public boolean editing() { return gesture != null && gesture.valid() || canvasGesture != null && canvasGesture.valid(); }
     public EditGesture beginGesture(boolean call, ActionFields.Number field) {
         endGesture(false); project.endEdit();
         return active() && (call ? call() : definition()) != null ? gesture = new Gesture(call, field) : null;
     }
-    public void endGesture(boolean commit) { if (gesture != null) gesture.finish(commit); }
+    public void endGesture(boolean commit) {
+        if (gesture != null) gesture.finish(commit);
+        if (canvasGesture != null) canvasGesture.finish(commit);
+    }
+    public CanvasGesture beginCanvas(ActionCanvasEdit edit, java.util.function.BooleanSupplier previewCurrent, Consumer<Boolean> finishing) {
+        if (!active() || !inspecting() || editing()) return null;
+        project.endEdit();
+        return canvasGesture = new CanvasGesture(edit, previewCurrent, finishing);
+    }
+    /** Shares save/undo/navigation lifecycle with numeric gestures, but publishes only once on release. */
+    public final class CanvasGesture {
+        private final ProjectDraft before = project.draft();
+        private final long generation = project.projectGeneration(), navigation = project.resources().selectionRevision();
+        private final Context context = context();
+        private final PreviewContext previewContext = previewContext();
+        private final int index = selected();
+        private final ActionCanvasEdit edit;
+        private final java.util.function.BooleanSupplier previewCurrent;
+        private final Consumer<Boolean> finishing;
+        private CanvasGesture(ActionCanvasEdit edit, java.util.function.BooleanSupplier previewCurrent, Consumer<Boolean> finishing) {
+            this.edit = edit; this.previewCurrent = previewCurrent; this.finishing = finishing;
+        }
+        public boolean valid() {
+            return canvasGesture == this && generation == project.projectGeneration() && before == project.draft()
+                    && navigation == project.resources().selectionRevision() && active() && Objects.equals(context, context())
+                    && Objects.equals(previewContext, previewContext()) && index == selected() && previewCurrent.getAsBoolean();
+        }
+        public boolean update(float x, float y, float scale) { return valid() && edit.update(x, y, scale); }
+        public ActionCanvasEdit edit() { return edit; }
+        public void finish(boolean commit) {
+            if (canvasGesture != this) return;
+            boolean save = commit && valid() && edit.changed();
+            // Flush the last in-memory frame before async preparation begins; cancellation restores the baseline.
+            finishing.accept(save); canvasGesture = null;
+            if (!save) return;
+            var definition = edit.definition();
+            canvasCommit = new CanvasCommit(before, context, index, edit.originalPlayback(), edit.preview());
+            try {
+                if (context.standalone()) editRoot(null, root -> {
+                    root.entrySet().clear(); definition.entrySet().forEach(entry -> root.add(entry.getKey(), entry.getValue()));
+                }, index);
+                else ActionWorkspace.this.edit(true, null, call -> {
+                    var spec = call.getAsJsonObject("action"); spec.remove("id"); spec.addProperty("type", "inline");
+                    spec.add("action", definition);
+                });
+            } finally { canvasCommit = null; }
+        }
+    }
     private final class Gesture implements EditGesture {
         final ProjectDraft before = project.draft(); final long generation = project.projectGeneration();
         final Context context = context(); final int index = selected(); final boolean call; final ActionFields.Number field;

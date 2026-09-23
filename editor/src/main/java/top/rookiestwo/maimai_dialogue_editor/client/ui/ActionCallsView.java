@@ -112,15 +112,24 @@ final class ActionCallsView extends LinearLayout {
         var next = model.context(); var resource = next == null ? null : project.draft().revision(next.resource());
         var playback = preview.timelinePlayback();
         if (!Objects.equals(context, next) || revision != resource || shownPlayback != playback) {
+            boolean reuse = Objects.equals(context, next) && shownPlayback != null && playback != null
+                    && preview.timeline().lanes().stream().map(ActionTimeline.Lane::callIndex).toList().equals(callIndices);
             context = next; revision = resource; shownPlayback = playback;
-            list.removeAllViews(); rows.clear(); strips.clear(); callIndices.clear(); lastSelected = Integer.MIN_VALUE;
-            var calls = model.calls();
-            if (context != null && playback != null) {
-                for (var lane : preview.timeline().lanes()) addRow(lane.callIndex(), lane);
-                if (preview.timeline().lanes().isEmpty()) { empty.setText(EditorWidgets.tr("action.empty")); list.addView(empty); }
-            } else if (calls == null || calls.isEmpty()) {
-                empty.setText(EditorWidgets.tr(context == null || context.standalone() ? "no_step" : calls == null ? "edit.invalid_object" : "action.empty")); list.addView(empty);
-            } else for (int i = 0; i < calls.size(); i++) addRow(i, null);
+            if (reuse) {
+                for (int i = 0; i < rows.size(); i++) {
+                    var lane = preview.timeline().lanes().get(i);
+                    updateRow(rows.get(i), lane.callIndex(), lane); strips.get(i).updateLane(lane);
+                }
+            } else {
+                list.removeAllViews(); rows.clear(); strips.clear(); callIndices.clear(); lastSelected = Integer.MIN_VALUE;
+                var calls = model.calls();
+                if (context != null && playback != null) {
+                    for (var lane : preview.timeline().lanes()) addRow(lane.callIndex(), lane);
+                    if (preview.timeline().lanes().isEmpty()) { empty.setText(EditorWidgets.tr("action.empty")); list.addView(empty); }
+                } else if (calls == null || calls.isEmpty()) {
+                    empty.setText(EditorWidgets.tr(context == null || context.standalone() ? "no_step" : calls == null ? "edit.invalid_object" : "action.empty")); list.addView(empty);
+                } else for (int i = 0; i < calls.size(); i++) addRow(i, null);
+            }
         }
         int selected = model.selected();
         for (int i = 0; i < controls.size(); i++) EditorWidgets.enabled(controls.get(i), switch (i) {
@@ -143,17 +152,7 @@ final class ActionCallsView extends LinearLayout {
                 model.select(model.selected() == index ? -1 : index);
         };
         var button = EditorWidgets.button(getContext(), "", select);
-        String title;
-        if (index < 0) title = EditorWidgets.tr("timeline.automatic_fade");
-        else if (context.standalone()) title = context.resource().path();
-        else {
-            JsonObject call = DialogueDraft.object(model.calls().get(index));
-            title = ActionFields.text(call, "action.type", "").equals("reference") ? ActionFields.text(call, "action.id", "")
-                    : summary(DialogueDraft.object(ActionFields.get(call, "action.action")));
-            String target = ActionFields.text(call, "target", "");
-            title = (index + 1) + "  " + (target.isEmpty() ? "" : target + " · ") + title;
-        }
-        button.setText(title); button.setTooltipText(title + (lane == null ? "" : "\n" + lane.startMs() + "–" + lane.endMs() + " ms"));
+        updateRow(button, index, lane);
         button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL); rows.add(button); callIndices.add(index);
         EditorWidgets.bindMetrics(button, () -> button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0));
         View row = button;
@@ -165,6 +164,19 @@ final class ActionCallsView extends LinearLayout {
         }
         list.addView(row); View item = row;
         EditorWidgets.bindMetrics(item, () -> item.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP))));
+    }
+    private void updateRow(Button button, int index, ActionTimeline.Lane lane) {
+        String title;
+        if (index < 0) title = EditorWidgets.tr("timeline.automatic_fade");
+        else if (context.standalone()) title = context.resource().path();
+        else {
+            JsonObject call = DialogueDraft.object(model.calls().get(index));
+            title = ActionFields.text(call, "action.type", "").equals("reference") ? ActionFields.text(call, "action.id", "")
+                    : summary(DialogueDraft.object(ActionFields.get(call, "action.action")));
+            String target = ActionFields.text(call, "target", "");
+            title = (index + 1) + "  " + (target.isEmpty() ? "" : target + " · ") + title;
+        }
+        button.setText(title); button.setTooltipText(title + (lane == null ? "" : "\n" + lane.startMs() + "–" + lane.endMs() + " ms"));
     }
     private void refreshTimeline() {
         if (shownPlayback != preview.timelinePlayback() || lastCanSeek != preview.canSeekTimeline()
