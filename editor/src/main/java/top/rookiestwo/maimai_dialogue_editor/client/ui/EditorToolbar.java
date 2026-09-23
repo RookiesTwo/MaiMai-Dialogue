@@ -2,6 +2,7 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
+import icyllis.modernui.view.KeyEvent;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewGroup;
@@ -53,7 +54,15 @@ final class EditorToolbar extends FrameLayout {
             Button button = EditorWidgets.button(context, key, action);
             EditorWidgets.toolbarButton(button);
             if (key.equals("project") || key.equals("export")) button.setText(EditorWidgets.tr(key) + " ▾");
-            button.setTooltipText(EditorWidgets.tr(key.equals("redo") ? "redo_hint" : key));
+            String hint = EditorWidgets.tr(key.equals("redo") ? "redo_hint" : key);
+            String shortcut = switch (key) {
+                case "save" -> "S";
+                case "undo" -> "Z";
+                case "redo" -> "Y";
+                default -> "";
+            };
+            String modifier = KeyEvent.META_SHORTCUT_ON == KeyEvent.META_SUPER_ON ? "⌘" : "Ctrl+";
+            button.setTooltipText(shortcut.isEmpty() ? hint : hint + " (" + modifier + shortcut + ")");
             businessButtons.put(key, button);
             items.addView(button);
             EditorWidgets.bindMetrics(button, () -> {

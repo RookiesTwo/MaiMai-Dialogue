@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.annotation.NonNull;
+import icyllis.modernui.R;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.KeyEvent;
 import icyllis.modernui.view.MotionEvent;
@@ -8,6 +9,7 @@ import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewTreeObserver;
 import icyllis.modernui.widget.Button;
+import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
@@ -315,7 +317,57 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
             if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) escape();
             return true;
         }
+        Shortcut shortcut = Shortcut.from(event);
+        if (shortcut != null) {
+            // Handle once before ViewRoot's normal key -> text shortcut dispatch, including key repeats/up.
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) runShortcut(shortcut);
+            return true;
+        }
         return super.dispatchKeyEvent(event);
+    }
+
+    private void runShortcut(Shortcut shortcut) {
+        if (!isAttachedToWindow() || !workspace.windowFocused() || workspace.busy()) return;
+        View focused = findFocus();
+        if (shortcut != Shortcut.SAVE && focused instanceof EditText input) {
+            // Use ModernUI's text history even when empty; never fall through to project history.
+            if (input.isEnabled()) input.onTextContextMenuItem(shortcut == Shortcut.UNDO ? R.id.undo : R.id.redo);
+            return;
+        }
+        // Saving from the Project menu is valid; modal forms and pickers must not edit the project behind them.
+        boolean saveFromMenu = shortcut == Shortcut.SAVE && workspace.page() == ProjectWorkspace.Page.MENU;
+        if ((workspace.page() != ProjectWorkspace.Page.NONE && !saveFromMenu)
+                || workspace.resources().form() != ResourceWorkspace.Form.NONE || choices != null
+                || workspace.draft() == null) return;
+        // Saving has the same commit boundary as clicking Save outside a deferred input.
+        finishDeferredInput();
+        if (saveFromMenu) workspace.dismissMenu();
+        cancelDrags();
+        switch (shortcut) {
+            case SAVE -> { if (workspace.dirty()) workspace.save(); }
+            case UNDO -> workspace.undo();
+            case REDO -> workspace.redo();
+        }
+    }
+
+    private enum Shortcut {
+        SAVE, UNDO, REDO;
+
+        static Shortcut from(KeyEvent event) {
+            // Ignore Caps/Num Lock, but do not capture AltGr or unrelated modifier combinations.
+            int modifiers = event.getModifiers() & (KeyEvent.META_SHIFT_ON | KeyEvent.META_CONTROL_ON
+                    | KeyEvent.META_ALT_ON | KeyEvent.META_SUPER_ON);
+            if (modifiers == KeyEvent.META_SHORTCUT_ON) {
+                return switch (event.getKeyCode()) {
+                    case KeyEvent.KEY_S -> SAVE;
+                    case KeyEvent.KEY_Z -> UNDO;
+                    case KeyEvent.KEY_Y -> REDO;
+                    default -> null;
+                };
+            }
+            return modifiers == (KeyEvent.META_SHORTCUT_ON | KeyEvent.META_SHIFT_ON)
+                    && event.getKeyCode() == KeyEvent.KEY_Z ? REDO : null;
+        }
     }
 
     @Override
