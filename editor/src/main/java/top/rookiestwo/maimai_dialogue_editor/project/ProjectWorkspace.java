@@ -184,9 +184,11 @@ public final class ProjectWorkspace {
     private OpenedSession readSession(Path target) throws java.io.IOException {
         var loaded = store.open(target);
         var state = sessionStore == null ? EditorSessionState.defaults() : sessionStore.read(target);
-        // Only the current document/selection is loaded. All other resource bodies remain lazy.
+        // Expanded Dialogue children need their text before publishing the restored tree, even when not selected.
+        // Only these and the current document/selection are loaded; all other resource bodies remain lazy.
         var keys = new java.util.HashSet<ResourceKey>();
         keys.add(state.navigation().opened()); keys.add(state.navigation().selection().owner());
+        keys.addAll(state.navigation().expandedDialogues());
         for (var key : keys) if (key != null && loaded.draft().revision(key) != null) {
             try { loaded.draft().load(key); }
             catch (java.io.IOException | RuntimeException failure) {
