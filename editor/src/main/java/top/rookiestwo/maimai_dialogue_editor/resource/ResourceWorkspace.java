@@ -96,6 +96,33 @@ public final class ResourceWorkspace {
         selectionRevision++;
     }
 
+    public top.rookiestwo.maimai_dialogue_editor.project.EditorSessionState.Navigation sessionState() {
+        synchronize();
+        return new top.rookiestwo.maimai_dialogue_editor.project.EditorSessionState.Navigation(
+                selection, opened, collapsed, expandedDialogues, query);
+    }
+
+    /** Called after the saved documents have been loaded off-thread. Missing nodes fall back to navigation. */
+    public void restoreSession(top.rookiestwo.maimai_dialogue_editor.project.EditorSessionState.Navigation state) {
+        reset();
+        synchronize();
+        collapsed.addAll(state.collapsed());
+        for (var key : state.expandedDialogues()) if (catalog.contains(key)) expandedDialogues.add(key);
+        query = state.query();
+        if (state.opened() != null && catalog.contains(state.opened()) && current.get().isLoaded(state.opened()))
+            opened = state.opened();
+        var selected = state.selection();
+        var owner = selected.owner();
+        if (owner != null) {
+            if (!catalog.contains(owner) || !current.get().isLoaded(owner)) selected = ResourceTree.Node.category(owner.kind());
+            else if (selected.isStep() && selected.stepIndex() >= catalog.stepCount(owner)) selected = ResourceTree.Node.resource(owner);
+        }
+        selection = selected;
+        // Use the regular folder reconciliation without triggering a click or a document edit.
+        indexed = null;
+        synchronize();
+    }
+
     private void synchronize() {
         ProjectDraft draft = current.get();
         if (draft == indexed) return;

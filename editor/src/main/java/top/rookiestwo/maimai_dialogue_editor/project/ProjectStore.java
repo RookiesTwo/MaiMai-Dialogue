@@ -114,7 +114,7 @@ public final class ProjectStore {
         }
     }
 
-    private static void writeForced(Path path, byte[] bytes) throws IOException {
+    static void writeForced(Path path, byte[] bytes) throws IOException {
         try (FileChannel channel = FileChannel.open(path, StandardOpenOption.WRITE)) {
             ByteBuffer buffer = ByteBuffer.wrap(bytes);
             while (buffer.hasRemaining()) channel.write(buffer);
@@ -201,13 +201,13 @@ public final class ProjectStore {
         return List.copyOf(entries);
     }
 
-    private void checkRoot() throws IOException {
+    void checkRoot() throws IOException {
         if (Files.isSymbolicLink(projectsDirectory)) throw new ProjectException("outside_projects");
         if (Files.exists(projectsDirectory, LinkOption.NOFOLLOW_LINKS)
                 && !Files.isDirectory(projectsDirectory, LinkOption.NOFOLLOW_LINKS))
             throw new ProjectException("not_directory");
     }
-    private void validateDirectory(Path directory) throws IOException {
+    void validateDirectory(Path directory) throws IOException {
         Path normalized = directory.toAbsolutePath().normalize();
         if (!projectsDirectory.equals(normalized.getParent())) throw new ProjectException("outside_projects");
         checkRoot();
@@ -225,7 +225,7 @@ public final class ProjectStore {
     }
 
     /** Generated relative paths only. Check every ancestor to reject symlinks and Windows junction escapes. */
-    private Path managedPath(Path directory, String relative) throws IOException {
+    Path managedPath(Path directory, String relative) throws IOException {
         validateDirectory(directory);
         Path root = directory.toAbsolutePath().normalize();
         Path target = root.resolve(relative).normalize();

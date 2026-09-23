@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
+import icyllis.modernui.text.TextPaint;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.View;
 import icyllis.modernui.widget.Button;
@@ -37,12 +38,14 @@ final class EditorPropertySection extends LinearLayout {
             boolean collapse = !state.collapsedPropertySections.contains(key);
             if (collapse) state.collapsedPropertySections.add(key);
             else state.collapsedPropertySections.remove(key);
+            state.changed.run();
             // Commit deferred fields before hiding their controls, including keyboard activation.
             if (collapse) body.clearFocus();
             refresh();
         });
         header.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        header.setTextColor(EditorWidgets.ACCENT);
+        header.setTextColor(EditorWidgets.TEXT);
+        header.setTextStyle(TextPaint.BOLD);
         header.setTooltipText(EditorWidgets.tr(key));
         if (accessory == null) addView(header);
         else {
@@ -70,6 +73,7 @@ final class EditorPropertySection extends LinearLayout {
         for (View view = field; view != null; view = view.getParent() instanceof View parent ? parent : null) {
             if (view instanceof EditorPropertySection section) {
                 section.state.collapsedPropertySections.remove(section.key);
+                section.state.changed.run();
                 section.refresh();
             }
         }

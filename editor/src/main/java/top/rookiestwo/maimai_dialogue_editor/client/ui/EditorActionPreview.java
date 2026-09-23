@@ -111,6 +111,12 @@ final class EditorActionPreview {
         });
     }
     private void publish(ActionPreviewSession.Prepared next, Map<ResourceLocation, Image> loaded, DialogueImageSource source) {
+        if (!host.actionViewReady()) {
+            // Keep the prepared data retryable when attachment/resume happens after the image callbacks.
+            preparing = null;
+            source.close(); pendingImages = null;
+            return;
+        }
         boolean play = playRequested;
         try {
             var ready = new EditorReadyImages(loaded); closeImages(); images = ready; displayed = next;

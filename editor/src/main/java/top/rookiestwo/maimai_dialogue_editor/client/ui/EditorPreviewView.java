@@ -218,6 +218,12 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         if (densityChanged) EditorWidgets.refreshMetrics(this);
     }
 
+    @Override protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        // Project restoration may finish before this View attaches. Retry from readiness, not a synthetic tree click.
+        host.onViewReady();
+    }
+
     @Override protected void onDetachedFromWindow() {
         ++imageRequest;
         materialImage.setImage(null); displayedImage = null;

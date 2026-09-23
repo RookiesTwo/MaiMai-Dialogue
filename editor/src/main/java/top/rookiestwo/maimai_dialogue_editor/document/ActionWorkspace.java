@@ -47,6 +47,16 @@ public final class ActionWorkspace {
         if (!active() || !context().standalone()) return;
         previewContexts.put(context().resource(), new PreviewContext(previewContext().scene(), target)); changed.run();
     }
+    public List<EditorSessionState.ActionPreview> previewPreferences() {
+        context();
+        return previewContexts.entrySet().stream().filter(entry -> project.draft() != null && project.draft().revision(entry.getKey()) != null)
+                .map(entry -> new EditorSessionState.ActionPreview(entry.getKey(), entry.getValue().scene(), entry.getValue().target())).toList();
+    }
+    public void restorePreviewPreferences(List<EditorSessionState.ActionPreview> preferences) {
+        context(); previewContexts.clear();
+        for (var entry : preferences) if (entry.resource().kind() == ResourceKind.ACTION && project.draft().revision(entry.resource()) != null)
+            previewContexts.put(entry.resource(), new PreviewContext(entry.scene(), entry.target()));
+    }
     public JsonObject data() { return project.content().snapshot().data(); }
     public JsonObject node() { var context = context(); return context == null ? null : context.standalone() ? data() : DialogueDraft.node(data(), context.step()); }
     public JsonArray calls() { return context() == null || context().standalone() ? null : array(node(), "actions"); }

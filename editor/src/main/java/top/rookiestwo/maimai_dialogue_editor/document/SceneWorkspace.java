@@ -122,6 +122,16 @@ public final class SceneWorkspace {
     public SceneWorkspace(ProjectWorkspace project, Runnable changed) {
         this.project = project; this.changed = changed;
     }
+    public java.util.List<top.rookiestwo.maimai_dialogue_editor.project.EditorSessionState.Choice> objectPreferences() {
+        snapshot();
+        return objects.entrySet().stream().filter(entry -> project.draft() != null && project.draft().revision(entry.getKey()) != null)
+                .map(entry -> new top.rookiestwo.maimai_dialogue_editor.project.EditorSessionState.Choice(entry.getKey(), entry.getValue())).toList();
+    }
+    public void restoreObjectPreferences(java.util.List<top.rookiestwo.maimai_dialogue_editor.project.EditorSessionState.Choice> preferences) {
+        snapshot(); objects.clear();
+        for (var entry : preferences) if (entry.resource().kind() == ResourceKind.SCENE && project.draft().revision(entry.resource()) != null)
+            objects.put(entry.resource(), entry.value());
+    }
     public boolean acceptsResource(ResourceKey key) { return key != null && key.kind() == ResourceKind.SCENE; }
     public ContentWorkspace.Snapshot snapshot() {
         if (generation != project.projectGeneration()) {

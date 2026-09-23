@@ -80,6 +80,8 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
                 return result;
             }, new PackExporter(Minecraft.getInstance().gameDirectory.toPath().resolve("maimai-dialogue-exports")));
         }
+        layoutState.restore(workspace.layoutPreferences());
+        layoutState.changed = () -> workspace.layoutPreferences(layoutState.snapshot());
         root = new EditorWorkspaceView(requireContext(), layoutState, workspace, preview, exports);
         workspace.setListener(root::refresh);
         exports.setListener(root::refresh);
@@ -93,6 +95,13 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
     public void onViewCreated(@NonNull View view, @Nullable DataSet savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         preview.onViewReady();
+        workspace.startSession();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (preview != null) preview.onViewReady();
     }
 
     // 由 Minecraft 客户端线程调用，只在焦点变化时跨线程投递；失焦不依赖 PopupWindow。
@@ -122,6 +131,7 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
             root.releaseDropdown();
             root = null;
         }
+        if (workspace != null) workspace.flushSession();
         super.onDestroyView();
     }
 

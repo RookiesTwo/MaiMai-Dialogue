@@ -125,6 +125,7 @@ final class EditorPreviewHost {
     }
     void replayTimeline() { if (mode() == Mode.ACTION) actionPreview.play(); else restartStep(); }
     private ProjectDraft observedDraft;
+    private long observedProject = -1;
     private ResourceKey observedDocument;
     private ResourceTree.Node observedSelection;
     private long observedSelectionRevision = -1;
@@ -135,7 +136,6 @@ final class EditorPreviewHost {
     private long sceneProject = -1;
     private long sceneGeneration;
     private boolean releasingView;
-    private int themeExample;
     private int displayedThemeExample = -1;
     private top.rookiestwo.maimai_dialogue.theme.ThemeDefinition displayedTheme;
     private boolean themeFramePending;
@@ -303,6 +303,8 @@ final class EditorPreviewHost {
     DialogueImageSource openImages() { return assets.openImages(); }
 
     void synchronize() {
+        // Do not consume navigation before mounting is possible. The attachment callback retries every preview mode.
+        if (!viewReady()) return;
         if (auditionDraft != null && (auditionDraft != workspace.draft()
                 || !Objects.equals(auditionTarget, workspace.audio().target()))) stopAudition();
         if (mode() != Mode.THEME && sceneDocument != null && sceneDocument.kind() == ResourceKind.THEME) clearFragments();
@@ -320,6 +322,8 @@ final class EditorPreviewHost {
         if (workspace.scenes().dragPosition() == null) scenes.select(workspace.projectGeneration(), draft, opened);
         ResourceTree.Node selected = resources.selection();
         boolean draftChanged = draft != observedDraft;
+        boolean projectChanged = observedProject != workspace.projectGeneration();
+        observedProject = workspace.projectGeneration();
         boolean selectionChanged = observedSelectionRevision != resources.selectionRevision()
                 || !Objects.equals(observedSelection, selected) || !Objects.equals(observedDocument, opened);
         observedDraft = draft;
@@ -330,17 +334,19 @@ final class EditorPreviewHost {
             if (view != null) view.refresh();
             return;
         }
-        // Draft edits prepare a silent frame at the cursor; explicit Step navigation plays normally.
-        if (!draftChanged && selectionChanged && selected.isStep() && Objects.equals(selected.owner(), opened)) {
+        // Restoring a Step enters it just like a click; sampling at zero would freeze its entrance effects invisible.
+        // Only edits to an already open document preserve the manual timeline position.
+        if ((projectChanged || !draftChanged && selectionChanged) && selected.isStep() && Objects.equals(selected.owner(), opened)) {
             startAt(selected.stepIndex());
         } else {
             if (selected.isStep() && Objects.equals(selected.owner(), opened) && source != draft && canOperate()) {
-                startAt(selected.stepIndex(), false, timeline.position());
+                startAt(selected.stepIndex(), false, projectChanged ? 0 : timeline.position());
             } else if (source != null && (source != draft || !Objects.equals(dialogue, opened))) stop();
             if (!draftChanged && selectionChanged && selected.kind() == ResourceKind.DIALOGUE
                     && selected.type() == ResourceTree.Type.RESOURCE) stop();
         }
         actionPreview.synchronize();
+        if (!loading && !running()) showIdleControls();
         if (view != null) view.refresh();
     }
 
@@ -358,8 +364,9 @@ final class EditorPreviewHost {
     }
     private void startAt(int step, boolean playNow, int seekTime) {
         // A new tree selection may supersede a pending start before the client snapshot arrives.
-        if (!canOperate() || view == null || !view.isAttachedToWindow()) return;
-        workspace.endEdit();
+        if (!canOperate() || !viewReady()) return;
+        // Automatic draft refresh is part of the current edit, not a new user operation.
+        if (playNow) workspace.endEdit();
         stopAudition();
         closeDialogueAudio();
         freezeTimelineFrame();
@@ -387,6 +394,12 @@ final class EditorPreviewHost {
             })
                     .whenComplete((content, preparationFailure) -> Core.getUiHandler().post(() -> {
                 if (disposed || expected != revision || view == null) return;
+                if (!viewReady()) {
+                    // A saved/detached Fragment must be prepared again once it can mount, not marked as displayed.
+                    reset();
+                    observedProject = -1;
+                    return;
+                }
                 loading = false;
                 if (captured != workspace.draft() || !Objects.equals(capturedKey, workspace.resources().opened())) {
                     stop();
@@ -403,8 +416,7 @@ final class EditorPreviewHost {
                     if (running()) {
                         if (playNow) dialogueAudio = audioScope(content.assets(), expected, false);
                         showingIdle = false;
-                        fragment = new DialogueFragment(new PreviewActions(playback), DialogueFragment.CornerControls.DISPLAY_ONLY,
-                                assets.openImages(content.assets()));
+                        fragment = embeddedFragment(new PreviewActions(playback), assets.openImages(content.assets()));
                         owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, "editor-preview").commitNow();
                     }
                     render();
@@ -461,7 +473,7 @@ final class EditorPreviewHost {
         if (manager.isDestroyed() || manager.isStateSaved()) return;
         if (showingIdle && fragment != null) return;
         clearFragments();
-        fragment = new DialogueFragment(new PreviewActions(null), DialogueFragment.CornerControls.DISPLAY_ONLY);
+        fragment = embeddedFragment(new PreviewActions(null), DialogueImageSource.RESOURCES);
         manager.beginTransaction().replace(containerId, fragment, "editor-preview").commitNow();
         showingIdle = true;
     }
@@ -549,8 +561,15 @@ final class EditorPreviewHost {
     DialogueFragment sceneFragment() { return sceneActions == null ? null : fragment; }
 
     boolean actionViewReady() {
-        return !disposed && !releasingView && view != null && view.isAttachedToWindow() && mode() == Mode.ACTION
+        return viewReady() && mode() == Mode.ACTION;
+    }
+    private boolean viewReady() {
+        return !disposed && !releasingView && view != null && view.isAttachedToWindow()
                 && !owner.getChildFragmentManager().isDestroyed() && !owner.getChildFragmentManager().isStateSaved();
+    }
+    /** Every embedded mode must leave keyboard focus (and IME composition) with the editor's active field. */
+    private static DialogueFragment embeddedFragment(DialogueUiActions actions, DialogueImageSource images) {
+        return new DialogueFragment(actions, DialogueFragment.CornerControls.DISPLAY_ONLY, images, false);
     }
     void clearActionPreview() {
         if (!releasingView && sceneDocument != null && sceneDocument.kind() == ResourceKind.ACTION) clearFragments();
@@ -560,7 +579,7 @@ final class EditorPreviewHost {
         // Replay can reuse the mounted views; changing the scene/assets gets a fresh set of image handles.
         if (fragment == null || actionImages != images) {
             clearFragments();
-            fragment = new DialogueFragment(actions, DialogueFragment.CornerControls.DISPLAY_ONLY, images.fork(), false);
+            fragment = embeddedFragment(actions, images.fork());
             owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, "editor-action-preview").commitNow();
             actionImages = images; sceneDocument = workspace.resources().opened(); sceneProject = workspace.projectGeneration();
         } else fragment.render(state);
@@ -570,8 +589,8 @@ final class EditorPreviewHost {
         if (sceneActions != null && sceneDocument != null && sceneDocument.kind() == ResourceKind.SCENE && !releasingView) clearFragments();
     }
 
-    int themeExample() { return themeExample; }
-    void themeExample(int example) { themeExample = example; refreshTheme(); if (view != null) view.refresh(); }
+    int themeExample() { return workspace.themeExample(); }
+    void themeExample(int example) { workspace.themeExample(example); refreshTheme(); if (view != null) view.refresh(); }
     String themeError() { return workspace.themes().error(); }
     private void requestThemeFrame(boolean immediate) {
         if (view == null || !view.isAttachedToWindow() || mode() != Mode.THEME) return;
@@ -587,15 +606,14 @@ final class EditorPreviewHost {
         if (!sameDocument) clearFragments();
         var theme = workspace.themes().preview();
         if (theme == null) return;
-        if (fragment == null || displayedThemeExample != themeExample) {
+        if (fragment == null || displayedThemeExample != themeExample()) {
             var state = themeState(theme);
             if (fragment == null) {
                 sceneActions = new SceneActions(state);
-                fragment = new DialogueFragment(sceneActions, DialogueFragment.CornerControls.DISPLAY_ONLY,
-                        assets.openImages(MaterialSnapshot.EMPTY), false);
+                fragment = embeddedFragment(sceneActions, assets.openImages(MaterialSnapshot.EMPTY));
                 manager.beginTransaction().replace(containerId, fragment, "editor-theme-preview").commitNow();
             } else { sceneActions.state = state; fragment.render(state); }
-            displayedThemeExample = themeExample;
+            displayedThemeExample = themeExample();
             sceneProject = workspace.projectGeneration(); sceneDocument = workspace.resources().opened();
             displayedTheme = null;
         }
@@ -610,7 +628,7 @@ final class EditorPreviewHost {
                         top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor.CENTER), java.util.Map.of(), java.util.Optional.empty());
         var initial = top.rookiestwo.maimai_dialogue.client.scene.SceneState.initial(scene);
         var options = new java.util.ArrayList<DialogueOption>();
-        if (themeExample == 1) for (int i = 1; i <= 8; i++) options.add(new DialogueOption(
+        if (themeExample() == 1) for (int i = 1; i <= 8; i++) options.add(new DialogueOption(
                 net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.theme.preview_option", i),
                 top.rookiestwo.maimai_dialogue.dialogue.branch.OptionIcon.QUESTION,
                 top.rookiestwo.maimai_dialogue.dialogue.branch.ReturnTarget.INSTANCE));
@@ -618,7 +636,7 @@ final class EditorPreviewHost {
                 java.util.Optional.of(new top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback(sceneGeneration, initial, initial, java.util.List.of(), 0, 0)),
                 top.rookiestwo.maimai_dialogue.client.session.PlaybackPhase.READY, true, java.util.Optional.empty(), false, false, 0,
                 java.util.Optional.of(EditorWidgets.tr("scene.preview_speaker")), java.util.Optional.of(EditorWidgets.tr("theme.preview_text")),
-                themeExample == 2 ? java.util.Optional.of(top.rookiestwo.maimai_dialogue.client.session.SessionMessage.translated(
+                themeExample() == 2 ? java.util.Optional.of(top.rookiestwo.maimai_dialogue.client.session.SessionMessage.translated(
                         "gui.maimai_dialogue_editor.theme.preview_error")) : java.util.Optional.empty(), java.util.List.of(), options, false, false);
     }
 
@@ -636,7 +654,7 @@ final class EditorPreviewHost {
         else {
             clearFragments();
             sceneActions = new SceneActions(state);
-            fragment = new DialogueFragment(sceneActions, DialogueFragment.CornerControls.DISPLAY_ONLY, images.fork(), false);
+            fragment = embeddedFragment(sceneActions, images.fork());
             manager.beginTransaction().replace(containerId, fragment, "editor-scene-preview").commitNow();
         }
         displayedScene = prepared; sceneDocument = workspace.resources().opened(); sceneProject = workspace.projectGeneration();
@@ -702,17 +720,16 @@ final class EditorPreviewHost {
         fragment = null;
         sceneActions = null; displayedScene = null; sceneDocument = null; sceneProject = -1;
         showingIdle = false;
+        observedProject = -1;
         view = null;
         timelineChanged = () -> {};
         timelineObservers.clear(); timelineHoverOwner = null; playheadHovered = false;
     }
 
     void onViewReady() {
-        if (view != null) view.post(() -> {
-            if (view != null && view.isAttachedToWindow()) synchronize();
-            if (view != null && view.isAttachedToWindow() && !loading && !running()) {
-                showIdleControls();
-            }
+        var expectedView = view;
+        if (expectedView != null) expectedView.post(() -> {
+            if (view == expectedView && viewReady()) synchronize();
         });
     }
 

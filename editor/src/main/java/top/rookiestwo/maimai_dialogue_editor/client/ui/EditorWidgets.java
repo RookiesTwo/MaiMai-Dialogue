@@ -335,7 +335,8 @@ final class EditorWidgets {
     private static int buttonTextColor(Button button) {
         if (!button.isEnabled()) return DISABLED_TEXT;
         if (button.getTag(BUTTON_ROLE_TAG) == ButtonRole.PANEL_CONTROL
-                || button.getTag(BUTTON_ROLE_TAG) == ButtonRole.TOOLBAR) return TEXT;
+                || button.getTag(BUTTON_ROLE_TAG) == ButtonRole.TOOLBAR
+                || button.getTag(BUTTON_ROLE_TAG) == ButtonRole.SECTION) return TEXT;
         if (inPropertyPanel(button)) return ACCENT;
         return TEXT;
     }

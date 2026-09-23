@@ -132,7 +132,7 @@ final class EditorNumberField extends LinearLayout {
     private void textChanged(String text) {
         if (updating || !accepts.getAsBoolean()) return;
         edited = true;
-        if (!text.isBlank()) setter.apply(text);
+        // Keyboard input commits on blur; slider gestures still update their preview immediately.
     }
 
     private void focusChanged(boolean focused) {

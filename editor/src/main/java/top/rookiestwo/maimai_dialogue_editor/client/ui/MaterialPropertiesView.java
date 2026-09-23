@@ -138,12 +138,18 @@ final class MaterialPropertiesView extends LinearLayout {
                 if (active() && binding.equals(expected)) setter.accept(selected);
             });
         });
-        EditText input = EditorWidgets.compactInput(getContext(), value.get(), text -> {
-            if (active() && binding.equals(expected)) setter.accept(text);
-        }, project::endEdit);
+        EditText input = EditorWidgets.compactInput(getContext(), value.get(), ignored -> {}, () -> {});
+        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
+        input.setOnFocusChangeListener((view, focused) -> {
+            if (!focused && active() && binding.equals(expected)) {
+                String entered = input.getText().toString();
+                if (!entered.equals(value.get())) setter.accept(entered);
+                project.endEdit();
+            }
+        });
         EditorWidgets.referenceRow(group, label, input, picker);
         bindings.add(() -> {
-            if (!input.getText().toString().equals(value.get())) input.setText(value.get());
+            if (!input.isFocused() && !input.getText().toString().equals(value.get())) input.setText(value.get());
             input.setEnabled(project.content().active());
             EditorWidgets.enabled(picker, project.content().active());
         });

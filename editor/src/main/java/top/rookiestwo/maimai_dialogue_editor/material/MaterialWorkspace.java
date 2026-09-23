@@ -210,6 +210,15 @@ public final class MaterialWorkspace {
         if (state.key() == null) return;
         variants.put(state.key(), value); project.endEdit(); changed.run();
     }
+    public List<EditorSessionState.Choice> variantPreferences() {
+        return variants.entrySet().stream().filter(entry -> project.draft() != null && project.draft().revision(entry.getKey()) != null)
+                .map(entry -> new EditorSessionState.Choice(entry.getKey(), entry.getValue())).toList();
+    }
+    public void restoreVariantPreferences(List<EditorSessionState.Choice> preferences) {
+        synchronize(); variants.clear();
+        for (var entry : preferences) if (entry.resource().kind() == ResourceKind.VISUAL_ASSET && project.draft().revision(entry.resource()) != null)
+            variants.put(entry.resource(), entry.value());
+    }
     public void addVariant() {
         edit(ResourceKind.VISUAL_ASSET, null, data -> {
             JsonObject values = data.getAsJsonObject("variants");

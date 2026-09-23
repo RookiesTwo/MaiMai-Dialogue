@@ -32,6 +32,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     private final EditorSplitter actionsSplitter;
     private EditorLayout layout;
     private EditorLayout dragStart;
+    private long layoutProject = -1;
 
     EditorWorkbench(Context context, EditorLayoutState state, ProjectWorkspace workspace, Runnable closeAction,
                     ChoicePresenter choices, EditorPreviewHost previewHost, ExportWorkspace exports) {
@@ -49,12 +50,14 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         resources = new EditorPanel(context, "resources", browser, () -> {
             cancelDrags();
             state.leftCollapsed = true;
+            state.changed.run();
             requestLayout();
         }, true);
         resourceProperties = new ResourcePropertiesView(context, workspace, choices, state, previewHost);
         properties = new EditorPanel(context, "properties", EditorWidgets.formScroll(context, resourceProperties), () -> {
             cancelDrags();
             state.rightCollapsed = true;
+            state.changed.run();
             requestLayout();
         }, false);
         EditorWidgets.propertyButtonScope(properties);
@@ -64,10 +67,12 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         actions = new EditorPanel(context, "actions", actionCalls, null, true);
         leftRail = EditorWidgets.icon(context, "›", "expand_left", () -> {
             state.leftCollapsed = false;
+            state.changed.run();
             requestLayout();
         });
         rightRail = EditorWidgets.icon(context, "‹", "expand_right", () -> {
             state.rightCollapsed = false;
+            state.changed.run();
             requestLayout();
         });
         leftSplitter = new EditorSplitter(context, EditorSplitter.Axis.LEFT, this);
@@ -92,6 +97,11 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     }
 
     void refreshProject() {
+        if (layoutProject != workspace.projectGeneration()) {
+            layoutProject = workspace.projectGeneration();
+            state.restore(workspace.layoutPreferences());
+            requestLayout();
+        }
         workspace.materials().synchronize();
         if (issueFocusRevision != workspace.issueFocusRevision()) {
             issueFocusRevision = workspace.issueFocusRevision();
@@ -99,6 +109,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             if (issue != null && issue.resource() != null) {
                 state.leftCollapsed = false;
                 state.rightCollapsed = false;
+                state.changed.run();
                 requestLayout();
             }
         }
@@ -196,6 +207,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
     @Override
     public void end(EditorSplitter.Axis axis) {
         dragStart = null;
+        state.changed.run();
         previewHost.finishViewportResize();
     }
 
@@ -246,6 +258,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             }
         }
         dragStart = null;
+        state.changed.run();
         previewHost.finishSceneDrag(true);
     }
 

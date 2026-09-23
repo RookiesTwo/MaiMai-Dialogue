@@ -26,6 +26,15 @@ public final class ProjectWorkspace {
     private final Executor ui;
     private final Runnable closeEditor;
     private final MaterialWorkspace materials;
+    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
+    // A freshly opened Fragment has a different IO executor; its restore must follow the old screen's final write.
+    private static CompletableFuture<Void> sessionWrites = CompletableFuture.completedFuture(null);
+    private EditorSessionStore sessionStore;
+    private EditorSessionState.Layout layoutPreferences = EditorSessionState.Layout.defaults();
+    private int themeExample;
+    private long startupRequest, sessionSaveRequest;
+    private EditorSessionState queuedSession;
+    private Path queuedSessionDirectory;
     private long previewSelectionRevision;
     private long projectGeneration;
     private ValidationIssue focusedIssue;
@@ -133,6 +142,135 @@ public final class ProjectWorkspace {
     private void notifyChanged() {
         materials.synchronize();
         changed.run();
+        sessionStateChanged();
+    }
+
+    public EditorSessionState.Layout layoutPreferences() { return layoutPreferences; }
+    public void layoutPreferences(EditorSessionState.Layout value) { layoutPreferences = value; sessionStateChanged(); }
+    public int themeExample() { return themeExample; }
+    public void themeExample(int value) { themeExample = Math.clamp(value, 0, 2); sessionStateChanged(); }
+
+    /** Bootstrap once per editor, after the View listeners are connected. Loading does not seize focus. */
+    public void startSession() {
+        if (disposed || sessionStore != null) return;
+        sessionStore = new EditorSessionStore(store);
+        long request = ++startupRequest;
+        if (history != null || page != Page.NONE || busy) return;
+        CompletableFuture<Void> previousWrites;
+        synchronized (ProjectWorkspace.class) { previousWrites = sessionWrites; }
+        io.execute(() -> {
+            previousWrites.join();
+            Path last = sessionStore.lastProject();
+            if (last == null) return;
+            OpenedSession result = null;
+            Exception failure = null;
+            try { result = readSession(last); } catch (Exception error) { failure = error; }
+            OpenedSession loaded = result;
+            Exception error = failure;
+            ui.execute(() -> {
+                if (disposed || request != startupRequest || history != null || busy || page != Page.NONE) return;
+                if (error == null) acceptSession(loaded);
+                else {
+                    message = "project.failed";
+                    errorReason = error instanceof ProjectException problem ? problem.reason() : "io";
+                    errorDetail = error instanceof ProjectException ? "" : String.valueOf(error.getMessage());
+                }
+                notifyChanged();
+            });
+        });
+    }
+
+    private record OpenedSession(Path directory, ProjectStore.Loaded project, EditorSessionState state) {}
+    private OpenedSession readSession(Path target) throws java.io.IOException {
+        var loaded = store.open(target);
+        var state = sessionStore == null ? EditorSessionState.defaults() : sessionStore.read(target);
+        // Only the current document/selection is loaded. All other resource bodies remain lazy.
+        var keys = new java.util.HashSet<ResourceKey>();
+        keys.add(state.navigation().opened()); keys.add(state.navigation().selection().owner());
+        for (var key : keys) if (key != null && loaded.draft().revision(key) != null) {
+            try { loaded.draft().load(key); }
+            catch (java.io.IOException | RuntimeException failure) {
+                LOGGER.warn("Cannot restore editor document {}", key, failure);
+            }
+        }
+        return new OpenedSession(target, loaded, state);
+    }
+
+    private void acceptSession(OpenedSession loaded) {
+        projectGeneration++;
+        history = new ProjectHistory(loaded.project().draft(), true);
+        directory = loaded.directory(); fingerprint = loaded.project().fingerprint();
+        page = Page.NONE; message = "project.opened";
+        resources.restoreSession(loaded.state().navigation()); content.reset(); content.acceptBrowserSelection();
+        restorePreferences(loaded.state());
+        rememberProject(directory);
+    }
+
+    private void restorePreferences(EditorSessionState state) {
+        layoutPreferences = state.layout();
+        themeExample = state.preview().themeExample();
+        materials.restoreVariantPreferences(state.preview().materialVariants());
+        scenes.restoreObjectPreferences(state.preview().sceneObjects());
+        actions.restorePreviewPreferences(state.preview().actions());
+    }
+
+    public EditorSessionState sessionState() {
+        return new EditorSessionState(EditorSessionState.VERSION, layoutPreferences, resources.sessionState(),
+                new EditorSessionState.Preview(themeExample, scenes.objectPreferences(), materials.variantPreferences(), actions.previewPreferences()));
+    }
+
+    /** Coalesce rapid navigation/gestures; disk work never runs on the UI or Minecraft thread. */
+    public void sessionStateChanged() {
+        if (disposed || sessionStore == null || history == null || fingerprint == null) return;
+        long request = ++sessionSaveRequest;
+        CompletableFuture.delayedExecutor(500, java.util.concurrent.TimeUnit.MILLISECONDS, ui).execute(() -> {
+            if (!disposed && request == sessionSaveRequest) flushSession();
+        });
+    }
+
+    public void flushSession() {
+        ++sessionSaveRequest;
+        if (sessionStore == null || directory == null || history == null || fingerprint == null) return;
+        var state = sessionState();
+        Path target = directory;
+        if (target.equals(queuedSessionDirectory) && state.equals(queuedSession)) return;
+        queuedSessionDirectory = target; queuedSession = state;
+        writeSession(() -> {
+            try { sessionStore.write(target, state); }
+            catch (java.io.IOException | RuntimeException failure) {
+                LOGGER.warn("Cannot save editor state for {}", target, failure);
+                ui.execute(() -> {
+                    if (target.equals(queuedSessionDirectory) && state.equals(queuedSession)) queuedSession = null;
+                });
+            }
+        });
+    }
+
+    private void rememberProject(Path target) {
+        if (sessionStore == null) return;
+        writeSession(() -> {
+            try { sessionStore.remember(target); }
+            catch (java.io.IOException | RuntimeException failure) { LOGGER.warn("Cannot remember editor project", failure); }
+        });
+    }
+
+    private void writeSession(Runnable write) {
+        CompletableFuture<Void> previous;
+        var completed = new CompletableFuture<Void>();
+        synchronized (ProjectWorkspace.class) {
+            previous = sessionWrites;
+            sessionWrites = completed;
+        }
+        try {
+            // Enqueue immediately so shutting down this screen's executor still drains the final write.
+            io.execute(() -> {
+                previous.join();
+                try { write.run(); } finally { completed.complete(null); }
+            });
+        } catch (RuntimeException failure) {
+            completed.complete(null);
+            LOGGER.warn("Cannot schedule editor state save", failure);
+        }
     }
 
     public void setListener(Runnable listener) {
@@ -246,6 +384,7 @@ public final class ProjectWorkspace {
 
     public void showMenu() {
         if (busy || disposed || !windowFocused) return;
+        ++startupRequest;
         endEdit();
         page = Page.MENU;
         clearError();
@@ -272,6 +411,7 @@ public final class ProjectWorkspace {
 
     public void request(Action action) {
         if (busy || disposed) return;
+        ++startupRequest;
         scenes.endNumberDrag(true);
         themes.endGesture(true);
         audio.endGesture(true);
@@ -331,6 +471,8 @@ public final class ProjectWorkspace {
                 return;
             }
             case CLOSE_PROJECT -> {
+                flushSession();
+                rememberProject(null);
                 projectGeneration++;
                 history = null;
                 resources.reset();
@@ -341,6 +483,7 @@ public final class ProjectWorkspace {
                 message = "project.closed";
             }
             case CLOSE_EDITOR -> {
+                flushSession();
                 page = Page.NONE;
                 closeEditor.run();
             }
@@ -351,6 +494,7 @@ public final class ProjectWorkspace {
     public void submitNew() {
         if (busy || disposed || page != Page.NEW) return;
         ProjectDraft draft = ProjectDraft.create(formName, formNamespace);
+        flushSession();
         runIo("project.creating", () -> store.allocateDirectory(draft.namespace()), target -> {
             projectGeneration++;
             history = new ProjectHistory(draft, false);
@@ -360,6 +504,8 @@ public final class ProjectWorkspace {
             fingerprint = null;
             page = Page.NONE;
             message = "project.created";
+            restorePreferences(EditorSessionState.defaults());
+            rememberProject(null);
         });
     }
 
@@ -374,16 +520,8 @@ public final class ProjectWorkspace {
     public void openProject(ProjectStore.Entry entry) {
         if (busy || disposed || page != Page.OPEN || !projects.contains(entry) || !entry.canOpen()) return;
         Path target = entry.directory();
-        runIo("project.opening", () -> store.open(target), result -> {
-            projectGeneration++;
-            history = new ProjectHistory(result.draft(), true);
-            resources.reset();
-            content.reset();
-            directory = target;
-            fingerprint = result.fingerprint();
-            page = Page.NONE;
-            message = "project.opened";
-        });
+        flushSession();
+        runIo("project.opening", () -> readSession(target), this::acceptSession);
     }
 
     public void showSaveAs() {
@@ -400,6 +538,8 @@ public final class ProjectWorkspace {
         if (history == null || busy || disposed || page != Page.SAVE_AS) return;
         ProjectHistory owner = history;
         ProjectDraft written = owner.current().withName(formName);
+        var preferences = sessionState();
+        flushSession();
         runIo("project.saving", () -> store.saveCopy(written), result -> {
             directory = result.directory();
             fingerprint = result.fingerprint();
@@ -407,6 +547,9 @@ public final class ProjectWorkspace {
             owner.markSaved(written);
             page = Page.NONE;
             message = "project.saved";
+            restorePreferences(preferences);
+            rememberProject(directory);
+            flushSession();
         });
     }
 
@@ -473,6 +616,8 @@ public final class ProjectWorkspace {
             fingerprint = result;
             owner.markSaved(written);
             message = "project.saved";
+            rememberProject(target);
+            flushSession();
             if (afterSave != null) perform(afterSave);
         });
     }
@@ -514,6 +659,7 @@ public final class ProjectWorkspace {
 
     /** Disposing a screen suppresses stale completions; an already started disk write may finish. */
     public void dispose() {
+        if (!disposed) flushSession();
         disposed = true;
         materials.dispose();
         changed = () -> {};

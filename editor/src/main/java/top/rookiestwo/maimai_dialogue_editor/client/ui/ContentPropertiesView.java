@@ -225,9 +225,15 @@ final class ContentPropertiesView extends LinearLayout {
     }
     private void field(String label, Supplier<String> value, Consumer<String> setter, boolean multiline, Button picker) {
         Binding expected = binding;
-        EditText input = EditorWidgets.compactInput(getContext(), value.get(), text -> {
-            if (accepts(expected)) setter.accept(text);
-        }, workspace::endEdit);
+        EditText input = EditorWidgets.compactInput(getContext(), value.get(), ignored -> {}, () -> {});
+        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
+        input.setOnFocusChangeListener((view, focused) -> {
+            if (!focused && accepts(expected)) {
+                String entered = input.getText().toString();
+                if (!entered.equals(value.get())) setter.accept(entered);
+                workspace.endEdit();
+            }
+        });
         if (multiline) {
             input.setSingleLine(false);
             input.setGravity(Gravity.TOP | Gravity.START);
@@ -242,7 +248,7 @@ final class ContentPropertiesView extends LinearLayout {
         fields.put(label, input);
         bindings.add(() -> {
             String text = value.get();
-            if (!input.getText().toString().equals(text)) input.setText(text);
+            if (!input.isFocused() && !input.getText().toString().equals(text)) input.setText(text);
             input.setEnabled(canEdit());
         });
     }
