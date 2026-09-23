@@ -45,6 +45,7 @@ final class EditorWidgets {
     static final int ERROR = 0xFFC62828;
     static final int SPLITTER_HOVER = 0xFF70B8FF;
     private static final int BUTTON_HOVER = 0xFFE5F2FF;
+    private static final int TOOLBAR_HOVER = 0xFFDCE2E9;
     static final int SELECTION = 0xFFCDE6FF;
     private static final int BUTTON_PRESSED = SELECTION;
     private static final int TREE_ROW_HOVER = 0x1A0088FF;
@@ -57,7 +58,7 @@ final class EditorWidgets {
     private static final int PROPERTY_BUTTON_SCOPE_TAG = 0x6D650004;
     private static final int BUTTON_ROLE_TAG = 0x6D650005;
     private static final int EDITOR_TEXT_TAG = 0x6D650006;
-    private enum ButtonRole { ACTION, FIELD, SECTION }
+    private enum ButtonRole { ACTION, FIELD, SECTION, PANEL_CONTROL, TOOLBAR }
     // UI-thread cache: resolving a configured family creates a new fallback chain.
     private static String fontFamily;
     private static Typeface fallbackTypeface;
@@ -137,7 +138,8 @@ final class EditorWidgets {
             protected void onAttachedToWindow() {
                 super.onAttachedToWindow();
                 // The parent chain is available here, including for asynchronously rebuilt fields.
-                if (inPropertyPanel(this)) refreshButtonStyle(this);
+                if (inPropertyPanel(this) || getTag(BUTTON_ROLE_TAG) == ButtonRole.PANEL_CONTROL
+                        || getTag(BUTTON_ROLE_TAG) == ButtonRole.TOOLBAR) refreshButtonStyle(this);
             }
         };
         bindTypeface(button);
@@ -185,6 +187,18 @@ final class EditorWidgets {
             button.setPadding(0, 0, 0, 0);
         });
         return button;
+    }
+
+    static Button panelIcon(Context context, EditorButtonIcon icon, String tooltip, Runnable action) {
+        Button button = icon(context, icon, tooltip, action);
+        button.setTag(BUTTON_ROLE_TAG, ButtonRole.PANEL_CONTROL);
+        refreshButtonStyle(button);
+        return button;
+    }
+
+    static void toolbarButton(Button button) {
+        button.setTag(BUTTON_ROLE_TAG, ButtonRole.TOOLBAR);
+        refreshButtonStyle(button);
     }
 
     static LinearLayout.LayoutParams squareIconParams(View icon) {
@@ -296,6 +310,12 @@ final class EditorWidgets {
         return shape;
     }
 
+    static ShapeDrawable panelControlShape(int color) {
+        ShapeDrawable shape = shape(color, 0);
+        shape.setStroke(1, HEADER);
+        return shape;
+    }
+
     static void propertyButtonScope(View root) {
         root.setTag(PROPERTY_BUTTON_SCOPE_TAG, Boolean.TRUE);
     }
@@ -314,13 +334,34 @@ final class EditorWidgets {
 
     private static int buttonTextColor(Button button) {
         if (!button.isEnabled()) return DISABLED_TEXT;
+        if (button.getTag(BUTTON_ROLE_TAG) == ButtonRole.PANEL_CONTROL
+                || button.getTag(BUTTON_ROLE_TAG) == ButtonRole.TOOLBAR) return TEXT;
         if (inPropertyPanel(button)) return ACCENT;
         return TEXT;
     }
 
     private static void refreshButtonStyle(Button button) {
         boolean property = inPropertyPanel(button);
-        if (property && button.getTag(BUTTON_ROLE_TAG) != ButtonRole.SECTION) {
+        boolean panelControl = button.getTag(BUTTON_ROLE_TAG) == ButtonRole.PANEL_CONTROL;
+        boolean toolbar = button.getTag(BUTTON_ROLE_TAG) == ButtonRole.TOOLBAR;
+        if (toolbar) {
+            StateListDrawable background = new StateListDrawable();
+            background.addState(new int[]{-R.attr.state_enabled}, shape(0, 0));
+            background.addState(new int[]{R.attr.state_pressed}, shape(BORDER, 0));
+            background.addState(new int[]{R.attr.state_selected}, shape(BORDER, 0));
+            background.addState(new int[]{R.attr.state_hovered}, shape(TOOLBAR_HOVER, 0));
+            background.addState(new int[]{R.attr.state_focused}, shape(TOOLBAR_HOVER, 0));
+            background.addState(StateSet.WILD_CARD, shape(0, 0));
+            button.setBackground(background);
+        } else if (panelControl) {
+            StateListDrawable background = new StateListDrawable();
+            background.addState(new int[]{-R.attr.state_enabled}, panelControlShape(PANEL));
+            background.addState(new int[]{R.attr.state_pressed}, panelControlShape(BUTTON_PRESSED));
+            background.addState(new int[]{R.attr.state_hovered}, panelControlShape(BUTTON_HOVER));
+            background.addState(new int[]{R.attr.state_focused}, panelControlShape(BUTTON_HOVER));
+            background.addState(StateSet.WILD_CARD, panelControlShape(PANEL));
+            button.setBackground(background);
+        } else if (property && button.getTag(BUTTON_ROLE_TAG) != ButtonRole.SECTION) {
             StateListDrawable background = new StateListDrawable();
             background.addState(new int[]{-R.attr.state_enabled}, propertyButtonShape(button, PANEL, BORDER));
             background.addState(new int[]{R.attr.state_pressed}, propertyButtonShape(button, BUTTON_PRESSED, ACCENT));
@@ -335,7 +376,7 @@ final class EditorWidgets {
         // ModernUI 3.13 setBackground() does not apply the View state to the new drawable.
         // Synchronize now: otherwise a fresh StateListDrawable stays on its disabled entry until input.
         button.refreshDrawableState();
-        if (property) button.setTextColor(buttonTextColor(button));
+        if (property || panelControl || toolbar) button.setTextColor(buttonTextColor(button));
     }
 
     private static ShapeDrawable propertyButtonShape(Button button, int color, int border) {

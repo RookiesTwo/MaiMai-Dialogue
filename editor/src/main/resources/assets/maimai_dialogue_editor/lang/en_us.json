@@ -107,7 +107,7 @@
   "gui.maimai_dialogue_editor.save": "Save",
   "gui.maimai_dialogue_editor.undo": "Undo",
   "gui.maimai_dialogue_editor.redo": "Redo",
-  "gui.maimai_dialogue_editor.preview": "Preview",
+  "gui.maimai_dialogue_editor.redo_hint": "Redo the last undone operation",
   "gui.maimai_dialogue_editor.export": "Export",
   "gui.maimai_dialogue_editor.close": "Close editor",
   "gui.maimai_dialogue_editor.reset_layout": "Reset layout",

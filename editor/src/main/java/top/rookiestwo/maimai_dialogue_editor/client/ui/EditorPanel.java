@@ -23,11 +23,13 @@ final class EditorPanel extends FrameLayout {
         this.content = content;
         title = EditorWidgets.label(context, titleKey, 13, EditorWidgets.TEXT);
         title.setBackground(EditorWidgets.shape(EditorWidgets.HEADER, 0));
-        EditorWidgets.bindMetrics(title, () -> title.setPadding(title.dp(10), 0, title.dp(8), 0));
+        EditorWidgets.bindMetrics(title, () -> title.setPadding(title.dp(10), 0,
+                title.dp(8 + (collapseAction == null ? 0 : EditorWidgets.COMPACT_CONTROL_DP)), 0));
         addView(title);
         addView(content);
-        collapse = collapseAction == null ? null : EditorWidgets.icon(context,
-                left ? "‹" : "›", left ? "collapse_left" : "collapse_right", collapseAction);
+        collapse = collapseAction == null ? null : EditorWidgets.panelIcon(context,
+                left ? EditorButtonIcon.CHEVRON_LEFT : EditorButtonIcon.CHEVRON_RIGHT,
+                left ? "collapse_left" : "collapse_right", collapseAction);
         if (collapse != null) {
             addView(collapse);
         }
@@ -43,10 +45,10 @@ final class EditorPanel extends FrameLayout {
         int innerWidth = Math.max(0, width - inset * 2);
         int innerHeight = Math.max(0, height - inset * 2);
         headerHeight = Math.min(dp(EditorLayout.HEADER_DP), innerHeight);
-        collapseWidth = collapse == null ? 0 : Math.min(dp(24), innerWidth);
-        measureExact(title, innerWidth - collapseWidth, headerHeight);
+        collapseWidth = collapse == null ? 0 : Math.min(dp(EditorWidgets.COMPACT_CONTROL_DP), Math.min(innerWidth, headerHeight));
+        measureExact(title, innerWidth, headerHeight);
         if (collapse != null) {
-            measureExact(collapse, collapseWidth, headerHeight);
+            measureExact(collapse, collapseWidth, collapseWidth);
         }
         measureExact(content, innerWidth, innerHeight - headerHeight);
         setMeasuredDimension(width, height);
@@ -55,9 +57,10 @@ final class EditorPanel extends FrameLayout {
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         int width = right - left;
-        title.layout(inset, inset, width - inset - collapseWidth, inset + headerHeight);
+        title.layout(inset, inset, width - inset, inset + headerHeight);
         if (collapse != null) {
-            collapse.layout(width - inset - collapseWidth, inset, width - inset, inset + headerHeight);
+            int buttonTop = inset + (headerHeight - collapseWidth) / 2;
+            collapse.layout(width - inset - collapseWidth, buttonTop, width - inset, buttonTop + collapseWidth);
         }
         content.layout(inset, inset + headerHeight, width - inset, bottom - top - inset);
     }

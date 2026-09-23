@@ -7,6 +7,8 @@ record EditorLayout(
         int document, int preview, int actions, int verticalGap,
         boolean leftCollapsed, boolean rightCollapsed
 ) {
+    static final int TOOLBAR_DP = 28;
+    static final int STATUS_DP = 20;
     static final int HEADER_DP = 28;
     static final int LEFT_MIN_DP = 160;
     static final int RIGHT_MIN_DP = 200;
@@ -16,8 +18,8 @@ record EditorLayout(
     static EditorLayout calculate(EditorLayoutState state, int width, int height, float density) {
         width = Math.max(0, width);
         height = Math.max(0, height);
-        int toolbar = Math.min(px(44, density), height);
-        int status = Math.min(px(28, density), height - toolbar);
+        int toolbar = Math.min(px(TOOLBAR_DP, density), height);
+        int status = Math.min(px(STATUS_DP, density), height - toolbar);
         int horizontalGap = Math.min(px(6, density), width / 4);
         int columnSpace = width - horizontalGap * 2;
         int rail = Math.min(px(28, density), columnSpace / 3);

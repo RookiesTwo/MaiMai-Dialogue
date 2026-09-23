@@ -44,8 +44,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         setFocusable(true);
         setFocusableInTouchMode(true);
 
-        toolbar = new EditorToolbar(context, closeAction, this::restoreDefaultLayout, workspace, previewHost);
-        previewHost.setListener(() -> toolbar.refresh(workspace));
+        toolbar = new EditorToolbar(context, closeAction, workspace);
         browser = new ResourceBrowserView(context, workspace);
         resources = new EditorPanel(context, "resources", browser, () -> {
             cancelDrags();
@@ -76,7 +75,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         actionsSplitter = new EditorSplitter(context, EditorSplitter.Axis.ACTIONS, this);
         status = EditorWidgets.label(context, "status", 12, EditorWidgets.MUTED);
         status.setBackground(EditorWidgets.shape(EditorWidgets.HEADER, 0));
-        EditorWidgets.bindMetrics(status, () -> status.setPadding(status.dp(10), 0, status.dp(10), 0));
+        EditorWidgets.bindMetrics(status, () -> status.setPadding(status.dp(6), 0, status.dp(6), 0));
 
         for (View view : new View[]{toolbar, resources, properties, document, preview, actions,
                 leftRail, rightRail, leftSplitter, rightSplitter, actionsSplitter, status}) {
@@ -85,7 +84,7 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         refreshProject();
     }
 
-    private void restoreDefaultLayout() {
+    void restoreDefaultLayout() {
         cancelDrags();
         state.reset();
         resourceProperties.refresh();

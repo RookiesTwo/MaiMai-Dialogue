@@ -62,7 +62,6 @@ final class EditorPreviewHost {
     private boolean disposed;
     private String message = "preview.idle";
     private String error = "";
-    private Runnable changed = () -> {};
     private final top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline timeline = new top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline();
     private Runnable timelineChanged = () -> {};
     private record TimelineBinding(long project, ProjectDraft draft, top.rookiestwo.maimai_dialogue_editor.document.ActionWorkspace.Context context) {}
@@ -178,8 +177,6 @@ final class EditorPreviewHost {
         workspace.themes().setLiveListener(this::requestThemeFrame);
         return view;
     }
-
-    void setListener(Runnable listener) { changed = Objects.requireNonNull(listener); }
 
     void setReferenceHeight(int height) {
         if (!disposed && view != null) view.setReferenceHeight(height);
@@ -546,7 +543,6 @@ final class EditorPreviewHost {
     void refresh() {
         if (view != null) view.refresh();
         audioChanged.run();
-        changed.run();
         notifyTimelineChanged();
     }
 
@@ -707,7 +703,6 @@ final class EditorPreviewHost {
         sceneActions = null; displayedScene = null; sceneDocument = null; sceneProject = -1;
         showingIdle = false;
         view = null;
-        changed = () -> {};
         timelineChanged = () -> {};
         timelineObservers.clear(); timelineHoverOwner = null; playheadHovered = false;
     }

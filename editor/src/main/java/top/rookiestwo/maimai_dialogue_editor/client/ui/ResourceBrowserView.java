@@ -56,6 +56,7 @@ final class ResourceBrowserView extends LinearLayout {
         search = EditorWidgets.compactInput(context, resources.query(), value -> {
             if (!refreshing) resources.setQuery(value);
         }, () -> {});
+        EditorWidgets.bindMetrics(search, () -> search.setBackground(EditorWidgets.panelControlShape(EditorWidgets.PANEL)));
         search.setHint(EditorWidgets.tr("browser.search"));
         addView(search, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         LinearLayout actions = new LinearLayout(context);

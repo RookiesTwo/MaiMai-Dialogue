@@ -7,6 +7,9 @@ import icyllis.modernui.widget.Button;
 /** Geometric icons centered by their visible bounds instead of font metrics. */
 enum EditorButtonIcon {
     ADD(-1, 0, 1, 0, 0, -1, 0, 1),
+    CLOSE(-1, -1, 1, 1, -1, 1, 1, -1),
+    CHEVRON_LEFT(0.5f, -1, -0.5f, 0, -0.5f, 0, 0.5f, 1),
+    CHEVRON_RIGHT(-0.5f, -1, 0.5f, 0, 0.5f, 0, -0.5f, 1),
     REFERENCE(-1, 1, 1, -1, -0.3f, -1, 1, -1, 1, -1, 1, 0.3f),
     COPY(-1, -1, 0.3f, -1, 0.3f, -1, 0.3f, 0.3f, 0.3f, 0.3f, -1, 0.3f, -1, 0.3f, -1, -1,
             -0.3f, -0.3f, 1, -0.3f, 1, -0.3f, 1, 1, 1, 1, -0.3f, 1, -0.3f, 1, -0.3f, -0.3f),

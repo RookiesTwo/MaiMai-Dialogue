@@ -98,7 +98,10 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
             workbench.setDescendantFocusability(page == ProjectWorkspace.Page.NONE
                     ? FOCUS_AFTER_DESCENDANTS : FOCUS_BLOCK_DESCENDANTS);
             if (page == ProjectWorkspace.Page.MENU) {
-                projectMenu = new ProjectMenu(getContext(), workspace);
+                projectMenu = new ProjectMenu(getContext(), workspace, () -> {
+                    workspace.dismissMenu();
+                    workbench.restoreDefaultLayout();
+                });
                 dropdown = new EditorDropdownMenu(projectMenu, workbench.projectMenuAnchor(), workspace::dismissMenu);
                 addView(dropdown, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
                 dropdown.requestFocus();

@@ -17,7 +17,7 @@ final class ProjectMenu extends LinearLayout {
     private final ProjectProperties properties;
     private final Button save;
 
-    ProjectMenu(Context context, ProjectWorkspace workspace) {
+    ProjectMenu(Context context, ProjectWorkspace workspace, Runnable resetLayout) {
         super(context);
         this.workspace = workspace;
         setOrientation(VERTICAL);
@@ -39,6 +39,8 @@ final class ProjectMenu extends LinearLayout {
             properties = null;
             save = null;
         }
+        separator();
+        addItem("reset_layout", resetLayout);
         refresh();
     }
 
