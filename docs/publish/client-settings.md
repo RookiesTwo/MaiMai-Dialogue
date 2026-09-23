@@ -42,9 +42,11 @@ description: 配置播放速度、操作键位、对话字体和文字大小。
 
 ## 字体与字号
 
-默认字体为“跟随 ModernUI”。可以搜索本机字体及 ModernUI 已注册字体；所选字体不包含某个字符时，渲染仍会使用 ModernUI 的 fallback 字体链。文字大小倍率范围为 `0.5–2.0`，并统一作用于对话、选项、跳过摘要、历史和文字 controls。
+默认字体为 MOD 内置的 `ChillRoundF`（寒蝉全圆体 v3.200，Regular 字重），无需在系统中安装。编辑器也跟随此字体设置。可以搜索并选择内置字体、本机字体及 ModernUI 已注册字体，或选择“跟随 ModernUI”；所选字体不包含某个字符时，渲染仍会使用 ModernUI 的 fallback 字体链。文字大小倍率范围为 `0.5–2.0`，并统一作用于对话、选项、跳过摘要、历史和文字 controls。
 
-如果把配置文件复制到缺少对应字体的设备，MOD 会保留字体名称并暂时回退到 ModernUI 默认字体，不会阻止界面打开。
+已有配置中的字体选择会保留；“全部恢复默认”会选择内置字体。`ChillRoundF` 和 `寒蝉全圆体` 均可选择内置字体。其他本机字体若在目标设备上缺失，MOD 会保留字体名称并暂时回退到 ModernUI 默认字体，不会阻止界面打开。
+
+内置字体取自[作者官方 v3.200 发布包](https://github.com/Warren2060/ChillRound/releases/tag/v3.200)，资源文件名为 `chill_round_f_regular.ttf`；字体二进制和内部名称均未修改。字体按 SIL Open Font License 1.1 随 MOD 分发，与本项目的 MIT 软件许可分开。原始版权声明和完整许可证保存在 JAR 内的 `assets/maimai_dialogue/fonts/ofl.txt`，来源和文件摘要见同目录的 `notice.txt`。
 
 ## 恢复默认
 

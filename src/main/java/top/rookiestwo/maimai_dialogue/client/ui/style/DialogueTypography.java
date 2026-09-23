@@ -27,9 +27,10 @@ public record DialogueTypography(Typeface typeface, float scale) {
     }
 
     public static List<String> availableFontFamilies() {
-        return FontFamily.getSystemFontMap()
-                .keySet()
-                .stream()
+        LinkedHashSet<String> families = new LinkedHashSet<>();
+        families.add(ClientPreferences.DEFAULT_FONT_FAMILY);
+        families.addAll(FontFamily.getSystemFontMap().keySet());
+        return families.stream()
                 .sorted(Comparator.comparing(
                         value -> value.toLowerCase(Locale.ROOT)
                 ))
@@ -67,6 +68,10 @@ public record DialogueTypography(Typeface typeface, float scale) {
     }
 
     private static FontFamily findFamily(String configuredName) {
+        if (BundledDialogueFont.matches(configuredName)) {
+            FontFamily bundled = BundledDialogueFont.family();
+            if (bundled != null) return bundled;
+        }
         FontFamily direct = FontFamily.getSystemFontWithAlias(configuredName);
         if (direct != null) {
             return direct;

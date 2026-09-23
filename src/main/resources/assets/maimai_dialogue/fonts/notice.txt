@@ -1,0 +1,16 @@
+ChillRoundF (Regular), version 3.200
+Copyright (c) 2023 ChillType
+
+Official project: https://github.com/Warren2060/ChillRound
+Official release: https://github.com/Warren2060/ChillRound/releases/tag/v3.200
+Source archive: ChillRoundF_v3.200.zip
+Original filename: ChillRoundFRegular.ttf
+Packaged filename: chill_round_f_regular.ttf
+Weight: Regular (400)
+Font SHA-256: 7ccfc2cd0e971edeac7f65516df8db379f0f84d0d8ff79ee4dfe377956418d3b
+Archive SHA-256: 7a061e39cc8f377ce122f0ae68d1fe3ef43d78431388362c61ea8d695722d267
+
+The font binary, internal names and copyright metadata are unchanged.
+The original release license is included verbatim in ofl.txt.
+The font is licensed under the SIL Open Font License, Version 1.1,
+separately from the mod's software license.

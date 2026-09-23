@@ -31,6 +31,7 @@ public record ClientPreferences(
     public static final int DEFAULT_TYPEWRITER_INTERVAL_MS = 30;
     public static final int DEFAULT_SKIP_HOLD_DURATION_MS = 600;
     public static final double DEFAULT_FONT_SCALE = 1.0;
+    public static final String DEFAULT_FONT_FAMILY = "ChillRoundF";
     public static final DialogueKey DEFAULT_FAST_FORWARD_KEY =
             DialogueKey.CONTROL;
     public static final DialogueKey DEFAULT_ADVANCE_KEY =
@@ -75,7 +76,7 @@ public record ClientPreferences(
                 DEFAULT_FAST_FORWARD_MULTIPLIER,
                 DEFAULT_TYPEWRITER_INTERVAL_MS,
                 DEFAULT_SKIP_HOLD_DURATION_MS,
-                "",
+                DEFAULT_FONT_FAMILY,
                 DEFAULT_FONT_SCALE,
                 DEFAULT_FAST_FORWARD_KEY,
                 DEFAULT_ADVANCE_KEY,

@@ -76,7 +76,7 @@ public final class ClientConfig {
         VALUES.skipHoldDurationMs.set(
                 ClientPreferences.DEFAULT_SKIP_HOLD_DURATION_MS
         );
-        VALUES.fontFamily.set("");
+        VALUES.fontFamily.set(ClientPreferences.DEFAULT_FONT_FAMILY);
         VALUES.fontScale.set(ClientPreferences.DEFAULT_FONT_SCALE);
         VALUES.fastForwardKey.set(
                 ClientPreferences.DEFAULT_FAST_FORWARD_KEY.name()
@@ -148,9 +148,9 @@ public final class ClientConfig {
 
             builder.comment("Dialogue appearance preferences").push("appearance");
             fontFamily = builder.comment(
-                            "Font family used by Dialogue screens. Empty follows Modern UI."
+                            "Font family used by Dialogue screens. Defaults to the bundled ChillRoundF Regular. Empty follows Modern UI."
                     )
-                    .define("fontFamily", "");
+                    .define("fontFamily", ClientPreferences.DEFAULT_FONT_FAMILY);
             fontScale = builder.comment(
                             "Scale applied to Dialogue theme text sizes."
                     )
