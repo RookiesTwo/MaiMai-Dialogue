@@ -147,10 +147,14 @@ public final class ContentWorkspace {
     }
 
     public void editSpeakerName(String value) {
+        editTextField(ContentTextField.NAME, value);
+    }
+
+    public void editTextField(ContentTextField field, String value) {
         Snapshot state = snapshot();
-        if (!editable(state, ResourceKind.SPEAKER)) return;
-        state.data().addProperty("name", value);
-        write(state, "name", state.cursor());
+        if (!active() || state.key() == null || state.data() == null) return;
+        if (field.apply(state.key().kind(), state.data(), state.cursor(), value))
+            write(state, field.group(), state.cursor());
     }
 
     public void addStep() { insertStep(false); }
@@ -201,7 +205,7 @@ public final class ContentWorkspace {
         });
     }
     public void editText(String text) {
-        editNode("text", node -> { if (isString(node.get("text"))) node.addProperty("text", text); });
+        editTextField(ContentTextField.TEXT, text);
     }
     public void setSpeakerMode(String mode) {
         if (!List.of("inherit", "set", "hide").contains(mode)) return;
@@ -216,10 +220,7 @@ public final class ContentWorkspace {
         });
     }
     public void editSpeakerId(String id) {
-        editNode("speaker.id", node -> {
-            JsonObject operation = object(node.get("speaker"));
-            if ("set".equals(string(operation, "type"))) operation.addProperty("id", id);
-        });
+        editTextField(ContentTextField.SPEAKER_ID, id);
     }
     private void editNode(String group, Consumer<JsonObject> mutation) {
         Snapshot state = snapshot();
@@ -245,10 +246,7 @@ public final class ContentWorkspace {
         });
     }
     public void editExitDialogue(String id) {
-        editNode("exit.dialogue", node -> {
-            JsonObject exit = object(node.get("exit"));
-            if (snapshot().cursor().step() == END && "dialogue".equals(string(exit, "type"))) exit.addProperty("dialogue", id);
-        });
+        editTextField(ContentTextField.EXIT_DIALOGUE, id);
     }
     public void addOption() { insertOption(false); }
     public void copyOption() { insertOption(true); }
@@ -280,7 +278,7 @@ public final class ContentWorkspace {
         move(options, from, to);
         write(state, null, new Cursor(END, to));
     }
-    public void editOptionText(String text) { editOption("option.text", option -> option.addProperty("text", text)); }
+    public void editOptionText(String text) { editTextField(ContentTextField.OPTION_TEXT, text); }
     public void setOptionIcon(String icon) {
         if (!List.of("none", "question", "exclamation", "dialogue").contains(icon)) return;
         editOption(null, option -> {
@@ -300,10 +298,7 @@ public final class ContentWorkspace {
         });
     }
     public void editOptionDialogue(String id) {
-        editOption("option.target.dialogue", option -> {
-            JsonObject target = object(option.get("target"));
-            if ("dialogue".equals(string(target, "type"))) target.addProperty("dialogue", id);
-        });
+        editTextField(ContentTextField.OPTION_DIALOGUE, id);
     }
     private void editOption(String group, Consumer<JsonObject> mutation) {
         Snapshot state = snapshot();

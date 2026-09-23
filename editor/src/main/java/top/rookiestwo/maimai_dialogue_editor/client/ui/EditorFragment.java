@@ -84,6 +84,7 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
         layoutState.changed = () -> workspace.layoutPreferences(layoutState.snapshot());
         root = new EditorWorkspaceView(requireContext(), layoutState, workspace, preview, exports);
         workspace.setListener(root::refresh);
+        workspace.setStatusListener(root::refreshSaveState);
         exports.setListener(root::refresh);
         if (workspace.page() == ProjectWorkspace.Page.NONE && workspace.resources().form() == ResourceWorkspace.Form.NONE) {
             root.requestFocus();
@@ -120,11 +121,13 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
     // View 可重建，但当前打开期间的布局偏好由 Fragment 保留。
     @Override
     public void onDestroyView() {
+        if (workspace != null) workspace.flushAutosave();
         if (preview != null) preview.releaseView();
         if (exports != null) exports.setListener(() -> {});
         if (workspace != null) {
             workspace.endEdit();
             workspace.setListener(() -> {});
+            workspace.setStatusListener(() -> {});
         }
         if (root != null) {
             root.cancelDrags();

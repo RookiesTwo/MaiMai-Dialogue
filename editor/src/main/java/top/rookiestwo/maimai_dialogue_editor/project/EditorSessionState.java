@@ -8,13 +8,17 @@ import java.util.List;
 import java.util.Set;
 
 /** Local usage preferences, deliberately separate from project content, history and exported packs. */
-public record EditorSessionState(int version, Layout layout, Navigation navigation, Preview preview) {
+public record EditorSessionState(int version, Layout layout, Navigation navigation, Preview preview, Boolean autoSave) {
     public static final int VERSION = 1;
     public EditorSessionState {
         if (version != VERSION) throw new IllegalArgumentException("Unsupported editor state version");
         layout = layout == null ? Layout.defaults() : layout;
         navigation = navigation == null ? Navigation.defaults() : navigation;
         preview = preview == null ? Preview.defaults() : preview;
+        autoSave = autoSave == null || autoSave;
+    }
+    public EditorSessionState(int version, Layout layout, Navigation navigation, Preview preview) {
+        this(version, layout, navigation, preview, true);
     }
     public static EditorSessionState defaults() {
         return new EditorSessionState(VERSION, null, null, null);

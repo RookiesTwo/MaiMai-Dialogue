@@ -47,6 +47,10 @@ public final class ProjectStore {
 
     /** A null expected fingerprint means a new project. Failed writes never publish a partial index. */
     public String save(Path directory, ProjectDraft draft, String expectedFingerprint) throws IOException {
+        return save(directory, draft, expectedFingerprint, null);
+    }
+
+    String save(Path directory, ProjectDraft draft, String expectedFingerprint, VerifiedFiles verified) throws IOException {
         validateDirectory(directory);
         Path target = directory.resolve(FILE_NAME);
         checkUnchanged(target, expectedFingerprint);
@@ -55,7 +59,7 @@ public final class ProjectStore {
         for (ProjectBlob blob : draft.blobs().values()) {
             Path path = managedPath(directory, "media/" + blob.id());
             if (Files.exists(path, LinkOption.NOFOLLOW_LINKS))
-                readRevisionBytes(path, blob.id().substring(0, 64), ProjectBlob.MAX_BYTES);
+                verifyForSave(path, blob.id().substring(0, 64), ProjectBlob.MAX_BYTES, verified);
             else writeRevision(directory, path, blob.read(), blob.id().substring(0, 64), ProjectBlob.MAX_BYTES);
         }
         for (var entry : draft.entries().entrySet()) {
@@ -63,7 +67,7 @@ public final class ProjectStore {
             Path path = resourcePath(directory, entry.getKey(), resource.fingerprint());
             if (Files.exists(path, LinkOption.NOFOLLOW_LINKS)) {
                 // Verify bytes without parsing/retaining unchanged JSON bodies in memory.
-                readRevisionBytes(path, resource.fingerprint());
+                verifyForSave(path, resource.fingerprint(), CONTENT_LIMIT, verified);
             } else {
                 resource.load();
                 writeRevision(directory, path, ProjectJson.bytes(resource.copy()), resource.fingerprint());
@@ -128,6 +132,26 @@ public final class ProjectStore {
         byte[] bytes = ProjectJson.read(path, limit);
         if (!ProjectJson.hash(bytes).equals(hash)) throw new ProjectException("external_change");
         return bytes;
+    }
+
+    /** Per-open-project cache for frequent background checkpoints; manual saves still fully verify. */
+    static final class VerifiedFiles {
+        private final java.util.Map<Path, Stamp> files = new java.util.HashMap<>();
+    }
+    private record Stamp(String hash, long size, java.nio.file.attribute.FileTime modified,
+                         java.nio.file.attribute.FileTime created, Object fileKey) {}
+    private static Stamp stamp(Path path, String hash) throws IOException {
+        var attributes = Files.readAttributes(path, java.nio.file.attribute.BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        if (!attributes.isRegularFile()) throw new ProjectException("external_change");
+        return new Stamp(hash, attributes.size(), attributes.lastModifiedTime(), attributes.creationTime(), attributes.fileKey());
+    }
+    private static void verifyForSave(Path path, String hash, int limit, VerifiedFiles verified) throws IOException {
+        if (verified == null) { readRevisionBytes(path, hash, limit); return; }
+        Stamp before = stamp(path, hash);
+        if (before.equals(verified.files.get(path))) return;
+        readRevisionBytes(path, hash, limit);
+        if (!before.equals(stamp(path, hash))) throw new ProjectException("external_change");
+        verified.files.put(path, before);
     }
     public ProjectBlob storeBlob(Path directory, byte[] bytes, String extension) throws IOException {
         String hash = ProjectJson.hash(bytes);

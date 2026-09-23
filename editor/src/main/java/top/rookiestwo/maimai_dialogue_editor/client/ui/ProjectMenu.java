@@ -16,6 +16,7 @@ final class ProjectMenu extends LinearLayout {
     private final List<Button> items = new ArrayList<>();
     private final ProjectProperties properties;
     private final Button save;
+    private final Button autoSave;
 
     ProjectMenu(Context context, ProjectWorkspace workspace, Runnable resetLayout) {
         super(context);
@@ -33,11 +34,13 @@ final class ProjectMenu extends LinearLayout {
                 workspace.cancel();
                 workspace.save();
             });
+            autoSave = addItem("project.autosave_on", () -> workspace.autoSave(!workspace.autoSave()));
             addItem("project.save_as", workspace::showSaveAs);
             addItem("project.close", () -> workspace.request(ProjectWorkspace.Action.CLOSE_PROJECT));
         } else {
             properties = null;
             save = null;
+            autoSave = null;
         }
         separator();
         addItem("reset_layout", resetLayout);
@@ -69,7 +72,15 @@ final class ProjectMenu extends LinearLayout {
 
     void refresh() {
         items.forEach(button -> EditorWidgets.enabled(button, !workspace.busy()));
-        if (save != null) EditorWidgets.enabled(save, !workspace.busy() && workspace.dirty());
+        refreshSaveState();
         if (properties != null) properties.refresh();
+    }
+
+    void refreshSaveState() {
+        if (save != null) EditorWidgets.enabled(save, !workspace.busy() && workspace.dirty());
+        if (autoSave != null) {
+            autoSave.setText(EditorWidgets.tr(workspace.autoSave() ? "project.autosave_on" : "project.autosave_off"));
+            EditorWidgets.enabled(autoSave, !workspace.busy());
+        }
     }
 }

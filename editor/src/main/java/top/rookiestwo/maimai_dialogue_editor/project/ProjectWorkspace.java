@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.project;
 
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -9,6 +10,7 @@ import java.util.function.Supplier;
 import java.util.function.Consumer;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.document.ContentTextField;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;
@@ -25,6 +27,7 @@ public final class ProjectWorkspace {
     private final Executor io;
     private final Executor ui;
     private final Runnable closeEditor;
+    private final Consumer<Runnable> autosaveDelay;
     private final MaterialWorkspace materials;
     private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
     // A freshly opened Fragment has a different IO executor; its restore must follow the old screen's final write.
@@ -42,6 +45,20 @@ public final class ProjectWorkspace {
     private ResourceTree.Node issueNode;
     private long issueFocusRevision;
     private Runnable changed = () -> {};
+    private Runnable statusChanged = () -> {};
+    private boolean autoSave = true;
+    private boolean closingEditor;
+    private long autosaveRequest, inputRevision, savedInputRevision = -1, appliedSaveSequence;
+    private Object inputOwner;
+    private PendingText pendingText;
+    private ProjectDraft savedInputBase, observedAutosaveDraft;
+    private ProjectSaveSession saves;
+    private Instant lastSavedAt;
+    private AutomaticWrite automaticWrite;
+    private static final class AutomaticWrite { volatile boolean cancelled; }
+    private record SaveInput(ProjectDraft base, PendingText text, long revision) {
+        ProjectDraft snapshot() { return text == null ? base : text.apply(base); }
+    }
     private ProjectHistory history;
     private Path directory;
     private String fingerprint;
@@ -72,10 +89,16 @@ public final class ProjectWorkspace {
 
     public ProjectWorkspace(ProjectStore store, Executor io, Executor ui,
                             Runnable closeEditor) {
+        this(store, io, ui, closeEditor, task -> CompletableFuture.delayedExecutor(
+                5, java.util.concurrent.TimeUnit.SECONDS, ui).execute(task));
+    }
+
+    ProjectWorkspace(ProjectStore store, Executor io, Executor ui, Runnable closeEditor, Consumer<Runnable> autosaveDelay) {
         this.store = store;
         this.io = io;
         this.ui = ui;
         this.closeEditor = closeEditor;
+        this.autosaveDelay = autosaveDelay;
         resources.setLoadRequest(this::loadResource);
         materials = new MaterialWorkspace(this, io, ui, () -> notifyChanged(), store.root().getParent());
     }
@@ -140,6 +163,10 @@ public final class ProjectWorkspace {
     }
 
     private void notifyChanged() {
+        if (observedAutosaveDraft != draft()) {
+            observedAutosaveDraft = draft();
+            scheduleAutosave();
+        }
         materials.synchronize();
         changed.run();
         sessionStateChanged();
@@ -199,9 +226,11 @@ public final class ProjectWorkspace {
     }
 
     private void acceptSession(OpenedSession loaded) {
+        cancelAutosave();
         projectGeneration++;
         history = new ProjectHistory(loaded.project().draft(), true);
         directory = loaded.directory(); fingerprint = loaded.project().fingerprint();
+        resetSaveSession();
         page = Page.NONE; message = "project.opened";
         resources.restoreSession(loaded.state().navigation()); content.reset(); content.acceptBrowserSelection();
         restorePreferences(loaded.state());
@@ -209,6 +238,7 @@ public final class ProjectWorkspace {
     }
 
     private void restorePreferences(EditorSessionState state) {
+        autoSave = state.autoSave();
         layoutPreferences = state.layout();
         themeExample = state.preview().themeExample();
         materials.restoreVariantPreferences(state.preview().materialVariants());
@@ -218,7 +248,7 @@ public final class ProjectWorkspace {
 
     public EditorSessionState sessionState() {
         return new EditorSessionState(EditorSessionState.VERSION, layoutPreferences, resources.sessionState(),
-                new EditorSessionState.Preview(themeExample, scenes.objectPreferences(), materials.variantPreferences(), actions.previewPreferences()));
+                new EditorSessionState.Preview(themeExample, scenes.objectPreferences(), materials.variantPreferences(), actions.previewPreferences()), autoSave);
     }
 
     /** Coalesce rapid navigation/gestures; disk work never runs on the UI or Minecraft thread. */
@@ -279,13 +309,135 @@ public final class ProjectWorkspace {
         changed = Objects.requireNonNull(listener);
     }
 
+    public void setStatusListener(Runnable listener) { statusChanged = Objects.requireNonNull(listener); }
+    public boolean autoSave() { return autoSave; }
+    public void autoSave(boolean enabled) {
+        if (disposed || busy || history == null) return;
+        autoSave = enabled;
+        cancelAutosave();
+        sessionStateChanged();
+        if (enabled) scheduleAutosave();
+        statusChanged.run();
+    }
+
+    public void stageText(Object owner, ResourceKey key, ContentWorkspace.Cursor cursor, ContentTextField field, String text) {
+        if (disposed || busy || history == null || draft().revision(key) == null || !draft().isLoaded(key)) return;
+        var next = new PendingText(key, draft().revision(key), cursor, field, text);
+        if (inputOwner == owner && next.equals(pendingText)) return;
+        inputOwner = owner; pendingText = next; inputRevision++;
+        scheduleAutosave();
+        statusChanged.run();
+    }
+
+    public void clearStagedText(Object owner) {
+        if (inputOwner != owner) return;
+        inputOwner = null; pendingText = null; inputRevision++;
+        scheduleAutosave();
+        statusChanged.run();
+    }
+
+    private void resetSaveSession() {
+        saves = directory == null ? null : new ProjectSaveSession(store, directory, fingerprint);
+        appliedSaveSequence = 0;
+        lastSavedAt = null;
+        inputOwner = null; pendingText = null; inputRevision++;
+        savedInputRevision = -1; savedInputBase = null; observedAutosaveDraft = null;
+    }
+
+    private SaveInput saveInput() {
+        return new SaveInput(draft(), pendingText != null && pendingText.appliesTo(draft()) ? pendingText : null, inputRevision);
+    }
+
+    private void cancelAutosave() {
+        autosaveRequest++;
+        if (automaticWrite != null) automaticWrite.cancelled = true;
+    }
+
+    private void scheduleAutosave() {
+        long expected = ++autosaveRequest;
+        if (disposed || !autoSave || sessionStore == null || history == null) return;
+        autosaveDelay.accept(() -> {
+            if (expected != autosaveRequest || disposed || !autoSave) return;
+            if (busy || (page != Page.NONE && page != Page.MENU) || resources.form() != ResourceWorkspace.Form.NONE
+                    || scenes.dragPosition() != null || scenes.numberPreview() != null || themes.editing()
+                    || audio.editing() || actions.editing()) {
+                scheduleAutosave();
+                return;
+            }
+            flushAutosave();
+        });
+    }
+
+    /** Capture on the UI thread, then persist without refreshing controls, preview or undo grouping. */
+    public void flushAutosave() {
+        if (disposed || closingEditor || !autoSave || sessionStore == null || busy || saves == null || !dirty()
+                || (page != Page.NONE && page != Page.MENU)) return;
+        cancelAutosave();
+        AutomaticWrite write = new AutomaticWrite();
+        automaticWrite = write;
+        ProjectSaveSession session = saves;
+        ProjectHistory owner = history;
+        SaveInput input = saveInput();
+        Path target = directory;
+        EditorSessionState preferences = sessionState();
+        writeSession(() -> {
+            if (write.cancelled) return;
+            ProjectSaveSession.Saved result = null;
+            Exception failure = null;
+            try {
+                result = session.save(input.snapshot(), true);
+                // These writes also survive closing/reopening the Fragment before the UI callback.
+                sessionStore.write(target, preferences);
+                sessionStore.remember(target);
+            } catch (Exception error) { failure = error; }
+            ProjectSaveSession.Saved completed = result;
+            Exception error = failure;
+            ui.execute(() -> {
+                if (disposed || history != owner || saves != session) return;
+                if (automaticWrite == write) automaticWrite = null;
+                if (completed != null) {
+                    acceptSave(completed, input, true);
+                    // Preferences may have changed while the first manifest was being created.
+                    flushSession();
+                }
+                if (error != null) {
+                    message = "project.autosave_failed";
+                    errorReason = error instanceof ProjectException problem ? problem.reason() : "io";
+                    errorDetail = error instanceof ProjectException ? "" : String.valueOf(error.getMessage());
+                    LOGGER.warn("Cannot autosave editor project {}", target, error);
+                }
+                statusChanged.run();
+            });
+        });
+    }
+
+    private void acceptSave(ProjectSaveSession.Saved result, SaveInput input, boolean automatic) {
+        if (result.sequence() <= appliedSaveSequence) return;
+        appliedSaveSequence = result.sequence();
+        fingerprint = result.fingerprint();
+        lastSavedAt = result.savedAt();
+        savedInputBase = input.base(); savedInputRevision = input.revision();
+        if (automatic) history.markAutosaved(result.draft());
+        else history.markSaved(result.draft());
+        if (!automatic || message.equals("project.autosave_failed")) {
+            clearError();
+            if (automatic) message = "project.ready";
+        }
+    }
+
     public ProjectDraft draft() { return history == null ? null : history.current(); }
     public long projectGeneration() { return projectGeneration; }
     public Path directory() { return directory; }
     public Page page() { return page; }
     public boolean busy() { return busy; }
     public boolean windowFocused() { return windowFocused; }
-    public boolean dirty() { return history != null && history.dirty(); }
+    public Instant lastSavedAt() { return lastSavedAt; }
+    public boolean dirty() {
+        if (history == null) return false;
+        if (pendingText != null && pendingText.appliesTo(draft()))
+            return savedInputBase != draft() || savedInputRevision != inputRevision;
+        return history.dirty();
+    }
     public boolean canUndo() { return !busy && history != null && history.canUndo(); }
     public boolean canRedo() { return !busy && history != null && history.canRedo(); }
     public String message() { return message; }
@@ -413,6 +565,7 @@ public final class ProjectWorkspace {
 
     public void request(Action action) {
         if (busy || disposed) return;
+        cancelAutosave();
         ++startupRequest;
         scenes.endNumberDrag(true);
         themes.endGesture(true);
@@ -443,11 +596,13 @@ public final class ProjectWorkspace {
         pending = null;
         page = Page.NONE;
         notifyChanged();
+        scheduleAutosave();
     }
 
     public void discardAndContinue() {
         if (busy || disposed || page != Page.CONFIRM || pending == null) return;
         Action action = pending;
+        cancelAutosave();
         pending = null;
         perform(action);
     }
@@ -481,10 +636,12 @@ public final class ProjectWorkspace {
                 content.reset();
                 directory = null;
                 fingerprint = null;
+                resetSaveSession();
                 page = Page.NONE;
                 message = "project.closed";
             }
             case CLOSE_EDITOR -> {
+                closingEditor = true;
                 flushSession();
                 page = Page.NONE;
                 closeEditor.run();
@@ -504,6 +661,7 @@ public final class ProjectWorkspace {
             content.reset();
             directory = target;
             fingerprint = null;
+            resetSaveSession();
             page = Page.NONE;
             message = "project.created";
             restorePreferences(EditorSessionState.defaults());
@@ -522,6 +680,7 @@ public final class ProjectWorkspace {
     public void openProject(ProjectStore.Entry entry) {
         if (busy || disposed || page != Page.OPEN || !projects.contains(entry) || !entry.canOpen()) return;
         Path target = entry.directory();
+        cancelAutosave();
         flushSession();
         runIo("project.opening", () -> readSession(target), this::acceptSession);
     }
@@ -529,6 +688,7 @@ public final class ProjectWorkspace {
     public void showSaveAs() {
         if (history == null || busy || disposed) return;
         endEdit();
+        cancelAutosave();
         pending = null;
         clearError();
         page = Page.SAVE_AS;
@@ -545,8 +705,10 @@ public final class ProjectWorkspace {
         runIo("project.saving", () -> store.saveCopy(written), result -> {
             directory = result.directory();
             fingerprint = result.fingerprint();
+            resetSaveSession();
             owner.edit(written, null);
             owner.markSaved(written);
+            lastSavedAt = Instant.now();
             page = Page.NONE;
             message = "project.saved";
             restorePreferences(preferences);
@@ -609,14 +771,15 @@ public final class ProjectWorkspace {
         audio.endGesture(true);
         actions.endGesture(true);
         if (history == null || busy || disposed) return;
+        cancelAutosave();
         endEdit();
         ProjectHistory owner = history;
-        ProjectDraft written = owner.current();
+        SaveInput input = saveInput();
+        ProjectSaveSession session = saves;
         Path target = directory;
-        String expected = fingerprint;
-        runIo("project.saving", () -> store.save(target, written, expected), result -> {
-            fingerprint = result;
-            owner.markSaved(written);
+        runIo("project.saving", () -> session.save(input.snapshot(), false), result -> {
+            if (history != owner || saves != session) return;
+            acceptSave(result, input, false);
             message = "project.saved";
             rememberProject(target);
             flushSession();
@@ -663,8 +826,10 @@ public final class ProjectWorkspace {
     public void dispose() {
         if (!disposed) flushSession();
         disposed = true;
+        autosaveRequest++;
         materials.dispose();
         changed = () -> {};
+        statusChanged = () -> {};
         pending = null;
     }
 

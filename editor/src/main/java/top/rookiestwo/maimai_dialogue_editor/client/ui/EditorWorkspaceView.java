@@ -148,6 +148,11 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
         if (resourceDialog != null) resourceDialog.refresh();
     }
 
+    void refreshSaveState() {
+        workbench.refreshSaveState();
+        if (projectMenu != null) projectMenu.refreshSaveState();
+    }
+
     void escape() {
         if (workspace.actions().editing()) { workspace.actions().endGesture(false); return; }
         if (workspace.audio().editing()) { workspace.audio().endGesture(false); return; }

@@ -9,7 +9,12 @@ import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.export.ExportWorkspace;
 
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
 final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplitter.DragListener {
+    private static final DateTimeFormatter SAVE_TIME = DateTimeFormatter.ofPattern("HH:mm:ss")
+            .withZone(ZoneId.systemDefault());
     private final EditorLayoutState state;
     private final EditorToolbar toolbar;
     private final TextView status;
@@ -114,17 +119,26 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
             }
         }
         previewHost.synchronize();
-        toolbar.refresh(workspace);
-        String name = workspace.draft() == null ? EditorWidgets.tr("no_project")
-                : workspace.draft().name().isBlank() ? EditorWidgets.tr("project.untitled") : workspace.draft().name();
-        String label = name + (workspace.dirty() ? " *" : "");
         browser.refresh();
         resourceProperties.refresh();
         document.refresh();
         actionCalls.refresh();
+        refreshSaveState();
+    }
+
+    /** Disk checkpoints and buffered typing must not rebind fields or refresh the preview. */
+    void refreshSaveState() {
+        toolbar.refresh(workspace);
+        String name = workspace.draft() == null ? EditorWidgets.tr("no_project")
+                : workspace.draft().name().isBlank() ? EditorWidgets.tr("project.untitled") : workspace.draft().name();
+        String label = name + (workspace.dirty() ? " *" : "");
         String message = workspace.errorReason() == null ? EditorWidgets.tr(workspace.message())
                 : EditorWidgets.tr("project.error." + workspace.errorReason()) + " " + workspace.errorDetail();
-        String saveState = workspace.draft() == null ? "" : " · "
+        if (workspace.errorReason() != null && workspace.message().equals("project.autosave_failed"))
+            message = EditorWidgets.tr(workspace.message()) + " · " + message;
+        String saveTime = !workspace.dirty() && workspace.lastSavedAt() != null
+                ? SAVE_TIME.format(workspace.lastSavedAt()) + " " : "";
+        String saveState = workspace.draft() == null ? "" : " · " + saveTime
                 + EditorWidgets.tr(workspace.dirty() ? "project.unsaved" : "project.saved_state");
         String validation = exports.busy() || exports.report() != null || !exports.error().isEmpty()
                 ? " · " + EditorWidgets.tr(exports.status()) : "";

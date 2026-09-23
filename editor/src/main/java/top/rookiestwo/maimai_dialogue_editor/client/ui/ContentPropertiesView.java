@@ -11,6 +11,7 @@ import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.document.ContentTextField;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
@@ -136,7 +137,7 @@ final class ContentPropertiesView extends LinearLayout {
         if (state.data() == null) { warning("edit.invalid_object"); return; }
         if (state.key().kind() == ResourceKind.SPEAKER) {
             section("properties.general");
-            field("browser.display_name", () -> string(state.data(), "name"), content::editSpeakerName, false);
+            field("browser.display_name", () -> string(state.data(), "name"), ContentTextField.NAME, false);
             return;
         }
         if (state.key().kind() != ResourceKind.DIALOGUE) return;
@@ -168,12 +169,12 @@ final class ContentPropertiesView extends LinearLayout {
         else {
             choice("edit.text_mode", () -> get(selectedNode(), "text") == null ? "absent" : "plain",
                     () -> items("edit.text.", "absent", "plain"), content::setTextMode);
-            if (text != null) field("edit.markdown", () -> string(selectedNode(), "text"), content::editText, true);
+            if (text != null) field("edit.markdown", () -> string(selectedNode(), "text"), ContentTextField.TEXT, true);
         }
         section("edit.group.speaker");
         choice("edit.speaker", this::speakerMode, () -> items("edit.speaker.", "inherit", "set", "hide"), content::setSpeakerMode);
         if (speakerMode().equals("set")) reference("edit.speaker_id", ResourceKind.SPEAKER,
-                () -> string(object(get(selectedNode(), "speaker")), "id"), content::editSpeakerId);
+                () -> string(object(get(selectedNode(), "speaker")), "id"), ContentTextField.SPEAKER_ID);
         if (state.cursor().step() == END) buildEnd();
     }
 
@@ -183,7 +184,7 @@ final class ContentPropertiesView extends LinearLayout {
                 () -> items("edit.exit.", "return", "dialogue", "options"), content::setExitType);
         String type = string(exit(state.data()), "type");
         if (type.equals("dialogue")) {
-            reference("edit.target_dialogue", ResourceKind.DIALOGUE, () -> string(exit(state.data()), "dialogue"), content::editExitDialogue);
+            reference("edit.target_dialogue", ResourceKind.DIALOGUE, () -> string(exit(state.data()), "dialogue"), ContentTextField.EXIT_DIALOGUE);
         } else if (type.equals("options")) {
             section("edit.group.options");
             JsonArray options = options(state.data());
@@ -199,13 +200,13 @@ final class ContentPropertiesView extends LinearLayout {
             action(order, "edit.up", () -> content.moveOption(-1), () -> state.cursor().option() > 0);
             action(order, "edit.down", () -> content.moveOption(1), () -> state.cursor().option() + 1 < options(state.data()).size());
             if (selectedOption() == null) { warning("edit.invalid_object"); return; }
-            field("edit.option_text", () -> string(selectedOption(), "text"), content::editOptionText, false);
+            field("edit.option_text", () -> string(selectedOption(), "text"), ContentTextField.OPTION_TEXT, false);
             choice("edit.icon", () -> selectedOption().has("icon") ? string(selectedOption(), "icon") : "none",
                     () -> items("edit.icon.", "none", "question", "exclamation", "dialogue"), content::setOptionIcon);
             choice("edit.target", this::optionTargetType,
                     () -> items("edit.target.", "return", "close", "dialogue"), content::setOptionTarget);
             if (optionTargetType().equals("dialogue")) reference("edit.target_dialogue", ResourceKind.DIALOGUE,
-                    () -> string(object(get(selectedOption(), "target")), "dialogue"), content::editOptionDialogue);
+                    () -> string(object(get(selectedOption(), "target")), "dialogue"), ContentTextField.OPTION_DIALOGUE);
         }
     }
 
@@ -220,18 +221,26 @@ final class ContentPropertiesView extends LinearLayout {
         return items;
     }
 
-    private void field(String label, Supplier<String> value, Consumer<String> setter, boolean multiline) {
-        field(label, value, setter, multiline, null);
+    private void field(String label, Supplier<String> value, ContentTextField field, boolean multiline) {
+        field(label, value, field, multiline, null);
     }
-    private void field(String label, Supplier<String> value, Consumer<String> setter, boolean multiline, Button picker) {
+    private void field(String label, Supplier<String> value, ContentTextField field, boolean multiline, Button picker) {
         Binding expected = binding;
-        EditText input = EditorWidgets.compactInput(getContext(), value.get(), ignored -> {}, () -> {});
+        Object buffer = new Object();
+        EditText input = EditorWidgets.compactInput(getContext(), value.get(), text -> {
+            if (!accepts(expected)) return;
+            if (text.equals(value.get())) workspace.clearStagedText(buffer);
+            else workspace.stageText(buffer, expected.resource(), expected.cursor(), field, text);
+        }, () -> {});
         input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
         input.setOnFocusChangeListener((view, focused) -> {
-            if (!focused && accepts(expected)) {
-                String entered = input.getText().toString();
-                if (!entered.equals(value.get())) setter.accept(entered);
-                workspace.endEdit();
+            if (!focused) {
+                if (accepts(expected)) {
+                    String entered = input.getText().toString();
+                    if (!entered.equals(value.get())) content.editTextField(field, entered);
+                    workspace.endEdit();
+                }
+                workspace.clearStagedText(buffer);
             }
         });
         if (multiline) {
@@ -253,7 +262,7 @@ final class ContentPropertiesView extends LinearLayout {
         });
     }
 
-    private void reference(String label, ResourceKind kind, Supplier<String> value, Consumer<String> setter) {
+    private void reference(String label, ResourceKind kind, Supplier<String> value, ContentTextField field) {
         Binding expected = binding;
         Button picker = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
         picker.setOnClickListener(view -> {
@@ -267,10 +276,10 @@ final class ContentPropertiesView extends LinearLayout {
                 return new ChoicePresenter.Item(id, name.isBlank() ? id : name + " · " + id);
             }).toList();
             choices.showSearchable(picker, items, value.get(), selected -> {
-                if (accepts(expected)) setter.accept(selected);
+                if (accepts(expected)) content.editTextField(field, selected);
             });
         });
-        field(label, value, setter, false, picker);
+        field(label, value, field, false, picker);
         bindings.add(() -> EditorWidgets.enabled(picker, canEdit()));
     }
 

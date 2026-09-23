@@ -71,7 +71,10 @@ public final class ProjectHistory {
     }
 
     public void markSaved(ProjectDraft written) {
-        saved = Objects.requireNonNull(written);
+        markAutosaved(written);
         endEdit();
     }
+
+    /** A background checkpoint must not split the user's current undo group. */
+    public void markAutosaved(ProjectDraft written) { saved = Objects.requireNonNull(written); }
 }
