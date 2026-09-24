@@ -62,7 +62,7 @@ public final class EditorPreviewView extends ResponsiveFrameLayout implements to
         String[] examples = {"theme.example_text", "theme.example_options", "theme.example_error"};
         for (int index = 0; index < examples.length; index++) {
             int example = index;
-            themeExamples[index] = control(context, controls, examples[index], () -> host.themeExample(example));
+            themeExamples[index] = control(context, controls, examples[index], () -> host.staticPreview().themeExample(example));
         }
         toolbar = new HorizontalScrollView(context);
         toolbar.setHorizontalScrollBarEnabled(false);
@@ -78,7 +78,7 @@ public final class EditorPreviewView extends ResponsiveFrameLayout implements to
         materialImage = new ImageView(context);
         materialImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
         canvas.addView(materialImage, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        scene = new EditorScenePreviewView(context, host, surface);
+        scene = new EditorScenePreviewView(context, host.workspace(), host.staticPreview().createScenePreview(), surface);
         canvas.addView(scene, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         actionCanvas = new EditorActionCanvas(context, host.workspace(), host.timeline(), surface);
         canvas.addView(actionCanvas, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
@@ -123,15 +123,15 @@ public final class EditorPreviewView extends ResponsiveFrameLayout implements to
         for (var control : new Button[]{advance, restart, stop}) control.setVisibility(dialogue ? VISIBLE : GONE);
         for (int index = 0; index < themeExamples.length; index++) {
             themeExamples[index].setVisibility(theme ? VISIBLE : GONE);
-            EditorWidgets.enabled(themeExamples[index], index != host.themeExample());
+            EditorWidgets.enabled(themeExamples[index], index != host.staticPreview().themeExample());
         }
         canvas.setVisibility(material || dialogue || theme || action || mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
         scene.setVisibility(mode == EditorPreviewHost.Mode.SCENE ? VISIBLE : GONE);
-        if (mode == EditorPreviewHost.Mode.SCENE) scene.refresh(host.scenes()); else scene.release();
+        if (mode == EditorPreviewHost.Mode.SCENE) scene.refresh(); else scene.release();
         actionCanvas.setVisibility(dialogue || action ? VISIBLE : GONE);
         actionCanvas.synchronize();
-        if (theme) host.refreshTheme();
-        String themeIssue = theme ? host.themeError() : action ? host.actionPreview().error() : "";
+        if (theme) host.staticPreview().refreshTheme();
+        String themeIssue = theme ? host.staticPreview().themeError() : action ? host.actionPreview().error() : "";
         themeError.setText(themeIssue.isEmpty() ? "" : (theme ? EditorWidgets.tr("theme.invalid") + " " : "") + themeIssue);
         themeError.setVisibility(themeIssue.isEmpty() ? GONE : VISIBLE);
         audio.setVisibility(mode == EditorPreviewHost.Mode.SOUND ? VISIBLE : GONE);

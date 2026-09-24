@@ -1,27 +1,19 @@
 package top.rookiestwo.maimai_dialogue_editor.client.preview;
 
-import icyllis.modernui.core.Core;
 import icyllis.modernui.fragment.Fragment;
 import icyllis.modernui.fragment.FragmentManager;
 import icyllis.modernui.view.View;
-import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
-import top.rookiestwo.maimai_dialogue.client.controller.DialogueScreenHandle;
 import top.rookiestwo.maimai_dialogue.client.controller.DialogueUiActions;
 import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.client.ui.screen.DialogueFragment;
-import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueOption;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets;
-import top.rookiestwo.maimai_dialogue_editor.client.EditorContentPreparation;
-import top.rookiestwo.maimai_dialogue_editor.material.MaterialSnapshot;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
 import top.rookiestwo.maimai_dialogue_editor.preview.AudioPreviewSession;
-import top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewSession;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 
-import java.util.Objects;
 
 /** UI-thread owner of one embedded runtime Fragment. Client callbacks cross back through the UI handler. */
 public final class EditorPreviewHost {
@@ -32,7 +24,7 @@ public final class EditorPreviewHost {
     private final AudioPreviewSession audio;
     private final EditorDialoguePreview dialoguePreview;
     private final EditorAudioAudition audition;
-    private final ScenePreviewSession scenes;
+    private final EditorStaticPreview staticPreview;
     private final EditorActionPreview actionPreview;
     private DialogueImageSource actionImages;
     private final int containerId = View.generateViewId();
@@ -42,19 +34,8 @@ public final class EditorPreviewHost {
     private final EditorTimelinePreview timeline;
     public EditorTimelinePreview timeline() { return timeline; }
     public EditorDialoguePreview dialogue() { return dialoguePreview; }
-    private SceneActions sceneActions;
-    private ScenePreviewSession.Prepared displayedScene;
-    private ResourceKey sceneDocument;
-    private long sceneProject = -1;
-    private long sceneGeneration;
+    private ResourceKey actionDocument;
     private boolean releasingView;
-    private int displayedThemeExample = -1;
-    private top.rookiestwo.maimai_dialogue.theme.ThemeDefinition displayedTheme;
-    private boolean themeFramePending;
-    private final Runnable themeFrame = () -> {
-        themeFramePending = false;
-        refreshTheme();
-    };
 
     public EditorPreviewHost(Fragment owner, ProjectWorkspace workspace, EditorPreviewAssets assets, AudioPreviewSession.Backend audioBackend) {
         this.owner = owner;
@@ -78,8 +59,17 @@ public final class EditorPreviewHost {
             if (running() || loading()) stop();
             audio.stop();
         }, this::refresh);
-        scenes = new ScenePreviewSession((draft, key) -> EditorContentPreparation.prepare(workspace,
-                external -> ScenePreviewSession.prepare(draft, key, external)), task -> Core.getUiHandler().post(task), this::refresh);
+        staticPreview = new EditorStaticPreview(workspace, assets, new PreviewMount() {
+            @Override public boolean active() { return !disposed && !releasingView; }
+            @Override public boolean ready() { return viewReady(); }
+            @Override public PreviewDisplay display() { return view; }
+            @Override public DialogueFragment fragment() { return fragment; }
+            @Override public void clear() { clearFragments(); }
+            @Override public void show(DialogueUiActions actions, DialogueImageSource images, String tag) {
+                fragment = embeddedFragment(actions, images);
+                owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, tag).commitNow();
+            }
+        }, this::refresh);
         dialoguePreview = new EditorDialoguePreview(workspace, assets, timeline, audition, new EditorDialoguePreview.Surface() {
             @Override public boolean disposed() { return disposed; }
             @Override public boolean ready() { return viewReady(); }
@@ -101,7 +91,7 @@ public final class EditorPreviewHost {
         releasingView = false;
         view = factory.apply(containerId);
         workspace.scenes().setLiveListener(immediate -> { if (view != null) view.requestSceneFrame(immediate); });
-        workspace.themes().setLiveListener(this::requestThemeFrame);
+        workspace.themes().setLiveListener(staticPreview::requestThemeFrame);
         return view.root();
     }
 
@@ -142,7 +132,7 @@ public final class EditorPreviewHost {
     public AudioPreviewSession audio() { return audio; }
     public EditorActionPreview actionPreview() { return actionPreview; }
     public EditorAudioAudition audition() { return audition; }
-    public ScenePreviewSession scenes() { return scenes; }
+    public EditorStaticPreview staticPreview() { return staticPreview; }
     public EditorPreviewAssets assets() { return assets; }
     public ProjectWorkspace workspace() { return workspace; }
     public void finishSceneDrag(boolean commit) { if (view != null) view.finishSceneDrag(commit); }
@@ -174,7 +164,7 @@ public final class EditorPreviewHost {
         // Do not consume navigation before mounting is possible. The attachment callback retries every preview mode.
         if (!viewReady()) return;
         audition.synchronize();
-        if (mode() != Mode.THEME && sceneDocument != null && sceneDocument.kind() == ResourceKind.THEME) clearFragments();
+        staticPreview.synchronize();
         // Undo/redo may restore a different document cursor before the properties View is rebound.
         var document = workspace.content().snapshot();
         record SoundSelection(long project, ResourceKey key) {}
@@ -183,8 +173,7 @@ public final class EditorPreviewHost {
             String blob = top.rookiestwo.maimai_dialogue_editor.material.MaterialPack.string(document.data().get("blob"));
             audio.select(new SoundSelection(workspace.projectGeneration(), document.key()), workspace.draft().blob(blob));
         } else audio.select(null, null);
-        if (workspace.scenes().dragPosition() == null)
-            scenes.select(workspace.projectGeneration(), workspace.draft(), workspace.resources().opened());
+        staticPreview.select();
         if (!dialoguePreview.synchronize(this::acceptCanvasCommit)) return;
         actionPreview.synchronize();
         if (!dialoguePreview.loading() && !running()) showIdleControls();
@@ -227,9 +216,10 @@ public final class EditorPreviewHost {
     private void clearFragments() {
         dialoguePreview.forgetDisplay();
         actionImages = null;
-        displayedTheme = null; displayedThemeExample = -1;
+        staticPreview.clear();
         fragment = null;
-        sceneActions = null; displayedScene = null; sceneDocument = null; sceneProject = -1;
+        staticPreview.clear();
+        actionDocument = null;
         showingIdle = false;
         FragmentManager manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return;
@@ -250,7 +240,6 @@ public final class EditorPreviewHost {
         timeline.notifyChanged();
     }
 
-    public DialogueFragment sceneFragment() { return sceneActions == null ? null : fragment; }
 
     boolean actionViewReady() {
         return viewReady() && mode() == Mode.ACTION;
@@ -264,7 +253,7 @@ public final class EditorPreviewHost {
         return new DialogueFragment(actions, DialogueFragment.CornerControls.DISPLAY_ONLY, images, false);
     }
     void clearActionPreview() {
-        if (!releasingView && sceneDocument != null && sceneDocument.kind() == ResourceKind.ACTION) clearFragments();
+        if (!releasingView && actionDocument != null) clearFragments();
     }
     void showAction(DialogueScreenState state, DialogueUiActions actions, DialogueImageSource images) {
         if (!actionViewReady()) return;
@@ -273,123 +262,8 @@ public final class EditorPreviewHost {
             clearFragments();
             fragment = embeddedFragment(actions, images.fork());
             owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, "editor-action-preview").commitNow();
-            actionImages = images; sceneDocument = workspace.resources().opened(); sceneProject = workspace.projectGeneration();
+            actionImages = images; actionDocument = workspace.resources().opened();
         } else fragment.render(state);
-    }
-
-    public void clearScenePreview() {
-        if (sceneActions != null && sceneDocument != null && sceneDocument.kind() == ResourceKind.SCENE && !releasingView) clearFragments();
-    }
-
-    public int themeExample() { return workspace.themeExample(); }
-    public void themeExample(int example) { workspace.themeExample(example); refreshTheme(); if (view != null) view.refresh(); }
-    public String themeError() { return workspace.themes().error(); }
-    private void requestThemeFrame(boolean immediate) {
-        if (view == null || !view.root().isAttachedToWindow() || mode() != Mode.THEME) return;
-        if (immediate) { view.root().removeCallbacks(themeFrame); themeFramePending = false; refreshTheme(); }
-        else if (!themeFramePending) { themeFramePending = true; view.root().postOnAnimation(themeFrame); }
-    }
-    public void refreshTheme() {
-        if (disposed || releasingView || mode() != Mode.THEME || view == null || !view.root().isAttachedToWindow()) return;
-        var manager = owner.getChildFragmentManager();
-        if (manager.isDestroyed() || manager.isStateSaved()) return;
-        boolean sameDocument = sceneActions != null && sceneProject == workspace.projectGeneration()
-                && Objects.equals(sceneDocument, workspace.resources().opened());
-        if (!sameDocument) clearFragments();
-        var theme = workspace.themes().preview();
-        if (theme == null) return;
-        if (fragment == null || displayedThemeExample != themeExample()) {
-            var state = themeState(theme);
-            if (fragment == null) {
-                sceneActions = new SceneActions(state);
-                fragment = embeddedFragment(sceneActions, assets.openImages(MaterialSnapshot.EMPTY));
-                manager.beginTransaction().replace(containerId, fragment, "editor-theme-preview").commitNow();
-            } else { sceneActions.state = state; fragment.render(state); }
-            displayedThemeExample = themeExample();
-            sceneProject = workspace.projectGeneration(); sceneDocument = workspace.resources().opened();
-            displayedTheme = null;
-        }
-        if (!theme.equals(displayedTheme)) {
-            fragment.renderThemePreview(theme); displayedTheme = theme;
-        }
-    }
-    private DialogueScreenState themeState(top.rookiestwo.maimai_dialogue.theme.ThemeDefinition theme) {
-        var scene = new top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition(
-                top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition.DEFAULT_THEME_ID, java.util.Optional.empty(),
-                new top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout(.5f, .5f, .6f, .65f,
-                        top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor.CENTER), java.util.Map.of(), java.util.Optional.empty());
-        var initial = top.rookiestwo.maimai_dialogue.client.scene.SceneState.initial(scene);
-        var options = new java.util.ArrayList<DialogueOption>();
-        if (themeExample() == 1) for (int i = 1; i <= 8; i++) options.add(new DialogueOption(
-                net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.theme.preview_option", i),
-                top.rookiestwo.maimai_dialogue.dialogue.branch.OptionIcon.QUESTION,
-                top.rookiestwo.maimai_dialogue.dialogue.branch.ReturnTarget.INSTANCE));
-        return new DialogueScreenState(++sceneGeneration, java.util.Optional.of(scene), java.util.Optional.of(theme),
-                java.util.Optional.of(new top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback(sceneGeneration, initial, initial, java.util.List.of(), 0, 0)),
-                top.rookiestwo.maimai_dialogue.client.session.PlaybackPhase.READY, true, java.util.Optional.empty(), false, false, 0,
-                java.util.Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_speaker")), java.util.Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.theme.preview_text")),
-                themeExample() == 2 ? java.util.Optional.of(top.rookiestwo.maimai_dialogue.client.session.SessionMessage.translated(
-                        "gui.maimai_dialogue_editor.theme.preview_error")) : java.util.Optional.empty(), java.util.List.of(), options, false, false);
-    }
-
-    public boolean showScene(ScenePreviewSession.Prepared prepared, DialogueImageSource images) {
-        if (disposed || releasingView || mode() != Mode.SCENE || view == null || !view.root().isAttachedToWindow()) return false;
-        var manager = owner.getChildFragmentManager();
-        if (manager.isDestroyed() || manager.isStateSaved()) return false;
-        var initial = top.rookiestwo.maimai_dialogue.client.scene.SceneState.initial(prepared.scene());
-        var state = staticSceneState(prepared, initial, ++sceneGeneration, 0);
-        boolean reuse = sceneActions != null && fragment != null && displayedScene != null
-                && displayedScene.images().equals(prepared.images()) && sceneProject == workspace.projectGeneration()
-                && ScenePreviewSession.initialImageIds(displayedScene.scene()).equals(ScenePreviewSession.initialImageIds(prepared.scene()))
-                && Objects.equals(sceneDocument, workspace.resources().opened());
-        if (reuse) { sceneActions.state = state; fragment.render(state); }
-        else {
-            clearFragments();
-            sceneActions = new SceneActions(state);
-            fragment = embeddedFragment(sceneActions, images.fork());
-            manager.beginTransaction().replace(containerId, fragment, "editor-scene-preview").commitNow();
-        }
-        displayedScene = prepared; sceneDocument = workspace.resources().opened(); sceneProject = workspace.projectGeneration();
-        return true;
-    }
-
-    public boolean updateScene(ScenePreviewSession.Prepared prepared) {
-        if (sceneActions == null || fragment == null || displayedScene == null || releasingView || disposed
-                || sceneProject != workspace.projectGeneration() || !Objects.equals(sceneDocument, workspace.resources().opened())
-                || !displayedScene.images().equals(prepared.images()) || !displayedScene.theme().equals(prepared.theme())
-                || !top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewFrame.sameBindings(displayedScene.scene(), prepared.scene())) return false;
-        displayedScene = prepared;
-        sceneActions.state = staticSceneState(prepared, top.rookiestwo.maimai_dialogue.client.scene.SceneState.initial(prepared.scene()), sceneGeneration, 0);
-        renderSceneFrame(top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewFrame.initial(prepared.scene()));
-        return true;
-    }
-
-    public void renderSceneFrame(top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewFrame frame) {
-        if (sceneActions == null || fragment == null || displayedScene == null) return;
-        fragment.renderScenePreview(frame.state(), frame.layout(), frame.filter().orElse(null));
-    }
-
-    private static DialogueScreenState staticSceneState(ScenePreviewSession.Prepared prepared,
-            top.rookiestwo.maimai_dialogue.client.scene.SceneState scene, long generation, long token) {
-        return new DialogueScreenState(generation, java.util.Optional.of(prepared.scene()), java.util.Optional.of(prepared.theme()),
-                java.util.Optional.of(new top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback(token, scene, scene, java.util.List.of(), 0, 0)),
-                top.rookiestwo.maimai_dialogue.client.session.PlaybackPhase.READY, true, java.util.Optional.empty(), false, false, 0,
-                java.util.Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_speaker")), java.util.Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_text")),
-                java.util.Optional.empty(), java.util.List.of(), java.util.List.of(), false, false);
-    }
-
-    /** A static, real Dialogue layout with no session, commands, progress or audio callbacks. */
-    private static final class SceneActions implements DialogueUiActions {
-        private DialogueScreenState state;
-        SceneActions(DialogueScreenState state) { this.state = state; }
-        @Override public DialogueScreenState viewState() { return state; }
-        @Override public void advance() {}
-        @Override public void skipToEnd() {}
-        @Override public void selectOption(DialogueOption option) {}
-        @Override public void completePlayback(long generation, long token) {}
-        @Override public void completeTextPlayback(long generation, long token) {}
-        @Override public void closeFromUi() {}
-        @Override public void onScreenDestroyed(DialogueScreenHandle screen) {}
     }
 
     public void releaseView() {
@@ -401,17 +275,17 @@ public final class EditorPreviewHost {
         workspace.scenes().setLiveListener(immediate -> {});
         workspace.themes().endGesture(true);
         workspace.themes().setLiveListener(immediate -> {});
-        if (view != null) view.root().removeCallbacks(themeFrame);
-        themeFramePending = false;
+        staticPreview.stopFrames();
         releasingView = true;
         actionPreview.release(); actionImages = null;
         audio.stop();
         finishSceneDrag(false);
-        scenes.select(workspace.projectGeneration(), null, null);
+        staticPreview.releaseView();
         // FragmentManager destroys child Views before the parent callback; do not start nested transactions here.
         dialoguePreview.reset();
         fragment = null;
-        sceneActions = null; displayedScene = null; sceneDocument = null; sceneProject = -1;
+        staticPreview.clear();
+        actionDocument = null;
         showingIdle = false;
         view = null;
         timeline.releaseListeners();
@@ -428,7 +302,7 @@ public final class EditorPreviewHost {
     public void dispose() {
         disposed = true;
         actionPreview.dispose();
-        scenes.dispose();
+        staticPreview.dispose();
         releaseView();
     }
 
