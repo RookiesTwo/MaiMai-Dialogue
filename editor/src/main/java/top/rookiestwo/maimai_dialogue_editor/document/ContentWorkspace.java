@@ -249,7 +249,8 @@ public final class ContentWorkspace {
     }
     public String editInterval(String value) {
         int number;
-        try { number = new java.math.BigDecimal(value).intValueExact(); }
+        // The number control sends blank on reset; keep custom mode with its initial interval.
+        try { number = value.isBlank() ? 30 : new java.math.BigDecimal(value).intValueExact(); }
         catch (RuntimeException invalid) { return "edit.invalid_interval"; }
         if (number < 0 || number > 1000) return "edit.invalid_interval";
         editNode("typewriter_interval_ms", node -> node.addProperty("typewriter_interval_ms", number)); return "";
