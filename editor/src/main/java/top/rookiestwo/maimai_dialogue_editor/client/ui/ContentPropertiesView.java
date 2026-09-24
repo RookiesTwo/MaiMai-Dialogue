@@ -314,22 +314,13 @@ final class ContentPropertiesView extends LinearLayout {
     private void field(String label, Supplier<String> value, ContentTextField field, boolean multiline, Button picker) {
         Binding expected = binding;
         Object buffer = new Object();
-        EditText input = EditorWidgets.compactInput(getContext(), value.get(), text -> {
-            if (!accepts(expected)) return;
-            if (text.equals(value.get())) workspace.clearStagedText(buffer);
-            else workspace.stageText(buffer, expected.resource(), expected.cursor(), field, text);
-        }, () -> {});
-        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
-        input.setOnFocusChangeListener((view, focused) -> {
-            if (!focused) {
-                if (accepts(expected)) {
-                    String entered = input.getText().toString();
-                    if (!entered.equals(value.get())) content.editTextField(field, entered);
-                    workspace.endEdit();
-                }
-                workspace.clearStagedText(buffer);
-            }
-        });
+        var edit = EditorTextBinding.plain(value, () -> accepts(expected), text -> content.editTextField(field, text), workspace::endEdit)
+                .onChange(text -> {
+                    if (text.equals(value.get())) workspace.clearStagedText(buffer);
+                    else workspace.stageText(buffer, expected.resource(), expected.cursor(), field, text);
+                }).onBlur(() -> workspace.clearStagedText(buffer));
+        var control = new EditorTextField(getContext(), edit);
+        EditText input = control.input();
         if (multiline) {
             input.setSingleLine(false);
             input.setGravity(Gravity.TOP | Gravity.START);
@@ -342,11 +333,7 @@ final class ContentPropertiesView extends LinearLayout {
         if (picker == null) EditorWidgets.propertyRow(group, label, input, multiline);
         else EditorWidgets.referenceRow(group, label, input, picker);
         fields.put(label, input);
-        bindings.add(() -> {
-            String text = value.get();
-            if (!input.isFocused() && !input.getText().toString().equals(text)) input.setText(text);
-            input.setEnabled(canEdit());
-        });
+        bindings.add(() -> control.refresh(canEdit()));
     }
 
     private void reference(String label, ResourceKind kind, Supplier<String> value, ContentTextField field) {

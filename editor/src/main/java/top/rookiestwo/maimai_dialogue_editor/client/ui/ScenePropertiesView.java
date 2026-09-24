@@ -189,28 +189,14 @@ final class ScenePropertiesView extends LinearLayout {
     }
     private void field(String label, Supplier<String> value, Function<String, String> setter, boolean live, Button picker) {
         String expected = binding;
-        TextView error = EditorWidgets.compactParagraph(getContext(), ""); error.setTextColor(EditorWidgets.ERROR); error.setVisibility(GONE);
-        boolean[] invalid = {false};
-        EditText input = EditorWidgets.compactInput(getContext(), value.get(), text -> {
-            if (live && accepts(expected) && !text.isBlank()) setter.apply(text);
-        }, () -> {});
-        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
-        input.setOnFocusChangeListener((view, focused) -> {
-            if (focused) { invalid[0] = false; error.setVisibility(GONE); }
-            else if (accepts(expected)) {
-                String entered = input.getText().toString();
-                String issue = entered.equals(value.get()) ? "" : setter.apply(entered);
-                invalid[0] = !issue.isEmpty(); error.setText(invalid[0] ? EditorWidgets.tr(issue) : "");
-                error.setVisibility(invalid[0] ? VISIBLE : GONE); project.endEdit();
-            }
-        });
+        var edit = new EditorTextBinding(value, () -> accepts(expected), setter, project::endEdit)
+                .onChange(text -> { if (live && !text.isBlank()) setter.apply(text); });
+        var control = new EditorTextField(getContext(), edit);
+        EditText input = control.input();
         if (picker == null) EditorWidgets.propertyRow(group, label, input, false);
         else EditorWidgets.referenceRow(group, label, input, picker);
-        group.addView(error);
-        bindings.add(() -> {
-            if (!input.isFocused() && !invalid[0] && !input.getText().toString().equals(value.get())) input.setText(value.get());
-            input.setEnabled(model.active());
-        });
+        group.addView(control.error());
+        bindings.add(() -> control.refresh(model.active()));
     }
     private void reference(String label, ResourceKind kind, Supplier<String> value, Consumer<String> setter) {
         String expected = binding;

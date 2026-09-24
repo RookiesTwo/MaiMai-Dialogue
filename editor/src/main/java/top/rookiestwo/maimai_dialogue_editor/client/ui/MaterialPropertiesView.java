@@ -96,37 +96,17 @@ final class MaterialPropertiesView extends LinearLayout {
     private void variantNameField() {
         String expected = binding;
         String[] boundVariant = {variant()};
-        boolean[] invalid = {false};
-        EditText input = EditorWidgets.compactInput(getContext(), variant(), ignored -> {}, () -> {});
-        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
-        TextView error = EditorWidgets.compactParagraph(getContext(), "");
-        error.setTextColor(EditorWidgets.ERROR);
-        error.setVisibility(GONE);
-        input.setOnFocusChangeListener((view, focused) -> {
-            if (focused) {
-                invalid[0] = false;
-                error.setVisibility(GONE);
-                return;
-            }
-            if (active() && binding.equals(expected) && boundVariant[0].equals(variant())) {
-                String issue = model.renameVariant(input.getText().toString());
-                invalid[0] = !issue.isEmpty();
-                error.setText(invalid[0] ? EditorWidgets.tr(issue) : "");
-                error.setVisibility(invalid[0] ? VISIBLE : GONE);
-            }
-            project.endEdit();
-        });
-        EditorWidgets.propertyRow(group, "material.variant_name", input, false); group.addView(error);
+        var edit = new EditorTextBinding(this::variant,
+                () -> active() && binding.equals(expected) && boundVariant[0].equals(variant()), model::renameVariant, () -> {})
+                .commitUnchanged().onBlur(project::endEdit);
+        var control = new EditorTextField(getContext(), edit);
+        EditorWidgets.propertyRow(group, "material.variant_name", control.input(), false); group.addView(control.error());
         bindings.add(() -> {
             String current = variant();
             if (!boundVariant[0].equals(current)) {
                 boundVariant[0] = current;
-                invalid[0] = false;
-                error.setVisibility(GONE);
-                input.setText(current);
-            } else if (!input.isFocused() && !invalid[0] && !input.getText().toString().equals(current)) {
-                input.setText(current);
-            }
+                control.reset();
+            } else control.refresh();
         });
     }
     private void reference(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
@@ -138,19 +118,11 @@ final class MaterialPropertiesView extends LinearLayout {
                 if (active() && binding.equals(expected)) setter.accept(selected);
             });
         });
-        EditText input = EditorWidgets.compactInput(getContext(), value.get(), ignored -> {}, () -> {});
-        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
-        input.setOnFocusChangeListener((view, focused) -> {
-            if (!focused && active() && binding.equals(expected)) {
-                String entered = input.getText().toString();
-                if (!entered.equals(value.get())) setter.accept(entered);
-                project.endEdit();
-            }
-        });
-        EditorWidgets.referenceRow(group, label, input, picker);
+        var control = new EditorTextField(getContext(), EditorTextBinding.plain(value,
+                () -> active() && binding.equals(expected), setter, project::endEdit));
+        EditorWidgets.referenceRow(group, label, control.input(), picker);
         bindings.add(() -> {
-            if (!input.isFocused() && !input.getText().toString().equals(value.get())) input.setText(value.get());
-            input.setEnabled(project.content().active());
+            control.refresh(project.content().active());
             EditorWidgets.enabled(picker, project.content().active());
         });
     }

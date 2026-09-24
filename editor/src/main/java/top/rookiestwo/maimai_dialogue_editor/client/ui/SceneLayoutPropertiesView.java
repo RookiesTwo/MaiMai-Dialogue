@@ -70,15 +70,8 @@ final class SceneLayoutPropertiesView extends LinearLayout {
     }
     private void reference(String label, String field, ResourceKind kind, String fallback) {
         String expected = binding;
-        var input = EditorWidgets.compactInput(getContext(), value(field, fallback), ignored -> {}, () -> {});
-        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
-        input.setOnFocusChangeListener((view, focused) -> {
-            if (!focused && accepts(expected)) {
-                String entered = input.getText().toString();
-                if (!entered.equals(value(field, fallback))) model.setTheme(entered);
-                project.endEdit();
-            }
-        });
+        var control = new EditorTextField(getContext(), EditorTextBinding.plain(() -> value(field, fallback),
+                () -> accepts(expected), model::setTheme, project::endEdit));
         var choose = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
         choose.setOnClickListener(view -> {
             if (!accepts(expected)) return;
@@ -88,10 +81,9 @@ final class SceneLayoutPropertiesView extends LinearLayout {
                 }
             });
         });
-        EditorWidgets.referenceRow(group, label, input, choose);
+        EditorWidgets.referenceRow(group, label, control.input(), choose);
         bindings.add(() -> {
-            if (!input.isFocused() && !input.getText().toString().equals(value(field, fallback))) input.setText(value(field, fallback));
-            input.setEnabled(model.active());
+            control.refresh(model.active());
             EditorWidgets.enabled(choose, model.active());
         });
     }

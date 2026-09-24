@@ -223,15 +223,15 @@ final class ActionPropertiesView extends LinearLayout {
         field(body, label, call, path, null);
     }
     private void field(LinearLayout body, String label, boolean call, String path, Button picker) {
-        var expected = binding; var input = EditorWidgets.compactInput(getContext(), model.text(call, path, ""), ignored -> {}, () -> {});
-        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
-        input.setOnFocusChangeListener((view, focused) -> {
-            if (!focused && accepts(expected)) discrete(() -> model.set(call, path, new JsonPrimitive(input.getText().toString().strip())));
-        });
+        var expected = binding;
+        var control = new EditorTextField(getContext(), EditorTextBinding.plain(() -> model.text(call, path, ""),
+                () -> accepts(expected), text -> discrete(() -> model.set(call, path, new JsonPrimitive(text.strip()))),
+                () -> {}).commitUnchanged());
+        var input = control.input();
         if (picker == null) EditorWidgets.propertyRow(body, label, input, false);
         else EditorWidgets.referenceRow(body, label, input, picker);
         fields.put(path, input);
-        bindings.add(() -> { String value = model.text(call, path, ""); if (!input.isFocused() && !input.getText().toString().equals(value)) input.setText(value); input.setEnabled(model.active()); });
+        bindings.add(() -> control.refresh(model.active()));
     }
     private void number(LinearLayout body, String label, boolean call, ActionFields.Number field) {
         var expected = binding;

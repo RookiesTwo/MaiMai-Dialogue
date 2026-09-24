@@ -12,26 +12,23 @@ final class DialogueSimulationView extends LinearLayout {
     private final ProjectWorkspace project;
     private final EditorPreviewHost preview;
     private final EditorPropertySection section;
-    private final EditText nodes;
-    private final TextView error, results;
+    private final EditorTextField nodes;
+    private final TextView results;
     private final Button outcome, skip;
     private long generation = -1;
     private boolean refreshing;
     DialogueSimulationView(Context context, ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices, EditorLayoutState layout) {
         super(context); this.project = project; this.preview = preview; setOrientation(VERTICAL);
         section = new EditorPropertySection(context, "simulation.title", layout); addView(section);
-        error = EditorWidgets.compactParagraph(context, ""); error.setTextColor(EditorWidgets.ERROR); error.setVisibility(GONE);
-        nodes = EditorWidgets.compactInput(context, "", ignored -> {}, () -> {});
-        nodes.setSingleLine(false); nodes.setMinLines(2); nodes.setMaxLines(5);
-        nodes.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
-        nodes.setOnFocusChangeListener((view, focused) -> {
-            if (!focused && active() && !refreshing) {
-                try { var next = project.simulation().withProgress(nodes.getText().toString()); error.setText(""); error.setVisibility(GONE); project.simulation(next); }
-                catch (RuntimeException invalid) { error.setText(EditorWidgets.tr("simulation.invalid_nodes")); error.setVisibility(VISIBLE); }
-            }
-        });
-        EditorWidgets.propertyRow(section.body(), "simulation.nodes", nodes, true);
-        section.body().addView(error);
+        var edit = new EditorTextBinding(() -> String.join("\n", project.simulation().progress()),
+                () -> active() && !refreshing, text -> {
+                    try { project.simulation(project.simulation().withProgress(text)); return ""; }
+                    catch (RuntimeException invalid) { return "simulation.invalid_nodes"; }
+                }, () -> {}).commitUnchanged().keepErrorOnFocus();
+        nodes = new EditorTextField(context, edit);
+        nodes.input().setSingleLine(false); nodes.input().setMinLines(2); nodes.input().setMaxLines(5);
+        EditorWidgets.propertyRow(section.body(), "simulation.nodes", nodes.input(), true);
+        section.body().addView(nodes.error());
         outcome = EditorWidgets.fieldButton(context, "", () -> {});
         outcome.setOnClickListener(view -> { if (active()) {
             long expected = generation;
@@ -56,10 +53,8 @@ final class DialogueSimulationView extends LinearLayout {
     void refresh() {
         refreshing = true;
         try {
-            if (generation != project.projectGeneration()) { clearFocus(); generation = project.projectGeneration(); error.setText(""); }
-            String value = String.join("\n", project.simulation().progress());
-            if (!nodes.isFocused() && error.getText().isEmpty() && !nodes.getText().toString().equals(value)) nodes.setText(value);
-            nodes.setEnabled(active()); EditorWidgets.enabled(outcome, active());
+            if (generation != project.projectGeneration()) { clearFocus(); generation = project.projectGeneration(); nodes.reset(); }
+            nodes.refresh(active()); EditorWidgets.enabled(outcome, active());
             outcome.setText(EditorWidgets.tr(project.simulation().commandFailure() ? "simulation.failure" : "simulation.success") + " ▾");
             section.refresh(); refreshResults();
         } finally { refreshing = false; }

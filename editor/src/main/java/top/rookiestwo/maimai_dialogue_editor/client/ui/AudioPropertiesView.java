@@ -86,16 +86,11 @@ final class AudioPropertiesView extends LinearLayout {
     }
     private void sound() {
         Binding expected = binding;
-        var input = EditorWidgets.compactInput(getContext(), model.sound(), ignored -> {}, () -> {});
-        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
-        input.setOnFocusChangeListener((view, focused) -> {
-            if (!focused && accepts(expected)) { model.sound(input.getText().toString()); project.endEdit(); }
-        });
+        var control = new EditorTextField(getContext(), EditorTextBinding.plain(model::sound,
+                () -> accepts(expected), model::sound, project::endEdit).commitUnchanged());
+        var input = control.input();
         fields.put("sound", input);
-        bindings.add(() -> {
-            if (!input.isFocused() && !input.getText().toString().equals(model.sound())) input.setText(model.sound());
-            input.setEnabled(model.active());
-        });
+        bindings.add(() -> control.refresh(model.active()));
         var button = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
         button.setOnClickListener(view -> {
             if (!accepts(expected)) return;

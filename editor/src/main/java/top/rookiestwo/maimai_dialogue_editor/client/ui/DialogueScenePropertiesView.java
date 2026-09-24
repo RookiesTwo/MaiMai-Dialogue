@@ -11,7 +11,7 @@ import java.util.*;
 /** A Dialogue owns only a Scene ID; the referenced resource has its own inspector and history. */
 final class DialogueScenePropertiesView extends LinearLayout {
     private final ProjectWorkspace project;
-    private final EditText input;
+    private final EditorTextField scene;
     private final Button choose;
     private final EditorPropertySection section;
     private ResourceKey bound;
@@ -21,15 +21,8 @@ final class DialogueScenePropertiesView extends LinearLayout {
     DialogueScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
         super(context); this.project = project; setOrientation(VERTICAL);
         section = new EditorPropertySection(context, "edit.scene", layout); addView(section);
-        input = EditorWidgets.compactInput(context, "", ignored -> {}, () -> {});
-        input.setTag(EditorWidgets.DEFERRED_INPUT_TAG, Boolean.TRUE);
-        input.setOnFocusChangeListener((view, focused) -> {
-            if (!focused && accepts(bound, generation)) {
-                String entered = input.getText().toString();
-                if (!entered.equals(value())) project.content().editScene(entered);
-                project.endEdit();
-            }
-        });
+        scene = new EditorTextField(context, EditorTextBinding.plain(this::value,
+                () -> accepts(bound, generation), project.content()::editScene, project::endEdit));
         choose = EditorWidgets.button(context, "edit.choose_resource", () -> {
             ResourceKey expected = bound; long expectedGeneration = generation;
             if (!accepts(expected, expectedGeneration)) return;
@@ -39,7 +32,7 @@ final class DialogueScenePropertiesView extends LinearLayout {
                 }
             });
         });
-        EditorWidgets.referenceRow(section.body(), "edit.scene", input, choose);
+        EditorWidgets.referenceRow(section.body(), "edit.scene", scene.input(), choose);
     }
 
     private Button chooseButton() { return choose; }
@@ -68,11 +61,11 @@ final class DialogueScenePropertiesView extends LinearLayout {
         try {
             if (!Objects.equals(bound, next) || generation != project.projectGeneration()) {
                 clearFocus(); bound = next; generation = project.projectGeneration();
-                input.setText(value());
-            } else if (!input.isFocused() && !input.getText().toString().equals(value())) input.setText(value());
+                scene.reset();
+            } else scene.refresh();
             section.refresh();
         } finally { refreshing = false; }
         boolean active = accepts(bound, generation);
-        input.setEnabled(active); EditorWidgets.enabled(choose, active);
+        scene.input().setEnabled(active); EditorWidgets.enabled(choose, active);
     }
 }
