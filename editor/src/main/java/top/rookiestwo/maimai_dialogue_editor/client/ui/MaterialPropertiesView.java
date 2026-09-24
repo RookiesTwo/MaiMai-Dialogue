@@ -156,24 +156,10 @@ final class MaterialPropertiesView extends LinearLayout {
     }
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;
-        Button button = EditorWidgets.fieldButton(getContext(), "", null);
-        button.setOnClickListener(view -> {
-            if (active() && binding.equals(expected)) choices.show(button, items.get(), value.get(), selected -> {
-                if (active() && binding.equals(expected)) setter.accept(selected);
-            });
-        });
-        button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        EditorWidgets.bindMetrics(button, () -> {
-            int padding = dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP);
-            button.setPadding(padding, 0, padding, 0);
-        });
-        EditorWidgets.propertyRow(group, label, button, false);
-        bindings.add(() -> {
-            EditorWidgets.enabled(button, project.content().active());
-            String text = items.get().stream()
-                    .filter(item -> item.value().equals(value.get())).map(ChoicePresenter.Item::label).findFirst().orElse(value.get());
-            button.setText(text + " ▾"); button.setTooltipText(text);
-        });
+        var field = new EditorChoiceField(getContext(), choices, value, items,
+                () -> active() && binding.equals(expected), () -> project.content().active(), setter, selected -> selected);
+        EditorWidgets.propertyRow(group, label, field.button(), false);
+        bindings.add(field::refresh);
     }
     private void section(String key) {
         var section = new EditorPropertySection(getContext(), key, layout);

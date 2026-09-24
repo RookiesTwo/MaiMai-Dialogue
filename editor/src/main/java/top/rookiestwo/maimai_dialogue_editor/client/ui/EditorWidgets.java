@@ -116,6 +116,23 @@ final class EditorWidgets {
         return button(context, key, action, ButtonRole.FIELD);
     }
 
+    // 普通菜单与资源搜索共用同一套紧凑选项行。
+    static Button choiceRow(Context context, ChoicePresenter.Item item, String selected, Consumer<String> chosen) {
+        Button row = button(context, "", () -> { if (item.enabled()) chosen.accept(item.value()); });
+        row.setText(item.label());
+        row.setTooltipText(item.label());
+        row.setSelected(item.value().equals(selected));
+        row.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        enabled(row, item.enabled());
+        bindMetrics(row, () -> {
+            int padding = row.dp(COMPACT_HORIZONTAL_PADDING_DP);
+            row.setPadding(padding, 0, padding, 0);
+            row.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, row.dp(COMPACT_ROW_DP)));
+        });
+        return row;
+    }
+
     static Button sectionButton(Context context, String key, Runnable action) {
         return button(context, key, action, ButtonRole.SECTION);
     }

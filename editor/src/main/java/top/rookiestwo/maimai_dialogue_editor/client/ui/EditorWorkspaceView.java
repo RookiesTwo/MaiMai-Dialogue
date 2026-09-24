@@ -5,10 +5,8 @@ import icyllis.modernui.R;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.KeyEvent;
 import icyllis.modernui.view.MotionEvent;
-import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.View;
 import icyllis.modernui.view.ViewTreeObserver;
-import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
@@ -237,23 +235,11 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
                 : matchAnchorWidth ? resourceChoices(list, anchor)
                 : EditorDropdownMenu.forContent(list, anchor, 180, this::dismissChoices);
         for (ChoicePresenter.Item item : items) {
-            Button button = EditorWidgets.button(getContext(), "", () -> {
-                if (choices != menu || !item.enabled()) return;
+            list.addView(EditorWidgets.choiceRow(getContext(), item, selected, value -> {
+                if (choices != menu) return;
                 dismissChoices();
-                if (anchor.isAttachedToWindow() && workspace.content().active()) chosen.accept(item.value());
-            });
-            button.setText(item.label());
-            EditorWidgets.enabled(button, item.enabled());
-            button.setTooltipText(item.label());
-            button.setSelected(item.value().equals(selected));
-            button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-            list.addView(button);
-            EditorWidgets.bindMetrics(button, () -> {
-                button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP),
-                        0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
-                button.setLayoutParams(new LinearLayout.LayoutParams(
-                        LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP)));
-            });
+                if (anchor.isAttachedToWindow() && workspace.content().active()) chosen.accept(value);
+            }));
         }
         if (items.isEmpty()) list.addView(EditorWidgets.paragraph(getContext(), "browser.empty"));
         choices = menu;

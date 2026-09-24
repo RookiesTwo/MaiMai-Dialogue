@@ -1,7 +1,6 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
-import icyllis.modernui.view.Gravity;
 import icyllis.modernui.widget.*;
 import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
 import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
@@ -113,22 +112,12 @@ final class SceneLayoutPropertiesView extends LinearLayout {
     }
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;
-        var button = EditorWidgets.fieldButton(getContext(), "", null);
-        button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        EditorWidgets.bindMetrics(button, () -> {
-            int padding = dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP);
-            button.setPadding(padding, 0, padding, 0);
-        });
-        button.setOnClickListener(view -> { if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> {
-            if (accepts(expected) && !selected.equals(value.get())) { project.endEdit(); setter.accept(selected); project.endEdit(); }
-        }); });
-        EditorWidgets.propertyRow(group, label, button, false);
-        bindings.add(() -> {
-            String current = value.get();
-            String text = items.get().stream()
-                    .filter(item -> item.value().equals(current)).map(ChoicePresenter.Item::label).findFirst().orElse(current);
-            button.setText(text + " ▾"); button.setTooltipText(text); EditorWidgets.enabled(button, model.active());
-        });
+        var field = new EditorChoiceField(getContext(), choices, value, items, () -> accepts(expected), model::active,
+                selected -> {
+                    if (!selected.equals(value.get())) { project.endEdit(); setter.accept(selected); project.endEdit(); }
+                }, selected -> selected);
+        EditorWidgets.propertyRow(group, label, field.button(), false);
+        bindings.add(field::refresh);
     }
     private void section(String key) {
         var section = new EditorPropertySection(getContext(), key, layout); form.addView(section); sections.add(section); group = section.body();

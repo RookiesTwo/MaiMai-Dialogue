@@ -1,7 +1,6 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
-import icyllis.modernui.view.Gravity;
 import icyllis.modernui.widget.*;
 import java.util.*;
 import java.util.function.Consumer;
@@ -35,14 +34,7 @@ final class EditorSearchChoices extends LinearLayout {
         int end = Math.min(shown + 100, filtered.size());
         for (; shown < end; shown++) {
             var item = filtered.get(shown);
-            var button = EditorWidgets.button(getContext(), "", () -> { if (item.enabled()) chosen.accept(item.value()); });
-            EditorWidgets.enabled(button, item.enabled());
-            button.setText(item.label()); button.setTooltipText(item.label()); button.setSelected(item.value().equals(selected));
-            button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL); results.addView(button);
-            EditorWidgets.bindMetrics(button, () -> {
-                button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0);
-                button.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, dp(EditorWidgets.COMPACT_ROW_DP)));
-            });
+            results.addView(EditorWidgets.choiceRow(getContext(), item, selected, chosen));
         }
         more.setVisibility(shown < filtered.size() ? VISIBLE : GONE);
     }

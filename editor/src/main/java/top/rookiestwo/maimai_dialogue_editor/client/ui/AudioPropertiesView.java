@@ -1,7 +1,6 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.*;
-import icyllis.modernui.view.Gravity;
 import icyllis.modernui.widget.*;
 import top.rookiestwo.maimai_dialogue_editor.document.AudioWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
@@ -78,22 +77,12 @@ final class AudioPropertiesView extends LinearLayout {
     }
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         Binding expected = binding;
-        var button = EditorWidgets.fieldButton(getContext(), "", () -> {});
-        button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        EditorWidgets.bindMetrics(button, () -> button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0,
-                dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0));
-        button.setOnClickListener(view -> {
-            if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> {
-                if (accepts(expected)) { project.endEdit(); setter.accept(selected); project.endEdit(); }
-            });
-        });
-        EditorWidgets.propertyRow(body, label, button, false);
-        fields.put(label.substring("audio.".length()), button);
-        bindings.add(() -> {
-            String text = items.get().stream().filter(item -> item.value().equals(value.get())).map(ChoicePresenter.Item::label)
-                    .findFirst().orElse(EditorWidgets.tr("edit.unset"));
-            button.setText(text + " ▾"); button.setTooltipText(text); EditorWidgets.enabled(button, model.active());
-        });
+        var field = new EditorChoiceField(getContext(), choices, value, items, () -> accepts(expected), model::active,
+                selected -> { project.endEdit(); setter.accept(selected); project.endEdit(); },
+                selected -> EditorWidgets.tr("edit.unset"));
+        EditorWidgets.propertyRow(body, label, field.button(), false);
+        fields.put(label.substring("audio.".length()), field.button());
+        bindings.add(field::refresh);
     }
     private void sound() {
         Binding expected = binding;

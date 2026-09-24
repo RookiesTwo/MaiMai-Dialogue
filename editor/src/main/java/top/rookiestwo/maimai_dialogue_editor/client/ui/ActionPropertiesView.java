@@ -240,15 +240,13 @@ final class ActionPropertiesView extends LinearLayout {
         EditorWidgets.propertyRow(body, label, control, false); fields.put(field.path(), control); bindings.add(() -> control.refresh(model.active()));
     }
     private void choice(LinearLayout body, String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
-        var expected = binding; var button = EditorWidgets.fieldButton(getContext(), "", () -> {}); button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        EditorWidgets.bindMetrics(button, () -> button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0));
-        button.setOnClickListener(view -> { if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> { if (accepts(expected)) discrete(() -> setter.accept(selected)); }); });
-        EditorWidgets.propertyRow(body, label, button, false); fields.put(label, button);
-        bindings.add(() -> {
-            String selected = value.get(); String text = items.get().stream().filter(item -> item.value().equals(selected)).map(ChoicePresenter.Item::label).findFirst()
-                    .orElse(selected.isBlank() ? EditorWidgets.tr("edit.unset") : selected);
-            button.setText(text + " ▾"); button.setTooltipText(text); EditorWidgets.enabled(button, model.active());
-        });
+        var expected = binding;
+        var field = new EditorChoiceField(getContext(), choices, value, items, () -> accepts(expected), model::active,
+                selected -> discrete(() -> setter.accept(selected)),
+                selected -> selected.isBlank() ? EditorWidgets.tr("edit.unset") : selected);
+        EditorWidgets.propertyRow(body, label, field.button(), false);
+        fields.put(label, field.button());
+        bindings.add(field::refresh);
     }
     private void discrete(Runnable edit) { project.endEdit(); edit.run(); project.endEdit(); }
     private List<ChoicePresenter.Item> booleans() { return List.of(new ChoicePresenter.Item("true", EditorWidgets.tr("audio.yes")), new ChoicePresenter.Item("false", EditorWidgets.tr("audio.no"))); }

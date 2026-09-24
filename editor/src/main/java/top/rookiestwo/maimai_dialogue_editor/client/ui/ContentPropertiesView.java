@@ -372,27 +372,11 @@ final class ContentPropertiesView extends LinearLayout {
 
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         Binding expected = binding;
-        Button button = EditorWidgets.fieldButton(getContext(), "", () -> {});
-        button.setOnClickListener(view -> {
-            if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> {
-                if (accepts(expected)) setter.accept(selected);
-            });
-        });
-        EditorWidgets.propertyRow(group, label, button, false);
-        if (label != null) fields.put(label, button);
-        button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        EditorWidgets.bindMetrics(button, () -> {
-            int padding = dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP);
-            button.setPadding(padding, 0, padding, 0);
-        });
-        bindings.add(() -> {
-            String text = items.get().stream()
-                    .filter(item -> item.value().equals(value.get())).map(ChoicePresenter.Item::label).findFirst()
-                    .orElse(EditorWidgets.tr("edit.unset"));
-            button.setText(text + " ▾");
-            button.setTooltipText(text);
-            EditorWidgets.enabled(button, canEdit());
-        });
+        var control = new EditorChoiceField(getContext(), choices, value, items, () -> accepts(expected), this::canEdit,
+                setter, selected -> EditorWidgets.tr("edit.unset"));
+        EditorWidgets.propertyRow(group, label, control.button(), false);
+        if (label != null) fields.put(label, control.button());
+        bindings.add(control::refresh);
     }
 
     private static List<ChoicePresenter.Item> items(String prefix, String... values) {

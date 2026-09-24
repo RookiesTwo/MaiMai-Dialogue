@@ -235,24 +235,12 @@ final class ScenePropertiesView extends LinearLayout {
     }
     private Button choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;
-        Button button = EditorWidgets.fieldButton(getContext(), "", null);
-        button.setOnClickListener(view -> { if (accepts(expected)) choices.show(button, items.get(), value.get(), selected -> {
-            if (accepts(expected) && !selected.equals(value.get())) setter.accept(selected);
-        }); });
-        button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        EditorWidgets.bindMetrics(button, () -> {
-            int padding = dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP);
-            button.setPadding(padding, 0, padding, 0);
-        });
-        EditorWidgets.propertyRow(group, label, button, false);
-        bindings.add(() -> {
-            String current = value.get();
-            String text = items.get().stream()
-                    .filter(item -> item.value().equals(current)).map(ChoicePresenter.Item::label).findFirst()
-                    .orElse(current.isEmpty() ? EditorWidgets.tr("no_selection") : current);
-            button.setText(text + " ▾"); button.setTooltipText(text); EditorWidgets.enabled(button, model.active());
-        });
-        return button;
+        var field = new EditorChoiceField(getContext(), choices, value, items, () -> accepts(expected), model::active,
+                selected -> { if (!selected.equals(value.get())) setter.accept(selected); },
+                selected -> selected.isEmpty() ? EditorWidgets.tr("no_selection") : selected);
+        EditorWidgets.propertyRow(group, label, field.button(), false);
+        bindings.add(field::refresh);
+        return field.button();
     }
     private void action(LinearLayout row, String label, Runnable action, BooleanSupplier enabled) {
         String expected = binding;
