@@ -6,7 +6,6 @@ import com.google.gson.JsonObject;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.View;
-import icyllis.modernui.graphics.Rect;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
@@ -40,12 +39,13 @@ final class ContentPropertiesView extends LinearLayout {
     private ContentWorkspace.Snapshot state;
     private Binding binding;
     private boolean refreshing;
-    private long focusedRevision = -1;
+    private final EditorIssueFocus issueFocus;
     private final java.util.Map<String, View> fields = new java.util.HashMap<>();
 
     ContentPropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, EditorLayoutState layout) {
         super(context);
         this.workspace = workspace;
+        issueFocus = new EditorIssueFocus(this, workspace);
         content = workspace.content();
         this.choices = choices;
         this.layout = layout;
@@ -75,8 +75,7 @@ final class ContentPropertiesView extends LinearLayout {
     private void focusIssue() {
         var issue = workspace.focusedIssue();
         if (issue == null || workspace.actions().inspecting() || !Objects.equals(issue.resource(), state.key())
-                || focusedRevision == workspace.issueFocusRevision()) return;
-        focusedRevision = workspace.issueFocusRevision();
+                || !issueFocus.pending()) return;
         String path = issue.field().replaceFirst("^steps\\[\\d+]\\.", "").replaceFirst("^end\\.", "");
         boolean option = path.startsWith("exit.options[");
         if (option) path = path.replaceFirst("^exit\\.options\\[\\d+]\\.", "");
@@ -98,15 +97,7 @@ final class ContentPropertiesView extends LinearLayout {
         };
         View target = fields.get(label);
         if (target == null && path.equals("text")) target = fields.get("edit.text_mode");
-        View selected = target;
-        if (selected != null) EditorPropertySection.expandAncestors(selected);
-        long revision = focusedRevision;
-        if (selected != null) post(() -> {
-            if (isAttachedToWindow() && revision == workspace.issueFocusRevision() && workspace.focusedIssue() == issue) {
-                selected.requestFocus();
-                selected.requestRectangleOnScreen(new Rect(0, 0, selected.getWidth(), selected.getHeight()));
-            }
-        });
+        issueFocus.reveal(issue, target);
     }
 
     private String shape() {

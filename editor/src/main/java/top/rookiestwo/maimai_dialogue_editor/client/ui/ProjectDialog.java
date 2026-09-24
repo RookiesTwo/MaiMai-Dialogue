@@ -1,12 +1,8 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
-import icyllis.modernui.view.Gravity;
-import icyllis.modernui.view.MeasureSpec;
-import icyllis.modernui.view.View;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.EditText;
-import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
@@ -18,10 +14,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /** 项目创建、列表选择及确认表单；不提供路径编辑入口。 */
-final class ProjectDialog extends FrameLayout {
+final class ProjectDialog extends EditorModalLayout {
     private final ProjectWorkspace workspace;
     private final LinearLayout content;
-    private final View panel;
     private ProjectListView projectList;
     private final TextView feedback;
     private final List<Button> buttons = new ArrayList<>();
@@ -29,12 +24,8 @@ final class ProjectDialog extends FrameLayout {
     private boolean refreshing;
 
     ProjectDialog(Context context, ProjectWorkspace workspace) {
-        super(context);
+        super(context, 600, 560);
         this.workspace = workspace;
-        setBackground(EditorWidgets.shape(0x80788088, 0));
-        setClickable(true);
-        setFocusable(true);
-        setFocusableInTouchMode(true);
         content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
         EditorWidgets.bindMetrics(content, () -> content.setPadding(dp(18), dp(12), dp(18), dp(12)));
@@ -81,9 +72,7 @@ final class ProjectDialog extends FrameLayout {
         feedback.setMaxLines(3);
         content.addView(feedback);
         // 项目列表独立滚动，刷新／取消始终留在列表下方。
-        panel = projectList == null ? EditorWidgets.formScroll(context, content) : content;
-        EditorWidgets.bindMetrics(panel, () -> panel.setBackground(EditorWidgets.shape(EditorWidgets.PANEL, dp(1))));
-        addView(panel, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER));
+        setPanel(projectList == null ? EditorWidgets.formScroll(context, content) : content);
         refresh();
     }
 
@@ -97,14 +86,7 @@ final class ProjectDialog extends FrameLayout {
     }
 
     private void addButton(String key, Runnable action) {
-        Button button = EditorWidgets.button(getContext(), key, action);
-        buttons.add(button);
-        content.addView(button);
-        EditorWidgets.bindMetrics(button, () -> {
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(34));
-            params.setMargins(0, dp(6), 0, 0);
-            button.setLayoutParams(params);
-        });
+        buttons.add(EditorWidgets.formButton(content, key, action));
     }
 
     void focusFirst() {
@@ -135,13 +117,4 @@ final class ProjectDialog extends FrameLayout {
         if (input != null && !input.getText().toString().equals(value)) input.setText(value);
     }
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int width = MeasureSpec.getSize(widthMeasureSpec);
-        int height = MeasureSpec.getSize(heightMeasureSpec);
-        LayoutParams params = (LayoutParams) panel.getLayoutParams();
-        params.width = Math.max(0, Math.min(dp(600), width - Math.min(dp(24), width / 8)));
-        params.height = Math.max(0, Math.min(dp(560), height - Math.min(dp(24), height / 8)));
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-    }
 }

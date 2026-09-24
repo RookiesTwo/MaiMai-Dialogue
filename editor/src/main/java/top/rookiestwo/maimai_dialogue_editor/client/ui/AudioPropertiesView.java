@@ -21,10 +21,11 @@ final class AudioPropertiesView extends LinearLayout {
     private LinearLayout body;
     private EditorPropertySection section;
     private final Map<String, icyllis.modernui.view.View> fields = new HashMap<>();
-    private long focusedIssue = -1;
+    private final EditorIssueFocus issueFocus;
     AudioPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout, EditorPreviewHost preview) {
         super(context); setOrientation(VERTICAL);
         this.project = project; model = project.audio(); this.choices = choices; this.layout = layout; this.preview = preview;
+        issueFocus = new EditorIssueFocus(this, project);
         preview.setAudioListener(this::refresh);
     }
     void refresh() {
@@ -40,16 +41,12 @@ final class AudioPropertiesView extends LinearLayout {
     }
     private void focusIssue() {
         var issue = project.focusedIssue(); var target = binding.target();
-        if (issue == null || target == null || !target.key().equals(issue.resource()) || focusedIssue == project.issueFocusRevision()) return;
+        if (issue == null || target == null || !target.key().equals(issue.resource()) || !issueFocus.pending()) return;
         String prefix = target.bgm() ? "bgm" : (target.step() == -2 ? "" : target.step() == -1 ? "end." : "steps[" + target.step() + "].") + "typewriter_sound";
         if (!issue.field().equals(prefix) && !issue.field().startsWith(prefix + ".")) return;
-        focusedIssue = project.issueFocusRevision();
         var field = fields.getOrDefault(issue.field().substring(Math.min(issue.field().length(), prefix.length() + 1)), fields.get("mode"));
-        layout.collapsedPropertySections.remove(target.bgm() ? "audio.bgm" : "audio.typing"); section.refresh();
-        if (field != null) post(() -> {
-            if (field.isAttachedToWindow() && project.focusedIssue() == issue) {
-                field.requestFocus(); field.requestRectangleOnScreen(new icyllis.modernui.graphics.Rect(0, 0, field.getWidth(), field.getHeight()));
-            }
+        issueFocus.reveal(issue, field, () -> {
+            layout.collapsedPropertySections.remove(target.bgm() ? "audio.bgm" : "audio.typing"); section.refresh();
         });
     }
     private boolean accepts(Binding expected) {

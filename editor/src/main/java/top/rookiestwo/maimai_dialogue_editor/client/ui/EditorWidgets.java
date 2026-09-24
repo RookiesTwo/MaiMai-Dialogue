@@ -273,6 +273,17 @@ final class EditorWidgets {
         });
     }
 
+    static Button formButton(LinearLayout container, String key, Runnable action) {
+        Button button = button(container.getContext(), key, action);
+        container.addView(button);
+        bindMetrics(button, () -> {
+            var params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, button.dp(34));
+            params.setMargins(0, button.dp(6), 0, 0);
+            button.setLayoutParams(params);
+        });
+        return button;
+    }
+
     static EditText compactInput(Context context, String value, Consumer<String> changed, Runnable endEdit) {
         EditText input = input(context, value, changed, endEdit);
         bindMetrics(input, () -> {

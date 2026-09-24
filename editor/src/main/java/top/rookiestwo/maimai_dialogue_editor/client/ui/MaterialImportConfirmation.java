@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 /** Confirms native file selections and their logical resource names; never browses the filesystem. */
-final class MaterialImportConfirmation extends FrameLayout {
+final class MaterialImportConfirmation extends EditorModalLayout {
     private final ProjectWorkspace project;
     private final MaterialWorkspace model;
     private final LinearLayout panel, files;
@@ -21,14 +21,9 @@ final class MaterialImportConfirmation extends FrameLayout {
     private boolean refreshing;
 
     MaterialImportConfirmation(Context context, ProjectWorkspace project) {
-        super(context); this.project = project; model = project.materials();
-        setBackground(EditorWidgets.shape(0x80788088, 0)); setClickable(true);
-        setFocusable(true); setFocusableInTouchMode(true);
+        super(context, 560, 420); this.project = project; model = project.materials();
         panel = new LinearLayout(context); panel.setOrientation(LinearLayout.VERTICAL);
-        EditorWidgets.bindMetrics(panel, () -> {
-            panel.setPadding(dp(12), dp(8), dp(12), dp(8));
-            panel.setBackground(EditorWidgets.shape(EditorWidgets.PANEL, dp(1)));
-        });
+        EditorWidgets.bindMetrics(panel, () -> panel.setPadding(dp(12), dp(8), dp(12), dp(8)));
         panel.addView(EditorWidgets.label(context, model.replacing() ? "material.replace" : "material.import", 18, EditorWidgets.ACCENT));
         choose = EditorWidgets.button(context, "material.choose_files", model::chooseFiles); panel.addView(choose);
         source = EditorWidgets.paragraph(context, ""); panel.addView(source);
@@ -45,7 +40,7 @@ final class MaterialImportConfirmation extends FrameLayout {
         submit = EditorWidgets.button(context, "material.import_confirm", model::submit);
         cancel = EditorWidgets.button(context, "project.cancel", project::cancel);
         actions.addView(submit); actions.addView(cancel); panel.addView(actions);
-        addView(panel, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER));
+        setPanel(panel);
         refresh();
     }
 
@@ -84,11 +79,4 @@ final class MaterialImportConfirmation extends FrameLayout {
         EditorWidgets.enabled(choose, model.canSelectFiles());
     }
 
-    @Override protected void onMeasure(int widthSpec, int heightSpec) {
-        int width = MeasureSpec.getSize(widthSpec), height = MeasureSpec.getSize(heightSpec);
-        var params = (LayoutParams)panel.getLayoutParams();
-        params.width = Math.max(0, Math.min(dp(560), width - Math.min(dp(24), width / 8)));
-        params.height = Math.max(0, Math.min(dp(420), height - Math.min(dp(24), height / 8)));
-        super.onMeasure(widthSpec, heightSpec);
-    }
 }

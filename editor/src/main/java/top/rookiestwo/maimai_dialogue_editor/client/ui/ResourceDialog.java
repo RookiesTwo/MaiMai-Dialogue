@@ -1,12 +1,8 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
-import icyllis.modernui.view.Gravity;
-import icyllis.modernui.view.MeasureSpec;
-import icyllis.modernui.view.View;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.EditText;
-import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
@@ -18,10 +14,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** Resource ID forms and deletion confirmation in the existing workspace View tree. */
-final class ResourceDialog extends FrameLayout {
+final class ResourceDialog extends EditorModalLayout {
     private final ProjectWorkspace workspace;
     private final ResourceWorkspace resources;
-    private final View panel;
     private final LinearLayout content;
     private final EditText path;
     private final TextView id;
@@ -31,13 +26,9 @@ final class ResourceDialog extends FrameLayout {
     private boolean refreshing;
 
     ResourceDialog(Context context, ProjectWorkspace workspace) {
-        super(context);
+        super(context, 520, 480);
         this.workspace = workspace;
         resources = workspace.resources();
-        setBackground(EditorWidgets.shape(0x80788088, 0));
-        setClickable(true);
-        setFocusable(true);
-        setFocusableInTouchMode(true);
         content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
         EditorWidgets.bindMetrics(content, () -> content.setPadding(dp(18), dp(12), dp(18), dp(12)));
@@ -54,7 +45,7 @@ final class ResourceDialog extends FrameLayout {
                 LayoutParams.MATCH_PARENT, dp(40))));
         if (resources.form() == ResourceWorkspace.Form.CREATE) {
             for (ResourceKind kind : ResourceKind.values()) {
-                if (kind.creatable()) kinds.put(kind, addButton("resource." + kind.key(), () -> resources.setFormKind(kind)));
+                if (kind.creatable()) kinds.put(kind, EditorWidgets.formButton(content, "resource." + kind.key(), () -> resources.setFormKind(kind)));
             }
         }
         if (resources.form() != ResourceWorkspace.Form.DELETE) {
@@ -72,23 +63,10 @@ final class ResourceDialog extends FrameLayout {
         content.addView(id);
         feedback = EditorWidgets.paragraph(context, "");
         content.addView(feedback);
-        submit = addButton(resources.form() == ResourceWorkspace.Form.DELETE ? "browser.delete" : "browser.confirm", resources::submit);
-        addButton("project.cancel", resources::cancel);
-        panel = EditorWidgets.formScroll(context, content);
-        EditorWidgets.bindMetrics(panel, () -> panel.setBackground(EditorWidgets.shape(EditorWidgets.PANEL, dp(1))));
-        addView(panel, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER));
+        submit = EditorWidgets.formButton(content, resources.form() == ResourceWorkspace.Form.DELETE ? "browser.delete" : "browser.confirm", resources::submit);
+        EditorWidgets.formButton(content, "project.cancel", resources::cancel);
+        setPanel(EditorWidgets.formScroll(context, content));
         refresh();
-    }
-
-    private Button addButton(String key, Runnable action) {
-        Button button = EditorWidgets.button(getContext(), key, action);
-        content.addView(button);
-        EditorWidgets.bindMetrics(button, () -> {
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, dp(34));
-            params.setMargins(0, dp(6), 0, 0);
-            button.setLayoutParams(params);
-        });
-        return button;
     }
 
     void focusFirst() { if (path != null) path.requestFocus(); else requestFocus(); }
@@ -118,13 +96,4 @@ final class ResourceDialog extends FrameLayout {
         EditorWidgets.enabled(submit, resources.active() && !blocked);
     }
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        int width = MeasureSpec.getSize(widthMeasureSpec);
-        int height = MeasureSpec.getSize(heightMeasureSpec);
-        LayoutParams params = (LayoutParams) panel.getLayoutParams();
-        params.width = Math.max(0, Math.min(dp(520), width - Math.min(dp(24), width / 8)));
-        params.height = Math.max(0, Math.min(dp(480), height - Math.min(dp(24), height / 8)));
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-    }
 }

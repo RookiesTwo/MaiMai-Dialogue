@@ -33,11 +33,13 @@ final class ActionPropertiesView extends LinearLayout {
     private Binding binding;
     private boolean refreshing;
     private String sceneSignature = "", contextError = "", conversionError = "";
-    private long metadataRequest, conversionRequest, focusedIssue = -1;
+    private long metadataRequest, conversionRequest;
+    private final EditorIssueFocus issueFocus;
     private ActionSceneContext scene;
     ActionPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout, EditorPreviewHost preview) {
         super(context); setOrientation(VERTICAL); this.project = project; model = project.actions(); this.choices = choices; this.layout = layout;
         this.preview = preview; keyframes = new EditorActionKeyframes(project, preview, choices);
+        issueFocus = new EditorIssueFocus(this, project);
     }
     void refresh() {
         var context = model.inspecting() ? model.context() : null;
@@ -294,20 +296,17 @@ final class ActionPropertiesView extends LinearLayout {
 
     private void focusIssue() {
         var issue = project.focusedIssue(); var context = model.context();
-        if (issue == null || !model.inspecting() || !context.resource().equals(issue.resource()) || focusedIssue == project.issueFocusRevision()) return;
+        if (issue == null || !model.inspecting() || !context.resource().equals(issue.resource()) || !issueFocus.pending()) return;
         String path = issue.field();
         if (!context.standalone()) {
             String prefix = (context.step() == -1 ? "end" : "steps[" + context.step() + "]") + ".actions[" + model.selected() + "]";
             if (!path.startsWith(prefix)) return;
             path = path.substring(prefix.length()).replaceFirst("^\\.", "").replaceFirst("^action\\.action\\.", "");
         }
-        focusedIssue = project.issueFocusRevision();
         String normalized = path.replaceAll("\\[(\\d+)]", ".$1"); var field = fields.get(normalized);
         if (field == null) field = fields.get(normalized.startsWith("target") ? "action.target" : normalized.startsWith("action") ? "action.source" : "action.add_component");
-        layout.collapsedPropertySections.removeIf(key -> key.startsWith("action.")); bindings.forEach(Runnable::run);
-        var selected = field;
-        if (selected != null) post(() -> { if (selected.isAttachedToWindow() && project.focusedIssue() == issue) {
-            selected.requestFocus(); selected.requestRectangleOnScreen(new icyllis.modernui.graphics.Rect(0, 0, selected.getWidth(), selected.getHeight()));
-        }});
+        issueFocus.reveal(issue, field, () -> {
+            layout.collapsedPropertySections.removeIf(key -> key.startsWith("action.")); bindings.forEach(Runnable::run);
+        });
     }
 }
