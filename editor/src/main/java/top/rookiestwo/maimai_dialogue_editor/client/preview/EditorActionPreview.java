@@ -1,6 +1,5 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.preview;
 
-import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
 
 import icyllis.modernui.core.Core;
 import icyllis.modernui.graphics.Image;
@@ -19,7 +18,7 @@ import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
 import java.util.*;
 
 /** UI-thread lifecycle of a standalone action preview. All asynchronous completions are request-scoped. */
-final class EditorActionPreview {
+public final class EditorActionPreview {
     private final EditorPreviewHost host;
     private final ProjectWorkspace workspace;
     private final ActionPreviewSession session;
@@ -39,8 +38,8 @@ final class EditorActionPreview {
         session = new ActionPreviewSession(request -> EditorContentPreparation.prepare(workspace,
                 external -> ActionPreviewSession.prepare(request, external)), task -> Core.getUiHandler().post(task), this::prepared);
     }
-    boolean canPlay() { return host.mode() == EditorPreviewHost.Mode.ACTION && workspace.actions().active(); }
-    boolean playing() { return playing || playRequested; }
+    public boolean canPlay() { return host.mode() == EditorPreviewHost.Mode.ACTION && workspace.actions().active(); }
+    public boolean playing() { return playing || playRequested; }
     boolean canSeek() { return canPlay() && displayed != null && displayed == session.prepared() && pendingImages == null; }
     boolean acceptCanvasCommit(ProjectDraft before, top.rookiestwo.maimai_dialogue.presentation.action.SceneAction action) {
         if (!canSeek() || playing || playRequested || request == null || request.draft() != before) return false;
@@ -55,8 +54,8 @@ final class EditorActionPreview {
         closeAudio(); playRequested = playing = false;
         if (changed) host.refresh();
     }
-    String error() { return failure.isEmpty() ? session.error() : failure; }
-    List<String> targets() {
+    public String error() { return failure.isEmpty() ? session.error() : failure; }
+    public List<String> targets() {
         var scene = session.prepared();
         return scene == null ? List.of("dialogue") : new ActionSceneContext(scene.scene().scene()).targets();
     }
@@ -98,7 +97,7 @@ final class EditorActionPreview {
         if (ids.isEmpty()) publish(next, loaded, source);
         for (var id : ids) source.load(id, image -> {
             if (expected != revision) return;
-            if (image == null) { failed[0] = true; failure = EditorWidgets.tr("scene.missing_image") + " " + id; }
+            if (image == null) { failed[0] = true; failure = net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.missing_image") + " " + id; }
             else loaded.put(id, image);
             if (--remaining[0] == 0) {
                 if (!failed[0]) publish(next, loaded, source);
@@ -123,7 +122,7 @@ final class EditorActionPreview {
         restorePosition = null;
         host.refresh();
     }
-    void play() {
+    public void play() {
         if (!canPlay()) return;
         workspace.actions().endGesture(true); workspace.endEdit(); host.stopAudition();
         closeAudio(); failure = "";
@@ -131,7 +130,7 @@ final class EditorActionPreview {
         else if (session.error().isEmpty()) playRequested = true;
         host.refresh();
     }
-    void stop() {
+    public void stop() {
         playRequested = false; closeAudio(); playing = false;
         if (displayed != null) render(false);
         host.refresh();
@@ -149,7 +148,7 @@ final class EditorActionPreview {
         host.bindTimeline(this, timelinePlayback, 1, play);
         var state = new DialogueScreenState(token, Optional.of(displayed.scene().scene()), Optional.of(displayed.scene().theme()),
                 Optional.of(playback), PlaybackPhase.READY, !play, Optional.empty(), false, false, 0,
-                Optional.of(EditorWidgets.tr("scene.preview_speaker")), Optional.of(EditorWidgets.tr("scene.preview_text")),
+                Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_speaker")), Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_text")),
                 Optional.empty(), List.of(), List.of(), false, false, TypewriterSound.SILENT);
         if (actions == null) actions = new Playback(state); else actions.state = state;
         playing = play;

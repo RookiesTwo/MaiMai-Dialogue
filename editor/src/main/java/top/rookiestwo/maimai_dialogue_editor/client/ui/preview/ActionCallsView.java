@@ -1,4 +1,6 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.preview;
+
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorButtonIcon;
@@ -16,7 +18,7 @@ import top.rookiestwo.maimai_dialogue_editor.project.*;
 import java.util.*;
 
 /** Scrollable Step/End action calls; resources themselves remain in the left resource tree. */
-final class ActionCallsView extends LinearLayout {
+public final class ActionCallsView extends LinearLayout {
     private final ProjectWorkspace project;
     private final ActionWorkspace model;
     private final EditorPreviewHost preview;
@@ -36,7 +38,7 @@ final class ActionCallsView extends LinearLayout {
     private final List<Button> controls = new ArrayList<>(), rows = new ArrayList<>();
     private Object revision;
     private ActionWorkspace.Context context;
-    ActionCallsView(Context context, ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices) {
+    public ActionCallsView(Context context, ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices) {
         super(context); this.project = project; this.preview = preview; model = project.actions(); setOrientation(VERTICAL); keyframes = new EditorActionKeyframes(project, preview, choices);
         var toolbar = new LinearLayout(context); toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setBaselineAligned(false);
@@ -112,7 +114,7 @@ final class ActionCallsView extends LinearLayout {
             button.setLayoutParams(params);
         }); return button;
     }
-    void refresh() {
+    public void refresh() {
         var next = model.context(); var resource = next == null ? null : project.draft().revision(next.resource());
         var playback = preview.timelinePlayback();
         if (!Objects.equals(context, next) || revision != resource || shownPlayback != playback) {

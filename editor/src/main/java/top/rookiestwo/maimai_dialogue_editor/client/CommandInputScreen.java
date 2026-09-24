@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.workbench.EditorFragment;
+
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.CommandSuggestions;
@@ -8,7 +10,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
-import top.rookiestwo.maimai_dialogue_editor.client.ui.EditorFragment;
 
 import java.util.Optional;
 import java.util.function.Consumer;

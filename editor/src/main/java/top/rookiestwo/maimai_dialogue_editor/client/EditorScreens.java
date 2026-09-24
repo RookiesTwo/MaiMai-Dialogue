@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.workbench.EditorFragment;
+
 import icyllis.modernui.fragment.Fragment;
 import icyllis.modernui.mc.MuiScreen;
 import icyllis.modernui.mc.neoforge.MuiForgeApi;
@@ -9,7 +11,6 @@ import net.minecraft.commands.Commands;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import org.jetbrains.annotations.Nullable;
-import top.rookiestwo.maimai_dialogue_editor.client.ui.EditorFragment;
 
 public final class EditorScreens {
     private EditorScreens() {

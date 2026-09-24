@@ -1,4 +1,6 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.workbench;
+
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
 
 import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.core.Core;

@@ -1,4 +1,8 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.workbench;
+
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.preview.ActionCallsView;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.preview.EditorPreviewView;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.properties.ResourcePropertiesView;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.resource.ResourceBrowserView;
@@ -74,7 +78,8 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         }, false);
         EditorWidgets.propertyButtonScope(properties);
         document = new ResourceDocumentView(context, workspace);
-        preview = new EditorPanel(context, "scene_preview", previewHost.createView(context, choices), null, true);
+        preview = new EditorPanel(context, "scene_preview",
+                previewHost.createView(id -> new EditorPreviewView(context, previewHost, id, choices)), null, true);
         actionCalls = new ActionCallsView(context, workspace, previewHost, choices);
         actions = new EditorPanel(context, "actions", actionCalls, null, true);
         leftRail = EditorWidgets.icon(context, "›", "expand_left", () -> {

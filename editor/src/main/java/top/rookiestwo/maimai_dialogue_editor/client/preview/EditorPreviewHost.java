@@ -1,9 +1,5 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.preview;
 
-import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
-import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
-
-import icyllis.modernui.core.Context;
 import icyllis.modernui.core.Core;
 import icyllis.modernui.fragment.Fragment;
 import icyllis.modernui.fragment.FragmentManager;
@@ -38,7 +34,7 @@ import java.util.function.Consumer;
 
 /** UI-thread owner of one embedded runtime Fragment. Client callbacks cross back through the UI handler. */
 public final class EditorPreviewHost {
-    enum Mode { DIALOGUE, IMAGE, SOUND, SCENE, THEME, ACTION, EMPTY }
+    public enum Mode { DIALOGUE, IMAGE, SOUND, SCENE, THEME, ACTION, EMPTY }
     private final Fragment owner;
     private final ProjectWorkspace workspace;
     private final EditorPreviewAssets assets;
@@ -55,7 +51,7 @@ public final class EditorPreviewHost {
     private final EditorActionPreview actionPreview;
     private DialogueImageSource actionImages;
     private final int containerId = View.generateViewId();
-    private EditorPreviewView view;
+    private PreviewDisplay view;
     private EditorPreviewSession playback;
     private DialogueFragment fragment;
     private PreviewActions previewActions;
@@ -94,11 +90,11 @@ public final class EditorPreviewHost {
     private TimelineBinding currentTimelineBinding() {
         return new TimelineBinding(workspace.projectGeneration(), workspace.draft(), workspace.actions().context());
     }
-    top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback timelinePlayback() {
+    public top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback timelinePlayback() {
         return Objects.equals(timelineBinding, currentTimelineBinding()) ? timeline.playback() : null;
     }
-    top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline timeline() { return timeline; }
-    void setTimelineListener(Runnable listener) { timelineChanged = listener; }
+    public top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline timeline() { return timeline; }
+    public void setTimelineListener(Runnable listener) { timelineChanged = listener; }
     private final java.util.Set<Runnable> timelineObservers = new java.util.LinkedHashSet<>();
     private View timelineHoverOwner;
     private boolean playheadHovered;
@@ -107,15 +103,15 @@ public final class EditorPreviewHost {
     private void notifyTimelineChanged() {
         timelineChanged.run(); java.util.List.copyOf(timelineObservers).forEach(Runnable::run);
     }
-    boolean playheadHovered() { return playheadHovered; }
-    void playheadHover(View owner, boolean hovered) {
+    public boolean playheadHovered() { return playheadHovered; }
+    public void playheadHover(View owner, boolean hovered) {
         if (!hovered && timelineHoverOwner != owner) return;
         timelineHoverOwner = hovered ? owner : null;
         if (playheadHovered == hovered) return;
         playheadHovered = hovered;
         // Hover exit may run while rows are being removed; never rebuild the timeline recursively.
         var expectedView = view;
-        if (expectedView != null) expectedView.post(() -> {
+        if (expectedView != null) expectedView.root().post(() -> {
             if (!disposed && view == expectedView) notifyTimelineChanged();
         });
     }
@@ -142,34 +138,34 @@ public final class EditorPreviewHost {
             sampledPlayback = timeline.playback(); sampledPosition = timeline.position();
         }
     }
-    boolean timelineCanvasReady() {
+    public boolean timelineCanvasReady() {
         return timeline.manual() && sampledPlayback == timelinePlayback() && sampledPosition == timeline.position();
     }
-    DialogueFragment timelineFragment() { return canSeekTimeline() ? fragment : null; }
-    void renderCanvasFrame(top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback expected,
+    public DialogueFragment timelineFragment() { return canSeekTimeline() ? fragment : null; }
+    public void renderCanvasFrame(top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback expected,
                            top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback frame, boolean immediate) {
         if (expected != timeline.playback()) return;
         canvasBase = expected; canvasFrame = frame;
         if (immediate) {
-            if (view != null) view.removeCallbacks(timelineFrame);
+            if (view != null) view.root().removeCallbacks(timelineFrame);
             timelineFramePending = false; freezeTimelineFrame();
         } else if (!timelineFramePending && view != null) {
-            timelineFramePending = true; view.postOnAnimation(timelineFrame);
+            timelineFramePending = true; view.root().postOnAnimation(timelineFrame);
         }
     }
-    boolean canSeekTimeline() {
+    public boolean canSeekTimeline() {
         return timelinePlayback() != null && fragment != null && !loading && (mode() == Mode.ACTION ? actionPreview.canSeek()
                 : canOperate() && source == workspace.draft() && workspace.resources().selection().isStep());
     }
-    void seekTimeline(top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback expected, int elapsed) {
+    public void seekTimeline(top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback expected, int elapsed) {
         if (!canSeekTimeline() || !timeline.seek(expected, elapsed)) return;
         canvasBase = canvasFrame = null;
         closeDialogueAudio(); if (auditioning()) stopAudition();
         if (mode() == Mode.ACTION) actionPreview.pauseForSeek();
-        if (!timelineFramePending && view != null) { timelineFramePending = true; view.postOnAnimation(timelineFrame); }
+        if (!timelineFramePending && view != null) { timelineFramePending = true; view.root().postOnAnimation(timelineFrame); }
         notifyTimelineChanged();
     }
-    void replayTimeline() { if (mode() == Mode.ACTION) actionPreview.play(); else restartStep(); }
+    public void replayTimeline() { if (mode() == Mode.ACTION) actionPreview.play(); else restartStep(); }
     private ProjectDraft observedDraft;
     private long observedProject = -1;
     private ResourceKey observedDocument;
@@ -211,27 +207,27 @@ public final class EditorPreviewHost {
         actionPreview = new EditorActionPreview(this);
     }
 
-    EditorPreviewView createView(Context context, ChoicePresenter choices) {
+    public View createView(java.util.function.IntFunction<? extends PreviewDisplay> factory) {
         releasingView = false;
-        view = new EditorPreviewView(context, this, containerId, choices);
+        view = factory.apply(containerId);
         workspace.scenes().setLiveListener(immediate -> { if (view != null) view.requestSceneFrame(immediate); });
         workspace.themes().setLiveListener(this::requestThemeFrame);
-        return view;
+        return view.root();
     }
 
-    void setReferenceHeight(int height) {
+    public void setReferenceHeight(int height) {
         if (!disposed && view != null) view.setReferenceHeight(height);
     }
 
-    void finishViewportResize() {
+    public void finishViewportResize() {
         if (!disposed && view != null) view.refreshContentAfterLayout();
     }
 
-    void refreshViewport(EditorPreviewView sourceView) {
+    public void refreshViewport(PreviewDisplay sourceView) {
         if (!disposed && view == sourceView && fragment != null) fragment.refreshViewport();
     }
 
-    boolean canStart() {
+    public boolean canStart() {
         return mode() == Mode.ACTION ? actionPreview.canPlay() : canOperate();
     }
 
@@ -242,12 +238,12 @@ public final class EditorPreviewHost {
                 && workspace.draft() != null && opened != null && opened.kind() == ResourceKind.DIALOGUE;
     }
 
-    boolean running() { return playback != null && playback.running(); }
-    boolean loading() { return loading; }
-    String message() { return message; }
-    String error() { return error; }
-    record ImagePreview(String namespace, String path, boolean linear, long revision) {}
-    Mode mode() {
+    public boolean running() { return playback != null && playback.running(); }
+    public boolean loading() { return loading; }
+    public String message() { return message; }
+    public String error() { return error; }
+    public record ImagePreview(String namespace, String path, boolean linear, long revision) {}
+    public Mode mode() {
         ResourceKey key = workspace.resources().opened();
         if (key == null) return Mode.EMPTY;
         return switch (key.kind()) {
@@ -260,8 +256,8 @@ public final class EditorPreviewHost {
             default -> Mode.EMPTY;
         };
     }
-    AudioPreviewSession audio() { return audio; }
-    EditorActionPreview actionPreview() { return actionPreview; }
+    public AudioPreviewSession audio() { return audio; }
+    public EditorActionPreview actionPreview() { return actionPreview; }
     public void setAudioListener(Runnable listener) { audioChanged = listener; }
     public boolean auditioning() { return auditionLoading || audition != null && audition.active(); }
     public String auditionError() { return auditionError; }
@@ -315,15 +311,15 @@ public final class EditorPreviewHost {
         if (dialogueAudio != null) dialogueAudio.close();
         dialogueAudio = null;
     }
-    ScenePreviewSession scenes() { return scenes; }
-    EditorPreviewAssets assets() { return assets; }
-    ProjectWorkspace workspace() { return workspace; }
-    void finishSceneDrag(boolean commit) { if (view != null) view.finishSceneDrag(commit); }
+    public ScenePreviewSession scenes() { return scenes; }
+    public EditorPreviewAssets assets() { return assets; }
+    public ProjectWorkspace workspace() { return workspace; }
+    public void finishSceneDrag(boolean commit) { if (view != null) view.finishSceneDrag(commit); }
     boolean viewingMaterial() {
         ResourceKey key = workspace.resources().opened();
         return key != null && (key.kind() == ResourceKind.IMAGE || key.kind() == ResourceKind.VISUAL_ASSET);
     }
-    ImagePreview imagePreview() {
+    public ImagePreview imagePreview() {
         if (!viewingMaterial() || workspace.materials().previewNamespace().isEmpty()
                 || workspace.draft() == null || !workspace.materials().previewNamespace().equals(workspace.draft().namespace())) return null;
         var state = workspace.content().snapshot();
@@ -341,9 +337,9 @@ public final class EditorPreviewHost {
         if (location == null) return null;
         return new ImagePreview(location.getNamespace(), location.getPath(), linear, workspace.materials().loadedRevision());
     }
-    DialogueImageSource openImages() { return assets.openImages(); }
+    public DialogueImageSource openImages() { return assets.openImages(); }
 
-    void synchronize() {
+    public void synchronize() {
         // Do not consume navigation before mounting is possible. The attachment callback retries every preview mode.
         if (!viewReady()) return;
         if (auditionDraft != null && (auditionDraft != workspace.draft()
@@ -416,7 +412,7 @@ public final class EditorPreviewHost {
         notifyTimelineChanged();
     }
 
-    void start() {
+    public void start() {
         if (mode() == Mode.ACTION) { actionPreview.play(); return; }
         startAt(0);
     }
@@ -536,7 +532,7 @@ public final class EditorPreviewHost {
         });
     }
 
-    void advance() {
+    public void advance() {
         if (mode() == Mode.ACTION) { actionPreview.play(); return; }
         if (!canStart()) return;
         if (loading) {
@@ -559,7 +555,7 @@ public final class EditorPreviewHost {
         render();
     }
 
-    void stop() {
+    public void stop() {
         if (mode() == Mode.ACTION) {
             reset(); actionPreview.stop(); return;
         }
@@ -570,7 +566,7 @@ public final class EditorPreviewHost {
     }
 
     private void showIdleControls() {
-        if (disposed || view == null || !view.isAttachedToWindow()) return;
+        if (disposed || view == null || !view.root().isAttachedToWindow()) return;
         if (mode() == Mode.SCENE || mode() == Mode.THEME || mode() == Mode.ACTION) return;
         if (mode() != Mode.DIALOGUE) { clearFragments(); return; }
         FragmentManager manager = owner.getChildFragmentManager();
@@ -583,7 +579,7 @@ public final class EditorPreviewHost {
     }
 
     private void reset() {
-        if (view != null) view.removeCallbacks(timelineFrame);
+        if (view != null) view.root().removeCallbacks(timelineFrame);
         timelineFramePending = false;
         canvasBase = canvasFrame = null;
         sampledPlayback = null;
@@ -674,13 +670,13 @@ public final class EditorPreviewHost {
         notifyTimelineChanged();
     }
 
-    DialogueFragment sceneFragment() { return sceneActions == null ? null : fragment; }
+    public DialogueFragment sceneFragment() { return sceneActions == null ? null : fragment; }
 
     boolean actionViewReady() {
         return viewReady() && mode() == Mode.ACTION;
     }
     private boolean viewReady() {
-        return !disposed && !releasingView && view != null && view.isAttachedToWindow()
+        return !disposed && !releasingView && view != null && view.root().isAttachedToWindow()
                 && !owner.getChildFragmentManager().isDestroyed() && !owner.getChildFragmentManager().isStateSaved();
     }
     /** Every embedded mode must leave keyboard focus (and IME composition) with the editor's active field. */
@@ -701,20 +697,20 @@ public final class EditorPreviewHost {
         } else fragment.render(state);
     }
 
-    void clearScenePreview() {
+    public void clearScenePreview() {
         if (sceneActions != null && sceneDocument != null && sceneDocument.kind() == ResourceKind.SCENE && !releasingView) clearFragments();
     }
 
-    int themeExample() { return workspace.themeExample(); }
-    void themeExample(int example) { workspace.themeExample(example); refreshTheme(); if (view != null) view.refresh(); }
-    String themeError() { return workspace.themes().error(); }
+    public int themeExample() { return workspace.themeExample(); }
+    public void themeExample(int example) { workspace.themeExample(example); refreshTheme(); if (view != null) view.refresh(); }
+    public String themeError() { return workspace.themes().error(); }
     private void requestThemeFrame(boolean immediate) {
-        if (view == null || !view.isAttachedToWindow() || mode() != Mode.THEME) return;
-        if (immediate) { view.removeCallbacks(themeFrame); themeFramePending = false; refreshTheme(); }
-        else if (!themeFramePending) { themeFramePending = true; view.postOnAnimation(themeFrame); }
+        if (view == null || !view.root().isAttachedToWindow() || mode() != Mode.THEME) return;
+        if (immediate) { view.root().removeCallbacks(themeFrame); themeFramePending = false; refreshTheme(); }
+        else if (!themeFramePending) { themeFramePending = true; view.root().postOnAnimation(themeFrame); }
     }
-    void refreshTheme() {
-        if (disposed || releasingView || mode() != Mode.THEME || view == null || !view.isAttachedToWindow()) return;
+    public void refreshTheme() {
+        if (disposed || releasingView || mode() != Mode.THEME || view == null || !view.root().isAttachedToWindow()) return;
         var manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return;
         boolean sameDocument = sceneActions != null && sceneProject == workspace.projectGeneration()
@@ -751,13 +747,13 @@ public final class EditorPreviewHost {
         return new DialogueScreenState(++sceneGeneration, java.util.Optional.of(scene), java.util.Optional.of(theme),
                 java.util.Optional.of(new top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback(sceneGeneration, initial, initial, java.util.List.of(), 0, 0)),
                 top.rookiestwo.maimai_dialogue.client.session.PlaybackPhase.READY, true, java.util.Optional.empty(), false, false, 0,
-                java.util.Optional.of(EditorWidgets.tr("scene.preview_speaker")), java.util.Optional.of(EditorWidgets.tr("theme.preview_text")),
+                java.util.Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_speaker")), java.util.Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.theme.preview_text")),
                 themeExample() == 2 ? java.util.Optional.of(top.rookiestwo.maimai_dialogue.client.session.SessionMessage.translated(
                         "gui.maimai_dialogue_editor.theme.preview_error")) : java.util.Optional.empty(), java.util.List.of(), options, false, false);
     }
 
-    boolean showScene(ScenePreviewSession.Prepared prepared, DialogueImageSource images) {
-        if (disposed || releasingView || mode() != Mode.SCENE || view == null || !view.isAttachedToWindow()) return false;
+    public boolean showScene(ScenePreviewSession.Prepared prepared, DialogueImageSource images) {
+        if (disposed || releasingView || mode() != Mode.SCENE || view == null || !view.root().isAttachedToWindow()) return false;
         var manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return false;
         var initial = top.rookiestwo.maimai_dialogue.client.scene.SceneState.initial(prepared.scene());
@@ -777,7 +773,7 @@ public final class EditorPreviewHost {
         return true;
     }
 
-    boolean updateScene(ScenePreviewSession.Prepared prepared) {
+    public boolean updateScene(ScenePreviewSession.Prepared prepared) {
         if (sceneActions == null || fragment == null || displayedScene == null || releasingView || disposed
                 || sceneProject != workspace.projectGeneration() || !Objects.equals(sceneDocument, workspace.resources().opened())
                 || !displayedScene.images().equals(prepared.images()) || !displayedScene.theme().equals(prepared.theme())
@@ -788,7 +784,7 @@ public final class EditorPreviewHost {
         return true;
     }
 
-    void renderSceneFrame(top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewFrame frame) {
+    public void renderSceneFrame(top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewFrame frame) {
         if (sceneActions == null || fragment == null || displayedScene == null) return;
         fragment.renderScenePreview(frame.state(), frame.layout(), frame.filter().orElse(null));
     }
@@ -798,7 +794,7 @@ public final class EditorPreviewHost {
         return new DialogueScreenState(generation, java.util.Optional.of(prepared.scene()), java.util.Optional.of(prepared.theme()),
                 java.util.Optional.of(new top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback(token, scene, scene, java.util.List.of(), 0, 0)),
                 top.rookiestwo.maimai_dialogue.client.session.PlaybackPhase.READY, true, java.util.Optional.empty(), false, false, 0,
-                java.util.Optional.of(EditorWidgets.tr("scene.preview_speaker")), java.util.Optional.of(EditorWidgets.tr("scene.preview_text")),
+                java.util.Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_speaker")), java.util.Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_text")),
                 java.util.Optional.empty(), java.util.List.of(), java.util.List.of(), false, false);
     }
 
@@ -816,7 +812,7 @@ public final class EditorPreviewHost {
         @Override public void onScreenDestroyed(DialogueScreenHandle screen) {}
     }
 
-    void releaseView() {
+    public void releaseView() {
         workspace.actions().endGesture(true);
         workspace.audio().endGesture(true);
         stopAudition(); closeDialogueAudio(); audioChanged = () -> {};
@@ -824,7 +820,7 @@ public final class EditorPreviewHost {
         workspace.scenes().setLiveListener(immediate -> {});
         workspace.themes().endGesture(true);
         workspace.themes().setLiveListener(immediate -> {});
-        if (view != null) view.removeCallbacks(themeFrame);
+        if (view != null) view.root().removeCallbacks(themeFrame);
         themeFramePending = false;
         releasingView = true;
         actionPreview.release(); actionImages = null;
@@ -843,14 +839,14 @@ public final class EditorPreviewHost {
         simulationChanged = () -> {};
     }
 
-    void onViewReady() {
+    public void onViewReady() {
         var expectedView = view;
-        if (expectedView != null) expectedView.post(() -> {
+        if (expectedView != null) expectedView.root().post(() -> {
             if (view == expectedView && viewReady()) synchronize();
         });
     }
 
-    void dispose() {
+    public void dispose() {
         disposed = true;
         actionPreview.dispose();
         scenes.dispose();

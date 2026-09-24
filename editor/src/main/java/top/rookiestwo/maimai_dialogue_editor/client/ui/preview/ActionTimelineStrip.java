@@ -1,4 +1,6 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.preview;
+
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
 

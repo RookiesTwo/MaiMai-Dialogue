@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.workbench;
 
 // 计算像素尺寸；所有收缩仅作用于本次布局，保留用户未受钳制的原始偏好。
 record EditorLayout(

@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.preview;
 
 import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.core.Context;

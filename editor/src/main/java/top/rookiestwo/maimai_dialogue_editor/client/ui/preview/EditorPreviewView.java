@@ -1,4 +1,6 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.preview;
+
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
@@ -18,7 +20,7 @@ import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
 
 /** Type-specific preview: 16:9 dialogue, image-sized transparency canvas, or sound transport. */
-final class EditorPreviewView extends ResponsiveFrameLayout {
+public final class EditorPreviewView extends ResponsiveFrameLayout implements top.rookiestwo.maimai_dialogue_editor.client.preview.PreviewDisplay {
     private final EditorPreviewHost host;
     private final HorizontalScrollView toolbar;
     private final EditorPreviewViewport canvas;
@@ -46,7 +48,7 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
     private int viewportHeight;
     private boolean refreshContentPending;
 
-    EditorPreviewView(Context context, EditorPreviewHost host, int containerId, ChoicePresenter choices) {
+    public EditorPreviewView(Context context, EditorPreviewHost host, int containerId, ChoicePresenter choices) {
         super(context);
         this.host = host;
         setBackground(EditorWidgets.shape(EditorWidgets.PREVIEW, 0));
@@ -106,7 +108,9 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         return button;
     }
 
-    void refresh() {
+    @Override public View root() { return this; }
+
+    @Override public void refresh() {
         var nextMode = host.mode();
         if (mode != nextMode) { mode = nextMode; requestLayout(); }
         boolean material = mode == EditorPreviewHost.Mode.IMAGE;
@@ -174,15 +178,15 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
         message.setTextColor(EditorWidgets.MUTED);
     }
 
-    void setReferenceHeight(int height) {
+    @Override public void setReferenceHeight(int height) {
         surface.setReferenceHeight(height);
         scene.setReferenceHeight(height);
     }
-    void finishSceneDrag(boolean commit) { scene.endDrag(commit); actionCanvas.finish(commit); }
-    void refreshActionCanvas() { actionCanvas.synchronize(); }
-    void requestSceneFrame(boolean immediate) { if (mode == EditorPreviewHost.Mode.SCENE) scene.requestFrame(immediate); }
+    @Override public void finishSceneDrag(boolean commit) { scene.endDrag(commit); actionCanvas.finish(commit); }
+    @Override public void refreshActionCanvas() { actionCanvas.synchronize(); }
+    @Override public void requestSceneFrame(boolean immediate) { if (mode == EditorPreviewHost.Mode.SCENE) scene.requestFrame(immediate); }
 
-    void refreshContentAfterLayout() {
+    @Override public void refreshContentAfterLayout() {
         if (!isAttachedToWindow()) return;
         refreshContentPending = true;
         requestLayout();
