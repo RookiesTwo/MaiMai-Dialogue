@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui.properties;
 
-import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorDialoguePreview;
 
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
@@ -21,14 +21,14 @@ import java.util.List;
 // 仅修改项目本地的预览条件，不进入剧情草稿和导出内容。
 final class DialogueSimulationView extends LinearLayout {
     private final ProjectWorkspace project;
-    private final EditorPreviewHost preview;
+    private final EditorDialoguePreview preview;
     private final EditorPropertySection section;
     private final EditorTextField nodes;
     private final TextView results;
     private final Button outcome, skip;
     private long generation = -1;
     private boolean refreshing;
-    DialogueSimulationView(Context context, ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices, PropertySectionState layout) {
+    DialogueSimulationView(Context context, ProjectWorkspace project, EditorDialoguePreview preview, ChoicePresenter choices, PropertySectionState layout) {
         super(context); this.project = project; this.preview = preview; setOrientation(VERTICAL);
         section = new EditorPropertySection(context, "simulation.title", layout); addView(section);
         var edit = new EditorTextBinding(() -> String.join("\n", project.simulation().progress()),

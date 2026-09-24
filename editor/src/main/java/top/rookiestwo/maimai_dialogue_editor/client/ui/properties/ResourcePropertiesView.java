@@ -56,7 +56,7 @@ public final class ResourcePropertiesView extends LinearLayout {
         addView(audio, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         actions = new ActionPropertiesView(context, workspace, choices, layout, preview.timeline());
         addView(actions, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        simulation = new DialogueSimulationView(context, workspace, preview, choices, layout);
+        simulation = new DialogueSimulationView(context, workspace, preview.dialogue(), choices, layout);
         addView(simulation, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
         refresh();
     }
