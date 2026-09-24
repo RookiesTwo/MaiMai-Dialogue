@@ -126,6 +126,7 @@ public final class ProjectSessionCoordinator {
     }
 
     public void enqueue(Runnable write) {
+        // 新 Fragment 也必须排在旧 Fragment 的最后一次写入之后。
         CompletableFuture<Void> previous;
         var completed = new CompletableFuture<Void>();
         synchronized (ProjectSessionCoordinator.class) {

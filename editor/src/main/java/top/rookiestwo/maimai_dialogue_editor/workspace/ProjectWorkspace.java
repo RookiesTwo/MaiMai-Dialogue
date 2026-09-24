@@ -24,7 +24,7 @@ import top.rookiestwo.maimai_dialogue_editor.export.ValidationIssue;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialFiles;
 
-/** Per-open editor state. Mutations and completion callbacks run on the owning UI thread. */
+// 编辑器应用工作区：项目操作、页面状态与文档／保存／会话协调的组装；状态只在 UI thread 修改。
 public final class ProjectWorkspace implements DocumentEditContext {
     public enum Page { NONE, MENU, EXPORT, NEW, OPEN, SAVE_AS, CONFIRM, IMPORT }
     public enum Action { NEW, OPEN, CLOSE_PROJECT, CLOSE_EDITOR }

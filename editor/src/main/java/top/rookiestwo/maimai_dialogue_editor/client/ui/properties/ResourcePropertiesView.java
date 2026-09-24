@@ -15,7 +15,7 @@ import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 
-/** Read-only resource metadata. Project settings remain in the Project menu. */
+// 组合资源信息与各领域属性编辑器；项目设置仍放在 Project 菜单中。
 public final class ResourcePropertiesView extends LinearLayout {
     private final ProjectWorkspace workspace;
     private final TextView details;

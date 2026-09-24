@@ -62,6 +62,7 @@ public final class ProjectSaveCoordinator {
     public void dispose() { ++autosaveRequest; }
     public ManualSave manualSave() { return new ManualSave(); }
 
+    // UI 捕获输入，IO 写入，回到 UI 后校验所属项目并接纳结果；不向调用方暴露保存游标。
     public final class ManualSave {
         private final ProjectHistory owner = state.history();
         private final ProjectSaveSession session = saves;

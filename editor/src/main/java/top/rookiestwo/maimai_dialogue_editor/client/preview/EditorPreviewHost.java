@@ -5,7 +5,6 @@ import icyllis.modernui.fragment.FragmentManager;
 import icyllis.modernui.view.View;
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.client.controller.DialogueUiActions;
-import top.rookiestwo.maimai_dialogue.client.session.DialogueScreenState;
 import top.rookiestwo.maimai_dialogue.client.ui.screen.DialogueFragment;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
@@ -15,7 +14,7 @@ import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 
 
-/** UI-thread owner of one embedded runtime Fragment. Client callbacks cross back through the UI handler. */
+// 组装各预览协调对象，集中管理唯一嵌入式 Fragment 的挂载与释放。
 public final class EditorPreviewHost {
     public enum Mode { DIALOGUE, IMAGE, SOUND, SCENE, THEME, ACTION, EMPTY }
     private final Fragment owner;
