@@ -54,9 +54,4 @@ public final class DialogueFields {
     private static String issue(Codec<?> codec, JsonElement value) {
         return codec.parse(JsonOps.INSTANCE, value).error().map(error -> error.message()).orElse("");
     }
-    public static String commands(JsonElement value) {
-        if (DialogueDraft.isString(value)) return value.getAsString();
-        if (value == null || !value.isJsonArray()) return "";
-        return value.getAsJsonArray().asList().stream().map(DialogueDraft::string).collect(java.util.stream.Collectors.joining("\n"));
-    }
 }

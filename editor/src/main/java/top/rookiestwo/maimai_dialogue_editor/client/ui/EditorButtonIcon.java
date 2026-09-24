@@ -16,6 +16,18 @@ enum EditorButtonIcon {
     REMOVE(-1, 0, 1, 0),
     MOVE_UP(0, 1, 0, -1, -0.75f, -0.25f, 0, -1, 0, -1, 0.75f, -0.25f),
     MOVE_DOWN(0, -1, 0, 1, -0.75f, 0.25f, 0, 1, 0, 1, 0.75f, 0.25f),
+    TRIANGLE_UP {
+        @Override void drawShape(Canvas canvas, Paint paint) {
+            canvas.drawVertices(Canvas.VertexMode.TRIANGLES, UP_VERTICES.length, UP_VERTICES, 0,
+                    null, 0, null, 0, null, 0, 0, null, paint);
+        }
+    },
+    TRIANGLE_DOWN {
+        @Override void drawShape(Canvas canvas, Paint paint) {
+            canvas.drawVertices(Canvas.VertexMode.TRIANGLES, DOWN_VERTICES.length, DOWN_VERTICES, 0,
+                    null, 0, null, 0, null, 0, 0, null, paint);
+        }
+    },
     PLAY {
         @Override void drawShape(Canvas canvas, Paint paint) {
             canvas.drawVertices(Canvas.VertexMode.TRIANGLES, PLAY_VERTICES.length, PLAY_VERTICES, 0,
@@ -29,6 +41,8 @@ enum EditorButtonIcon {
     };
 
     private static final float[] PLAY_VERTICES = {-1, -1, 1, 0, -1, 1};
+    private static final float[] UP_VERTICES = {0, -1, 1, 1, -1, 1};
+    private static final float[] DOWN_VERTICES = {-1, -1, 1, -1, 0, 1};
     private final float[] lines;
 
     EditorButtonIcon(float... lines) {

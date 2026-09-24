@@ -16,6 +16,7 @@ interface ChoicePresenter {
     void showMenu(View anchor, List<Item> items, String selected, Consumer<String> chosen);
     void showMenuAt(View anchor, float x, float y, List<Item> items, Consumer<String> chosen);
     void showSearchable(View anchor, List<Item> items, String selected, Consumer<String> chosen);
+    void editCommand(View anchor, String initial, Consumer<String> confirmed);
     void showColor(View anchor, Supplier<String> value, Consumer<String> changed);
     void showColor(View anchor, Supplier<String> value, Consumer<String> changed,
                    Supplier<? extends top.rookiestwo.maimai_dialogue_editor.document.EditGesture> gesture);

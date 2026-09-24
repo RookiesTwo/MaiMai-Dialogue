@@ -92,7 +92,7 @@ final class ContentPropertiesView extends LinearLayout {
             case "skip_summary" -> "edit.skip_summary_text";
             case "must_complete" -> "edit.must_complete";
             case "typewriter_interval_ms" -> "edit.typewriter_interval";
-            case "command" -> "edit.commands_text";
+            case "command" -> "edit.commands";
             default -> "";
         };
         View target = fields.get(label);
@@ -120,7 +120,7 @@ final class ContentPropertiesView extends LinearLayout {
                 + "/" + (node != null && node.has("typewriter_interval_ms"))
                 + "/" + speakerMode() + "/" + string(exit(state.data()), "type")
                 + "/" + (options == null ? "invalid_options" : options.size())
-                + "/" + (selectedOption() == null ? "no_option" : optionTargetType() + "/" + selectedOption().has("command"));
+                + "/" + (selectedOption() == null ? "no_option" : optionTargetType());
     }
 
     private boolean canEdit() {
@@ -289,12 +289,11 @@ final class ContentPropertiesView extends LinearLayout {
             if (optionTargetType().equals("dialogue")) reference("edit.target_dialogue", ResourceKind.DIALOGUE,
                     () -> string(object(get(selectedOption(), "target")), "dialogue"), ContentTextField.OPTION_DIALOGUE);
             section("edit.commands");
-            choice("edit.commands", () -> Boolean.toString(selectedOption().has("command")), () -> items("edit.boolean.", "false", "true"),
-                    value -> content.commandsEnabled(Boolean.parseBoolean(value)));
-            if (selectedOption().has("command")) {
-                field("edit.commands_text", () -> DialogueFields.commands(get(selectedOption(), "command")), ContentTextField.OPTION_COMMANDS, true);
-                error(() -> DialogueFields.error("command", get(selectedOption(), "command")));
-            }
+            var commands = new OptionCommandsView(getContext(), workspace, choices);
+            group.addView(commands, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+            fields.put("edit.commands", commands);
+            bindings.add(() -> commands.refresh(canEdit()));
+            error(() -> DialogueFields.error("command", get(selectedOption(), "command")));
         }
     }
 

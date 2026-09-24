@@ -257,11 +257,59 @@ public final class ContentWorkspace {
         if (number < 0 || number > 1000) return "edit.invalid_interval";
         editNode("typewriter_interval_ms", node -> node.addProperty("typewriter_interval_ms", number)); return "";
     }
-    public void commandsEnabled(boolean enabled) {
-        editOption(null, option -> {
-            if (!enabled) option.remove("command");
-            else if (!option.has("command")) option.addProperty("command", "");
-        });
+    public record CommandEdit(ResourceKey resource, ProjectResource revision, int option, int index, String initial) {}
+
+    /** A detached list also keeps malformed imported entries available for individual repair/removal. */
+    public JsonArray commands() {
+        var state = snapshot();
+        return commandArray(get(option(state.data(), state.cursor().option()), "command"));
+    }
+
+    private static JsonArray commandArray(JsonElement value) {
+        if (value != null && value.isJsonArray()) return value.getAsJsonArray().deepCopy();
+        var result = new JsonArray();
+        if (value != null) result.add(value.deepCopy());
+        return result;
+    }
+
+    /** Merely opening/cancelling the native editor must not add an empty command or history entry. */
+    public CommandEdit beginCommandEdit(int index) {
+        var state = snapshot();
+        if (!optionsEditable(state) || option(state.data(), state.cursor().option()) == null) return null;
+        var values = commands();
+        if (index < -1 || index >= values.size()) return null;
+        String initial = index < 0 ? "" : isString(values.get(index)) ? string(values.get(index)) : values.get(index).toString();
+        return new CommandEdit(state.key(), current.get().revision(state.key()), state.cursor().option(), index, initial);
+    }
+
+    public boolean completeCommandEdit(CommandEdit request, String command) {
+        var state = snapshot();
+        if (request == null || command == null || request.index() < -1 || !optionsEditable(state) || !request.resource().equals(state.key())
+                || request.option() != state.cursor().option() || current.get().revision(state.key()) != request.revision()
+                || !DialogueFields.error("command", new com.google.gson.JsonPrimitive(command)).isEmpty()) return false;
+        var values = commands();
+        if (request.index() < 0) values.add(command.strip());
+        else if (request.index() < values.size()) values.set(request.index(), new com.google.gson.JsonPrimitive(command.strip()));
+        else return false;
+        option(state.data(), state.cursor().option()).add("command", values);
+        endEdit.run(); write(state, null, state.cursor()); return true;
+    }
+
+    public void deleteCommand(int index) {
+        var state = snapshot(); var values = commands();
+        if (!optionsEditable(state) || index < 0 || index >= values.size()) return;
+        values.remove(index);
+        var option = option(state.data(), state.cursor().option());
+        if (values.isEmpty()) option.remove("command"); else option.add("command", values);
+        endEdit.run(); write(state, null, state.cursor());
+    }
+
+    public void moveCommand(int index, int delta) {
+        var state = snapshot(); var values = commands(); int next = index + delta;
+        if (!optionsEditable(state) || Math.abs(delta) != 1 || index < 0 || index >= values.size() || next < 0 || next >= values.size()) return;
+        move(values, index, next);
+        option(state.data(), state.cursor().option()).add("command", values);
+        endEdit.run(); write(state, null, state.cursor());
     }
     public void editText(String text) {
         editTextField(ContentTextField.TEXT, text);

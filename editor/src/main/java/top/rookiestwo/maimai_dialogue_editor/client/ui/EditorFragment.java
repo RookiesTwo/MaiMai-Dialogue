@@ -82,7 +82,7 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
         }
         layoutState.restore(workspace.layoutPreferences());
         layoutState.changed = () -> workspace.layoutPreferences(layoutState.snapshot());
-        root = new EditorWorkspaceView(requireContext(), layoutState, workspace, preview, exports);
+        root = new EditorWorkspaceView(requireContext(), layoutState, workspace, preview, exports, this);
         workspace.setListener(root::refresh);
         workspace.setStatusListener(root::refreshSaveState);
         exports.setListener(root::refresh);
@@ -140,7 +140,7 @@ public final class EditorFragment extends Fragment implements ScreenCallback {
 
     @Override
     public boolean isBackKey(int keyCode, @NonNull KeyEvent event) {
-        if (keyCode == KeyEvent.KEY_ESCAPE && event.getRepeatCount() == 0 && root != null) root.escape();
+        if (keyCode == KeyEvent.KEY_ESCAPE && event.getRepeatCount() == 0 && root != null && !root.nativeInputOpen()) root.escape();
         return false;
     }
 

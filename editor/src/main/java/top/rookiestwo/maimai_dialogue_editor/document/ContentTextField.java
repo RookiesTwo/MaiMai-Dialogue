@@ -10,7 +10,7 @@ public enum ContentTextField {
     NAME("name", "name"), TEXT("text", "text"), SPEAKER_ID("speaker.id", "id"),
     EXIT_DIALOGUE("exit.dialogue", "dialogue"), OPTION_TEXT("option.text", "text"),
     OPTION_DIALOGUE("option.target.dialogue", "dialogue"), RANDOM_TEXT("random_text", "text"),
-    REQUIRES("requires", "requires"), SKIP_SUMMARY("skip_summary", "skip_summary"), OPTION_COMMANDS("option.command", "command");
+    REQUIRES("requires", "requires"), SKIP_SUMMARY("skip_summary", "skip_summary");
 
     private final String group;
     private final String property;
@@ -26,12 +26,6 @@ public enum ContentTextField {
         }
         JsonObject target = target(kind, data, cursor);
         if (target == null) return false;
-        if (this == OPTION_COMMANDS) {
-            String[] lines = value.split("\\R", -1);
-            if (lines.length == 1 && !target.get("command").isJsonArray()) target.addProperty("command", value);
-            else { var commands = new com.google.gson.JsonArray(); for (String line : lines) commands.add(line); target.add("command", commands); }
-            return true;
-        }
         target.addProperty(property, value);
         return true;
     }
@@ -53,7 +47,6 @@ public enum ContentTextField {
         if (!"options".equals(string(exit, "type"))) return null;
         JsonObject option = option(data, cursor.option());
         if (option == null || this == OPTION_TEXT) return option;
-        if (this == OPTION_COMMANDS) return option.has("command") ? option : null;
         JsonObject target = object(option.get("target"));
         return "dialogue".equals(string(target, "type")) ? target : null;
     }

@@ -36,18 +36,30 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     private EditorColorPalette colorPalette;
     private long paletteRevision;
     private MaterialImportConfirmation materialDialog;
+    private Object nativeInput;
     private ViewTreeObserver tooltipObserver;
     private final ViewTreeObserver.OnGlobalLayoutListener tooltipLayoutListener =
             () -> EditorWidgets.styleTooltips(this);
 
     EditorWorkspaceView(Context context, EditorLayoutState layout, ProjectWorkspace workspace, EditorPreviewHost preview,
-                        ExportWorkspace exports) {
+                        ExportWorkspace exports, EditorFragment owner) {
         super(context);
         this.workspace = workspace;
         this.exports = exports;
         setFocusable(true);
         setFocusableInTouchMode(true);
         ChoicePresenter presenter = new ChoicePresenter() {
+            @Override public void editCommand(View anchor, String initial, Consumer<String> confirmed) {
+                if (nativeInput != null || !workspace.content().active() || !workspace.windowFocused() || !anchor.isAttachedToWindow()) return;
+                dismissChoices(); finishDeferredInput(); cancelDrags(); workspace.endEdit();
+                var request = new Object(); nativeInput = request;
+                requestFocus();
+                top.rookiestwo.maimai_dialogue_editor.client.EditorScreens.editCommand(owner, initial, value -> {
+                    if (isAttachedToWindow() && anchor.isAttachedToWindow() && workspace.content().active()) confirmed.accept(value);
+                }, () -> {
+                    if (nativeInput == request) { nativeInput = null; if (isAttachedToWindow()) requestFocus(); }
+                });
+            }
             @Override public void show(View anchor, List<Item> items, String selected, Consumer<String> chosen) {
                 showChoices(anchor, items, selected, chosen);
             }
@@ -154,6 +166,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
     }
 
     void escape() {
+        if (nativeInputOpen()) return;
         if (workspace.actions().editing()) { workspace.actions().endGesture(false); return; }
         if (workspace.audio().editing()) { workspace.audio().endGesture(false); return; }
         if (workspace.themes().editing()) {
@@ -181,6 +194,8 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
 
     @Override
     public boolean dispatchTouchEvent(@NonNull MotionEvent event) {
+        // ModernUI also receives raw mouse input while the native GUI layer is on top.
+        if (nativeInputOpen()) return true;
         View focused = findFocus();
         if (event.getAction() == MotionEvent.ACTION_DOWN && focused != null
                 && Boolean.TRUE.equals(focused.getTag(EditorWidgets.DEFERRED_INPUT_TAG))) {
@@ -318,6 +333,7 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
 
     @Override
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {
+        if (nativeInputOpen()) return true;
         if (event.getKeyCode() == KeyEvent.KEY_ESCAPE) {
             if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) escape();
             return true;
@@ -329,6 +345,12 @@ final class EditorWorkspaceView extends ResponsiveFrameLayout {
             return true;
         }
         return super.dispatchKeyEvent(event);
+    }
+
+    boolean nativeInputOpen() { return nativeInput != null; }
+
+    @Override public boolean dispatchGenericMotionEvent(@NonNull MotionEvent event) {
+        return nativeInputOpen() || super.dispatchGenericMotionEvent(event);
     }
 
     private void runShortcut(Shortcut shortcut) {

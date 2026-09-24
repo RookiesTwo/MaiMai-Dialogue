@@ -38,6 +38,12 @@ public final class EditorPreviewSession {
         this(content, root, defaultIntervalMs, startStep, PreviewScenario.defaults());
     }
     public EditorPreviewSession(DialogueContentLookup content, ResourceLocation root, int defaultIntervalMs, int startStep, PreviewScenario scenario) {
+        this(content, root, defaultIntervalMs, startStep, scenario, 1L);
+    }
+
+    /** Reused preview views need fresh generation/token values, including when replaying the same Step. */
+    public EditorPreviewSession(DialogueContentLookup content, ResourceLocation root, int defaultIntervalMs, int startStep,
+                                PreviewScenario scenario, long firstGeneration) {
         this.scenario = scenario;
         this.content = scenario.wrap(content);
         try {
@@ -49,7 +55,7 @@ public final class EditorPreviewSession {
                 throw new IllegalArgumentException("Invalid preview step: " + startStep);
             }
             // 完成令牌只存在于本地解释器中，完成效果只记入模拟结果。
-            session = new DialogueSession(this.content, root, definition, 1L, () -> defaultIntervalMs,
+            session = new DialogueSession(this.content, root, definition, firstGeneration, () -> defaultIntervalMs,
                     definition.mustComplete() ? java.util.Optional.of(new java.util.UUID(0, 1)) : java.util.Optional.empty());
             status = Status.RUNNING;
             apply(session.start());
@@ -76,6 +82,14 @@ public final class EditorPreviewSession {
     }
 
     public void advance() { update(DialogueSession::advance); }
+    // 编辑刷新只完成当前节点，不能把已经 READY 的 End 当成一次推进而执行退出或命令。
+    public void prepareForEditing() {
+        if (running() && state.playbackPhase() == PlaybackPhase.PLAYING) advance();
+    }
+    public void selectOptionAfterRefresh(DialogueOption option) {
+        prepareForEditing();
+        if (running() && state.options().contains(option)) selectOption(option);
+    }
     // 手动采样期间修改动作后，用户推进时按原阶段恢复语义，再推进最新定义。
     public void advanceAfterRefresh(PlaybackPhase previous) {
         if (previous == PlaybackPhase.READY && state.playbackPhase() == PlaybackPhase.PLAYING) advance();

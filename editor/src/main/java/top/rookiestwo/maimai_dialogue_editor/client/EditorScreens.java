@@ -19,6 +19,23 @@ public final class EditorScreens {
         return MuiForgeApi.get().createScreen(new EditorFragment(), null, previousScreen);
     }
 
+    /** GUI layers retain the existing ModernUI Fragment, preview and unsaved workspace. */
+    public static void editCommand(Fragment owner, String initial, java.util.function.Consumer<String> confirmed, Runnable closed) {
+        Minecraft minecraft = Minecraft.getInstance();
+        minecraft.execute(() -> {
+            if (!(minecraft.screen instanceof MuiScreen screen) || screen.getFragment() != owner
+                    || !(owner instanceof EditorFragment editor)) {
+                icyllis.modernui.core.Core.getUiHandler().post(closed);
+                return;
+            }
+            minecraft.pushGuiLayer(new CommandInputScreen(editor, initial, result ->
+                    icyllis.modernui.core.Core.getUiHandler().post(() -> {
+                        closed.run();
+                        result.ifPresent(confirmed);
+                    })));
+        });
+    }
+
     /** Native file dialogs can iconify an exclusive-fullscreen window. Restore only their original editor. */
     public static void restoreFocus(Fragment owner) {
         Minecraft minecraft = Minecraft.getInstance();
@@ -47,7 +64,7 @@ public final class EditorScreens {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen instanceof MuiScreen screen && screen.getFragment() instanceof EditorFragment editor) {
             editor.updateWindowFocus(minecraft.isWindowActive());
-        }
+        } else if (minecraft.screen instanceof CommandInputScreen input) input.owner.updateWindowFocus(minecraft.isWindowActive());
     }
 
     // tell 始终排队，避免新界面被同一次输入里的聊天关闭操作清掉。
