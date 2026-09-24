@@ -3,6 +3,7 @@ package top.rookiestwo.maimai_dialogue_editor.document;
 import com.google.gson.*;
 import com.mojang.serialization.JsonOps;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
+import top.rookiestwo.maimai_dialogue_editor.document.edit.EditOrigin;
 import top.rookiestwo.maimai_dialogue_editor.project.*;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import java.util.*;
@@ -97,15 +98,14 @@ public final class ThemeWorkspace {
     public boolean editing() { return gesture != null && gesture.valid(); }
     public void endGesture(boolean commit) { if (gesture != null) gesture.finish(commit); }
     private final class Gesture implements EditGesture {
-        private final ProjectDraft before = project.draft();
-        private final long generation = project.projectGeneration();
+        private final EditOrigin origin = new EditOrigin(project.draft(), project.projectGeneration());
         private final ResourceKey key = snapshot().key();
         private final ThemeFields.Field field;
         private final String original;
         private JsonPrimitive value;
         private boolean changed;
         Gesture(ThemeFields.Field field) { this.field = field; original = value(field); }
-        boolean valid() { return gesture == this && before == project.draft() && generation == project.projectGeneration()
+        boolean valid() { return gesture == this && origin.matches(project.draft(), project.projectGeneration())
                 && active() && key.equals(snapshot().key()); }
         @Override public boolean update(String raw) {
             if (!valid()) return false;

@@ -562,10 +562,7 @@ public final class ProjectWorkspace {
 
     public void windowFocusChanged(boolean focused) {
         if (disposed) return;
-        if (!focused) scenes.endNumberDrag(true);
-        if (!focused) themes.endGesture(true);
-        if (!focused) audio.endGesture(true);
-        if (!focused) actions.endGesture(true);
+        if (!focused) finishGestures(true);
         windowFocused = focused;
         if (!focused) dismissMenu();
     }
@@ -574,10 +571,7 @@ public final class ProjectWorkspace {
         if (busy || disposed) return;
         cancelAutosave();
         ++startupRequest;
-        scenes.endNumberDrag(true);
-        themes.endGesture(true);
-        audio.endGesture(true);
-        actions.endGesture(true);
+        finishGestures(true);
         materials.cancelSelection();
         endEdit();
         clearError();
@@ -748,11 +742,15 @@ public final class ProjectWorkspace {
         if (history != null) history.endEdit();
     }
 
+    private void finishGestures(boolean commit) {
+        scenes.endNumberDrag(commit);
+        themes.endGesture(commit);
+        audio.endGesture(commit);
+        actions.endGesture(commit);
+    }
+
     public void undo() {
-        scenes.endNumberDrag(false);
-        themes.endGesture(false);
-        audio.endGesture(false);
-        actions.endGesture(false);
+        finishGestures(false);
         if (canUndo() && !disposed) {
             history.undo();
             edited();
@@ -760,10 +758,7 @@ public final class ProjectWorkspace {
     }
 
     public void redo() {
-        scenes.endNumberDrag(false);
-        themes.endGesture(false);
-        audio.endGesture(false);
-        actions.endGesture(false);
+        finishGestures(false);
         if (canRedo() && !disposed) {
             history.redo();
             edited();
@@ -773,10 +768,7 @@ public final class ProjectWorkspace {
     public void save() { save(null); }
 
     private void save(Action afterSave) {
-        scenes.endNumberDrag(true);
-        themes.endGesture(true);
-        audio.endGesture(true);
-        actions.endGesture(true);
+        finishGestures(true);
         if (history == null || busy || disposed) return;
         cancelAutosave();
         endEdit();

@@ -5,7 +5,7 @@ import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
 import com.google.gson.*;
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
+import top.rookiestwo.maimai_dialogue_editor.document.edit.EditOrigin;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialPack;
 import java.util.*;
@@ -49,7 +49,7 @@ public final class SceneWorkspace {
     private long assetRequest;
     private final Map<Part, Long> assetRequests = new EnumMap<>(Part.class);
     public record Transform(String objectId, float x, float y, float scaleX, float scaleY) {}
-    private record Drag(ProjectDraft before, ResourceKey key, long project, Transform origin, Transform position) {}
+    private record Drag(EditOrigin source, ResourceKey key, Transform origin, Transform position) {}
     private Drag drag;
     private ContentWorkspace.Snapshot dragSnapshot;
     private Consumer<Boolean> liveChanged = immediate -> {};
@@ -74,8 +74,7 @@ public final class SceneWorkspace {
 
     /** Bound to the original document and object; stale View callbacks cannot edit a new selection. */
     public final class NumberDrag implements EditGesture {
-        private final ProjectDraft before = project.draft();
-        private final long owner = project.projectGeneration();
+        private final EditOrigin source = new EditOrigin(project.draft(), project.projectGeneration());
         private final ResourceKey key = snapshot().key();
         private final String object = objectId();
         private final Part part;
@@ -87,7 +86,7 @@ public final class SceneWorkspace {
             original = text(part == Part.BOX ? box() : part(part), field.name(), Float.toString(field.fallback()));
         }
         private boolean valid() {
-            return numberDrag == this && owner == project.projectGeneration() && before == project.draft()
+            return numberDrag == this && source.matches(project.draft(), project.projectGeneration())
                     && active() && key.equals(snapshot().key()) && (part != Part.OBJECT || object.equals(objectId()));
         }
         public boolean update(String text) {
@@ -138,7 +137,7 @@ public final class SceneWorkspace {
             generation = project.projectGeneration(); objects.clear(); variants.clear(); drag = null; dragSnapshot = null;
         }
         var state = project.content().snapshot();
-        if (drag != null && (drag.before != project.draft() || drag.project != generation || !drag.key.equals(state.key())
+        if (drag != null && (!drag.source.matches(project.draft(), generation) || !drag.key.equals(state.key())
                 || !drag.key.equals(project.resources().selection().resource())
                 || !drag.position.objectId.equals(objects.get(drag.key)) || !project.content().active())) drag = null;
         if (drag == null) { dragSnapshot = null; return state; }
@@ -187,7 +186,7 @@ public final class SceneWorkspace {
             project.endEdit();
             var key = snapshot().key(); objects.put(key, id);
             var origin = new Transform(id, x, y, scaleX, scaleY);
-            drag = new Drag(project.draft(), key, generation, origin, origin);
+            drag = new Drag(new EditOrigin(project.draft(), generation), key, origin, origin);
             dragSnapshot = null;
             changed.run(); return true;
         } catch (NumberFormatException invalid) { return false; }
@@ -202,7 +201,7 @@ public final class SceneWorkspace {
     /** Absolute preview transform computed from the gesture's initial pointer and opposite handle. */
     public void resizeDrag(float x, float y, float scaleX, float scaleY) {
         snapshot(); if (drag == null || !Float.isFinite(x) || !Float.isFinite(y) || !validScale(scaleX) || !validScale(scaleY)) return;
-        var object = part(object(drag.before.resource(drag.key)), Part.OBJECT, drag.origin.objectId);
+        var object = part(object(drag.source.draft().resource(drag.key)), Part.OBJECT, drag.origin.objectId);
         float scale;
         try { scale = Float.parseFloat(text(object, "scale", "1")); } catch (NumberFormatException invalid) { return; }
         if (!validScale(scale * scaleX) || !validScale(scale * scaleY)) return;
@@ -211,7 +210,7 @@ public final class SceneWorkspace {
     private static boolean validScale(float value) { return Float.isFinite(value) && value > 0; }
     private void updateDrag(Transform next) {
         if (next.equals(drag.position)) return;
-        drag = new Drag(drag.before, drag.key, drag.project, drag.origin, next);
+        drag = new Drag(drag.source, drag.key, drag.origin, next);
         dragSnapshot = null;
         changed.run();
     }
@@ -220,7 +219,7 @@ public final class SceneWorkspace {
         if (finished == null) return;
         project.endEdit();
         if (commit && !finished.origin.equals(finished.position)) {
-            JsonObject data = object(finished.before.resource(finished.key));
+            JsonObject data = object(finished.source.draft().resource(finished.key));
             var object = part(data, Part.OBJECT, finished.position.objectId);
             writeTransform(object, finished.origin, finished.position);
             project.editAsset(finished.key, data, null);

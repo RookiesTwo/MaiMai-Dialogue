@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.document;
 
 import com.google.gson.*;
+import top.rookiestwo.maimai_dialogue_editor.document.edit.EditOrigin;
 import top.rookiestwo.maimai_dialogue_editor.project.*;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import java.util.*;
@@ -264,8 +265,8 @@ public final class ActionWorkspace {
     }
     /** Shares save/undo/navigation lifecycle with numeric gestures, but publishes only once on release. */
     public final class CanvasGesture {
-        private final ProjectDraft before = project.draft();
-        private final long generation = project.projectGeneration(), navigation = project.resources().selectionRevision();
+        private final EditOrigin origin = new EditOrigin(project.draft(), project.projectGeneration());
+        private final long navigation = project.resources().selectionRevision();
         private final Context context = context();
         private final PreviewContext previewContext = previewContext();
         private final int index = selected();
@@ -276,7 +277,7 @@ public final class ActionWorkspace {
             this.edit = edit; this.previewCurrent = previewCurrent; this.finishing = finishing;
         }
         public boolean valid() {
-            return canvasGesture == this && generation == project.projectGeneration() && before == project.draft()
+            return canvasGesture == this && origin.matches(project.draft(), project.projectGeneration())
                     && navigation == project.resources().selectionRevision() && active() && Objects.equals(context, context())
                     && Objects.equals(previewContext, previewContext()) && index == selected() && previewCurrent.getAsBoolean();
         }
@@ -289,7 +290,7 @@ public final class ActionWorkspace {
             finishing.accept(save); canvasGesture = null;
             if (!save) return;
             var definition = edit.definition();
-            canvasCommit = new CanvasCommit(before, context, index, edit.originalPlayback(), edit.preview());
+            canvasCommit = new CanvasCommit(origin.draft(), context, index, edit.originalPlayback(), edit.preview());
             try {
                 if (context.standalone()) editRoot(null, root -> {
                     root.entrySet().clear(); definition.entrySet().forEach(entry -> root.add(entry.getKey(), entry.getValue()));
@@ -302,11 +303,11 @@ public final class ActionWorkspace {
         }
     }
     private final class Gesture implements EditGesture {
-        final ProjectDraft before = project.draft(); final long generation = project.projectGeneration();
+        final EditOrigin origin = new EditOrigin(project.draft(), project.projectGeneration());
         final Context context = context(); final int index = selected(); final boolean call; final ActionFields.Number field;
         String raw; boolean updated;
         Gesture(boolean call, ActionFields.Number field) { this.call = call; this.field = field; raw = text(call, field.path(), Float.toString(field.fallback())); }
-        boolean valid() { return gesture == this && generation == project.projectGeneration() && before == project.draft()
+        boolean valid() { return gesture == this && origin.matches(project.draft(), project.projectGeneration())
                 && active() && Objects.equals(context, context()) && index == selected(); }
         public boolean update(String raw) { if (!valid()) return false;
             try { field.parse(raw); } catch (RuntimeException invalid) { return false; } this.raw = raw; updated = true; return true; }

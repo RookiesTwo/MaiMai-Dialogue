@@ -3,6 +3,7 @@ package top.rookiestwo.maimai_dialogue_editor.document;
 import com.google.gson.*;
 import com.mojang.serialization.JsonOps;
 import top.rookiestwo.maimai_dialogue.audio.*;
+import top.rookiestwo.maimai_dialogue_editor.document.edit.EditOrigin;
 import top.rookiestwo.maimai_dialogue_editor.project.*;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import java.math.BigDecimal;
@@ -126,14 +127,13 @@ public final class AudioWorkspace {
     }
     public void endGesture(boolean commit) { if (gesture != null) gesture.finish(commit); }
     private final class Gesture implements EditGesture {
-        final ProjectDraft before = project.draft();
-        final long generation = project.projectGeneration();
+        final EditOrigin origin = new EditOrigin(project.draft(), project.projectGeneration());
         final Target target = target();
         final Number field;
         String raw;
         boolean changed;
         Gesture(Number field) { this.field = field; raw = number(field); }
-        boolean valid() { return gesture == this && before == project.draft() && generation == project.projectGeneration()
+        boolean valid() { return gesture == this && origin.matches(project.draft(), project.projectGeneration())
                 && active() && Objects.equals(target, target()); }
         @Override public boolean update(String value) {
             if (!valid()) return false;
