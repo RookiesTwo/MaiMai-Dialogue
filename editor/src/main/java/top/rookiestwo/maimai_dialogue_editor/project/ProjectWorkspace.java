@@ -33,20 +33,12 @@ public final class ProjectWorkspace implements DocumentEditContext {
     private final MaterialWorkspace materials;
     private final ActiveEdits activeEdits = new ActiveEdits();
     private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
-    // A freshly opened Fragment has a different IO executor; its restore must follow the old screen's final write.
-    private static CompletableFuture<Void> sessionWrites = CompletableFuture.completedFuture(null);
-    private EditorSessionStore sessionStore;
-    private EditorSessionState.Layout layoutPreferences = EditorSessionState.Layout.defaults();
-    private int themeExample;
-    private top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario simulation = top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario.defaults();
-    public top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario simulation() { return simulation; }
+    private final ProjectSessionCoordinator sessions;
+    public top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario simulation() { return sessions.simulation(); }
     public void simulation(top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario value) {
-        if (disposed || busy || draft() == null || simulation.equals(value)) return;
-        endEdit(); simulation = value; notifyChanged();
+        if (disposed || busy || draft() == null || sessions.simulation().equals(value)) return;
+        endEdit(); sessions.simulation(value); notifyChanged();
     }
-    private long startupRequest, sessionSaveRequest;
-    private EditorSessionState queuedSession;
-    private Path queuedSessionDirectory;
     private long previewSelectionRevision;
     private long projectGeneration;
     private ValidationIssue focusedIssue;
@@ -108,6 +100,20 @@ public final class ProjectWorkspace implements DocumentEditContext {
         this.ui = ui;
         this.closeEditor = closeEditor;
         this.autosaveDelay = autosaveDelay;
+        sessions = new ProjectSessionCoordinator(store, io, ui, new ProjectSessionCoordinator.Owner() {
+            @Override public boolean disposed() { return disposed; }
+            @Override public boolean canRestore() { return history == null && page == Page.NONE && !busy; }
+            @Override public boolean canPersist() { return history != null && fingerprint != null; }
+            @Override public Path directory() { return directory; }
+            @Override public EditorSessionState snapshot() { return sessionState(); }
+            @Override public void opened(ProjectSessionCoordinator.OpenedSession loaded) { acceptSession(loaded); }
+            @Override public void failed(Exception error) {
+                message = "project.failed";
+                errorReason = error instanceof ProjectException problem ? problem.reason() : "io";
+                errorDetail = error instanceof ProjectException ? "" : String.valueOf(error.getMessage());
+            }
+            @Override public void changed() { notifyChanged(); }
+        });
         // 画布位置拖动由 View 结束；它仍阻止自动保存，数值手势沿用原来的提交顺序。
         activeEdits.register(() -> scenes.dragPosition() != null || scenes.numberPreview() != null, scenes::endNumberDrag);
         activeEdits.register(themes::editing, themes::endGesture);
@@ -186,60 +192,15 @@ public final class ProjectWorkspace implements DocumentEditContext {
         sessionStateChanged();
     }
 
-    public EditorSessionState.Layout layoutPreferences() { return layoutPreferences; }
-    public void layoutPreferences(EditorSessionState.Layout value) { layoutPreferences = value; sessionStateChanged(); }
-    public int themeExample() { return themeExample; }
-    public void themeExample(int value) { themeExample = Math.clamp(value, 0, 2); sessionStateChanged(); }
+    public EditorSessionState.Layout layoutPreferences() { return sessions.layout(); }
+    public void layoutPreferences(EditorSessionState.Layout value) { sessions.layout(value); }
+    public int themeExample() { return sessions.themeExample(); }
+    public void themeExample(int value) { sessions.themeExample(value); }
 
     /** Bootstrap once per editor, after the View listeners are connected. Loading does not seize focus. */
-    public void startSession() {
-        if (disposed || sessionStore != null) return;
-        sessionStore = new EditorSessionStore(store);
-        long request = ++startupRequest;
-        if (history != null || page != Page.NONE || busy) return;
-        CompletableFuture<Void> previousWrites;
-        synchronized (ProjectWorkspace.class) { previousWrites = sessionWrites; }
-        io.execute(() -> {
-            previousWrites.join();
-            Path last = sessionStore.lastProject();
-            if (last == null) return;
-            OpenedSession result = null;
-            Exception failure = null;
-            try { result = readSession(last); } catch (Exception error) { failure = error; }
-            OpenedSession loaded = result;
-            Exception error = failure;
-            ui.execute(() -> {
-                if (disposed || request != startupRequest || history != null || busy || page != Page.NONE) return;
-                if (error == null) acceptSession(loaded);
-                else {
-                    message = "project.failed";
-                    errorReason = error instanceof ProjectException problem ? problem.reason() : "io";
-                    errorDetail = error instanceof ProjectException ? "" : String.valueOf(error.getMessage());
-                }
-                notifyChanged();
-            });
-        });
-    }
+    public void startSession() { sessions.start(); }
 
-    private record OpenedSession(Path directory, ProjectStore.Loaded project, EditorSessionState state) {}
-    private OpenedSession readSession(Path target) throws java.io.IOException {
-        var loaded = store.open(target);
-        var state = sessionStore == null ? EditorSessionState.defaults() : sessionStore.read(target);
-        // Expanded Dialogue children need their text before publishing the restored tree, even when not selected.
-        // Only these and the current document/selection are loaded; all other resource bodies remain lazy.
-        var keys = new java.util.HashSet<ResourceKey>();
-        keys.add(state.navigation().opened()); keys.add(state.navigation().selection().owner());
-        keys.addAll(state.navigation().expandedDialogues());
-        for (var key : keys) if (key != null && loaded.draft().revision(key) != null) {
-            try { loaded.draft().load(key); }
-            catch (java.io.IOException | RuntimeException failure) {
-                LOGGER.warn("Cannot restore editor document {}", key, failure);
-            }
-        }
-        return new OpenedSession(target, loaded, state);
-    }
-
-    private void acceptSession(OpenedSession loaded) {
+    private void acceptSession(ProjectSessionCoordinator.OpenedSession loaded) {
         cancelAutosave();
         projectGeneration++;
         history = new ProjectHistory(loaded.project().draft(), true);
@@ -248,78 +209,25 @@ public final class ProjectWorkspace implements DocumentEditContext {
         page = Page.NONE; message = "project.opened";
         resources.restoreSession(loaded.state().navigation()); content.reset(); content.acceptBrowserSelection();
         restorePreferences(loaded.state());
-        rememberProject(directory);
+        sessions.remember(directory);
     }
 
     private void restorePreferences(EditorSessionState state) {
         autoSave = state.autoSave();
-        layoutPreferences = state.layout();
-        themeExample = state.preview().themeExample();
-        simulation = state.preview().simulation();
+        sessions.restorePreferences(state);
         materials.restoreVariantPreferences(state.preview().materialVariants());
         scenes.restoreObjectPreferences(state.preview().sceneObjects());
         actions.restorePreviewPreferences(state.preview().actions());
     }
 
     public EditorSessionState sessionState() {
-        return new EditorSessionState(EditorSessionState.VERSION, layoutPreferences, resources.sessionState(),
-                new EditorSessionState.Preview(themeExample, scenes.objectPreferences(), materials.variantPreferences(), actions.previewPreferences(), simulation), autoSave);
+        return new EditorSessionState(EditorSessionState.VERSION, sessions.layout(), resources.sessionState(),
+                new EditorSessionState.Preview(sessions.themeExample(), scenes.objectPreferences(), materials.variantPreferences(), actions.previewPreferences(), sessions.simulation()), autoSave);
     }
 
     /** Coalesce rapid navigation/gestures; disk work never runs on the UI or Minecraft thread. */
-    public void sessionStateChanged() {
-        if (disposed || sessionStore == null || history == null || fingerprint == null) return;
-        long request = ++sessionSaveRequest;
-        CompletableFuture.delayedExecutor(500, java.util.concurrent.TimeUnit.MILLISECONDS, ui).execute(() -> {
-            if (!disposed && request == sessionSaveRequest) flushSession();
-        });
-    }
-
-    public void flushSession() {
-        ++sessionSaveRequest;
-        if (sessionStore == null || directory == null || history == null || fingerprint == null) return;
-        var state = sessionState();
-        Path target = directory;
-        if (target.equals(queuedSessionDirectory) && state.equals(queuedSession)) return;
-        queuedSessionDirectory = target; queuedSession = state;
-        writeSession(() -> {
-            try { sessionStore.write(target, state); }
-            catch (java.io.IOException | RuntimeException failure) {
-                LOGGER.warn("Cannot save editor state for {}", target, failure);
-                ui.execute(() -> {
-                    if (target.equals(queuedSessionDirectory) && state.equals(queuedSession)) queuedSession = null;
-                });
-            }
-        });
-    }
-
-    private void rememberProject(Path target) {
-        if (sessionStore == null) return;
-        writeSession(() -> {
-            try { sessionStore.remember(target); }
-            catch (java.io.IOException | RuntimeException failure) { LOGGER.warn("Cannot remember editor project", failure); }
-        });
-    }
-
-    private void writeSession(Runnable write) {
-        CompletableFuture<Void> previous;
-        var completed = new CompletableFuture<Void>();
-        synchronized (ProjectWorkspace.class) {
-            previous = sessionWrites;
-            sessionWrites = completed;
-        }
-        try {
-            // Enqueue immediately so shutting down this screen's executor still drains the final write.
-            io.execute(() -> {
-                previous.join();
-                try { write.run(); } finally { completed.complete(null); }
-            });
-        } catch (RuntimeException failure) {
-            completed.complete(null);
-            LOGGER.warn("Cannot schedule editor state save", failure);
-        }
-    }
-
+    public void sessionStateChanged() { sessions.changed(); }
+    public void flushSession() { sessions.flush(); }
     public void setListener(Runnable listener) {
         changed = Objects.requireNonNull(listener);
     }
@@ -370,7 +278,7 @@ public final class ProjectWorkspace implements DocumentEditContext {
 
     private void scheduleAutosave() {
         long expected = ++autosaveRequest;
-        if (disposed || !autoSave || sessionStore == null || history == null) return;
+        if (disposed || !autoSave || !sessions.started() || history == null) return;
         autosaveDelay.accept(() -> {
             if (expected != autosaveRequest || disposed || !autoSave) return;
             if (busy || (page != Page.NONE && page != Page.MENU) || resources.form() != ResourceWorkspace.Form.NONE
@@ -384,7 +292,7 @@ public final class ProjectWorkspace implements DocumentEditContext {
 
     /** Capture on the UI thread, then persist without refreshing controls, preview or undo grouping. */
     public void flushAutosave() {
-        if (disposed || closingEditor || !autoSave || sessionStore == null || busy || saves == null || !dirty()
+        if (disposed || closingEditor || !autoSave || !sessions.started() || busy || saves == null || !dirty()
                 || (page != Page.NONE && page != Page.MENU)) return;
         cancelAutosave();
         AutomaticWrite write = new AutomaticWrite();
@@ -394,15 +302,14 @@ public final class ProjectWorkspace implements DocumentEditContext {
         SaveInput input = saveInput();
         Path target = directory;
         EditorSessionState preferences = sessionState();
-        writeSession(() -> {
+        sessions.enqueue(() -> {
             if (write.cancelled) return;
             ProjectSaveSession.Saved result = null;
             Exception failure = null;
             try {
                 result = session.save(input.snapshot(), true);
                 // These writes also survive closing/reopening the Fragment before the UI callback.
-                sessionStore.write(target, preferences);
-                sessionStore.remember(target);
+                sessions.writePreferences(target, preferences);
             } catch (Exception error) { failure = error; }
             ProjectSaveSession.Saved completed = result;
             Exception error = failure;
@@ -562,7 +469,7 @@ public final class ProjectWorkspace implements DocumentEditContext {
 
     public void showMenu() {
         if (busy || disposed || !windowFocused) return;
-        ++startupRequest;
+        sessions.cancelRestore();
         endEdit();
         page = Page.MENU;
         clearError();
@@ -587,7 +494,7 @@ public final class ProjectWorkspace implements DocumentEditContext {
     public void request(Action action) {
         if (busy || disposed) return;
         cancelAutosave();
-        ++startupRequest;
+        sessions.cancelRestore();
         finishGestures(true);
         materials.cancelSelection();
         endEdit();
@@ -647,7 +554,7 @@ public final class ProjectWorkspace implements DocumentEditContext {
             }
             case CLOSE_PROJECT -> {
                 flushSession();
-                rememberProject(null);
+                sessions.remember(null);
                 projectGeneration++;
                 history = null;
                 resources.reset();
@@ -683,7 +590,7 @@ public final class ProjectWorkspace implements DocumentEditContext {
             page = Page.NONE;
             message = "project.created";
             restorePreferences(EditorSessionState.defaults());
-            rememberProject(null);
+            sessions.remember(null);
         });
     }
 
@@ -700,7 +607,7 @@ public final class ProjectWorkspace implements DocumentEditContext {
         Path target = entry.directory();
         cancelAutosave();
         flushSession();
-        runIo("project.opening", () -> readSession(target), this::acceptSession);
+        runIo("project.opening", () -> sessions.read(target), this::acceptSession);
     }
 
     public void showSaveAs() {
@@ -730,7 +637,7 @@ public final class ProjectWorkspace implements DocumentEditContext {
             page = Page.NONE;
             message = "project.saved";
             restorePreferences(preferences);
-            rememberProject(directory);
+            sessions.remember(directory);
             flushSession();
         });
     }
@@ -794,7 +701,7 @@ public final class ProjectWorkspace implements DocumentEditContext {
             if (history != owner || saves != session) return;
             acceptSave(result, input, false);
             message = "project.saved";
-            rememberProject(target);
+            sessions.remember(target);
             flushSession();
             if (afterSave != null) perform(afterSave);
         });
