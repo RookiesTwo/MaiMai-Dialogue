@@ -22,7 +22,7 @@ import top.rookiestwo.maimai_dialogue_editor.client.EditorContentPreparation;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
 import top.rookiestwo.maimai_dialogue_editor.document.*;
 import top.rookiestwo.maimai_dialogue_editor.preview.ActionSceneContext;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import java.util.*;
 import java.util.function.*;

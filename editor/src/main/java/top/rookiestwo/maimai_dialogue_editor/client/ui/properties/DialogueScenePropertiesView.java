@@ -11,7 +11,7 @@ import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.*;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import java.util.*;
 

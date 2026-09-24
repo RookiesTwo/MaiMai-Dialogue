@@ -4,7 +4,7 @@ import icyllis.modernui.core.Core;
 import net.minecraft.client.Minecraft;
 import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
 import top.rookiestwo.maimai_dialogue.client.resource.ClientContentSnapshot;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;

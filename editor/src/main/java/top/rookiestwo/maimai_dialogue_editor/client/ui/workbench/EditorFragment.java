@@ -14,7 +14,7 @@ import icyllis.modernui.view.ViewGroup;
 import org.jetbrains.annotations.Nullable;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorScreens;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectStore;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 import net.minecraft.client.Minecraft;
 import net.minecraft.SharedConstants;

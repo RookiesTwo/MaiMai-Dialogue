@@ -16,7 +16,7 @@ import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionS
 import icyllis.modernui.core.*;
 import icyllis.modernui.widget.*;
 import top.rookiestwo.maimai_dialogue_editor.document.AudioWorkspace;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import java.util.*;
 import java.util.function.*;
 

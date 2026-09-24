@@ -18,7 +18,7 @@ import top.rookiestwo.maimai_dialogue_editor.material.MaterialSnapshot;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
 import top.rookiestwo.maimai_dialogue_editor.preview.EditorPreviewSession;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;

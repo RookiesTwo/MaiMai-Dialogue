@@ -2,7 +2,7 @@ package top.rookiestwo.maimai_dialogue_editor.export;
 
 import top.rookiestwo.maimai_dialogue.client.resource.ClientContentSnapshot;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialPack;
 
 import java.nio.file.Path;

@@ -1,4 +1,8 @@
-package top.rookiestwo.maimai_dialogue_editor.project;
+package top.rookiestwo.maimai_dialogue_editor.workspace;
+
+import top.rookiestwo.maimai_dialogue_editor.project.*;
+
+import top.rookiestwo.maimai_dialogue_editor.document.ContentCursor;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -238,7 +242,7 @@ public final class ProjectWorkspace implements DocumentEditContext {
     public void setStatusListener(Runnable listener) { statusChanged = Objects.requireNonNull(listener); }
     public boolean autoSave() { return saves.autoSave(); }
     public void autoSave(boolean enabled) { saves.autoSave(enabled); }
-    public void stageText(Object owner, ResourceKey key, ContentWorkspace.Cursor cursor, ContentTextField field, String text) {
+    public void stageText(Object owner, ResourceKey key, ContentCursor cursor, ContentTextField field, String text) {
         saves.stageText(owner, key, cursor, field, text);
     }
     public void clearStagedText(Object owner) { saves.clearStagedText(owner); }

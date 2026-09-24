@@ -24,7 +24,7 @@ import icyllis.modernui.view.ViewTreeObserver;
 import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.export.ExportWorkspace;
 

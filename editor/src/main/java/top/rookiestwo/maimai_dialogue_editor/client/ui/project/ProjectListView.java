@@ -8,7 +8,7 @@ import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectStore;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 
 import java.time.Instant;
 import java.time.ZoneId;

@@ -21,7 +21,7 @@ import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.Part;
 import top.rookiestwo.maimai_dialogue_editor.document.field.NumberField;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
 import java.util.*;

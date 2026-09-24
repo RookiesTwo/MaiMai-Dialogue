@@ -4,7 +4,7 @@ import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
 
 import icyllis.modernui.view.View;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import java.util.function.*;
 
 /** The same project/external sound picker is used by dialogue audio and action audio. */

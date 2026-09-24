@@ -7,7 +7,7 @@ import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 
 /** 项目下拉菜单中的基本设置；不占用对象属性面板。 */
 public final class ProjectProperties extends LinearLayout {

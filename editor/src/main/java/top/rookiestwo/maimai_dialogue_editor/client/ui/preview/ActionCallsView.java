@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui.preview;
 
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
+
 import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;

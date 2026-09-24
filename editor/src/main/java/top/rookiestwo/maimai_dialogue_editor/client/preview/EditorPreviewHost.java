@@ -10,7 +10,7 @@ import top.rookiestwo.maimai_dialogue.client.ui.screen.DialogueFragment;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
 import top.rookiestwo.maimai_dialogue_editor.preview.AudioPreviewSession;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 

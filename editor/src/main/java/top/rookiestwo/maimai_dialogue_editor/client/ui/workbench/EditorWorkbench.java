@@ -17,7 +17,7 @@ import icyllis.modernui.view.View;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.TextView;
 import top.rookiestwo.maimai_dialogue.client.ui.layout.ResponsiveFrameLayout;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.export.ExportWorkspace;
 
 import java.time.ZoneId;

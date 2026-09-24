@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui.properties;
 
+import top.rookiestwo.maimai_dialogue_editor.document.ContentCursor;
+
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorActionRow;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorChoiceField;
@@ -23,7 +25,7 @@ import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentTextField;
 import top.rookiestwo.maimai_dialogue_editor.document.DialogueFields;
 import top.rookiestwo.maimai_dialogue_editor.document.field.NumberField;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceCandidates;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
@@ -40,7 +42,7 @@ import static top.rookiestwo.maimai_dialogue_editor.document.DialogueDraft.*;
 
 /** Field bindings are rebuilt only when the selected object or form shape changes, never while typing. */
 final class ContentPropertiesView extends LinearLayout {
-    private record Binding(ResourceKey resource, ContentWorkspace.Cursor cursor, String shape) {}
+    private record Binding(ResourceKey resource, ContentCursor cursor, String shape) {}
     private final ProjectWorkspace workspace;
     private final ContentWorkspace content;
     private final ChoicePresenter choices;

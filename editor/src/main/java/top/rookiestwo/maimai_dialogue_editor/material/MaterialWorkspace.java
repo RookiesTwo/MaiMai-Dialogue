@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.material;
 
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
+
 import com.google.gson.*;
 import top.rookiestwo.maimai_dialogue_editor.project.*;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;

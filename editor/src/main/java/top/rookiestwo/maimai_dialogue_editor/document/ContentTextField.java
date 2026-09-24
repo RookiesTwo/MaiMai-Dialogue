@@ -17,7 +17,7 @@ public enum ContentTextField {
     ContentTextField(String group, String property) { this.group = group; this.property = property; }
     public String group() { return group; }
 
-    public boolean apply(ResourceKind kind, JsonObject data, ContentWorkspace.Cursor cursor, String value) {
+    public boolean apply(ResourceKind kind, JsonObject data, ContentCursor cursor, String value) {
         if (this == RANDOM_TEXT) {
             if (kind != ResourceKind.DIALOGUE) return false;
             var text = get(node(data, cursor.step()), "text");
@@ -30,7 +30,7 @@ public enum ContentTextField {
         return true;
     }
 
-    private JsonObject target(ResourceKind kind, JsonObject data, ContentWorkspace.Cursor cursor) {
+    private JsonObject target(ResourceKind kind, JsonObject data, ContentCursor cursor) {
         if (this == NAME) return kind == ResourceKind.SPEAKER ? data : null;
         if (kind != ResourceKind.DIALOGUE) return null;
         if (this == REQUIRES || this == SKIP_SUMMARY) return data.has(property) ? data : null;

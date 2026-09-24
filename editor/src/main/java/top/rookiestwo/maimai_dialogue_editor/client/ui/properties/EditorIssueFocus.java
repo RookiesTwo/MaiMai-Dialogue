@@ -5,7 +5,7 @@ import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySe
 import icyllis.modernui.graphics.Rect;
 import icyllis.modernui.view.View;
 import top.rookiestwo.maimai_dialogue_editor.export.ValidationIssue;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 
 /** One reveal per issue request and inspector; field mapping and expansion scope stay with the inspector. */
 final class EditorIssueFocus {

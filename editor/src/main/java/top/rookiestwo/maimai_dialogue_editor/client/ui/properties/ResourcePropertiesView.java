@@ -10,7 +10,7 @@ import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionS
 import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;

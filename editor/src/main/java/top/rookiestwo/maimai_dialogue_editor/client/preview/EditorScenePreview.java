@@ -8,7 +8,7 @@ import top.rookiestwo.maimai_dialogue.client.ui.screen.DialogueFragment;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets;
 import top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewSession;
 import top.rookiestwo.maimai_dialogue_editor.preview.ScenePreviewFrame;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import java.util.*;
 
 // Scene 的图片准备与已显示采样；加载替换期间保留原画面，View 只负责坐标与指针。

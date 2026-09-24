@@ -7,7 +7,7 @@ import top.rookiestwo.maimai_dialogue_editor.client.EditorDialogueAudio;
 import top.rookiestwo.maimai_dialogue_editor.document.AudioWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialSnapshot;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 
 import java.io.IOException;
 import java.util.Objects;

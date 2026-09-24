@@ -20,19 +20,16 @@ import java.util.function.Supplier;
 
 import static top.rookiestwo.maimai_dialogue_editor.document.DialogueDraft.*;
 
-/** Basic document editing. Cursor/history bookkeeping never enters the resource JSON. */
+/** Basic document editing. ContentCursor/history bookkeeping never enters the resource JSON. */
 public final class ContentWorkspace {
-    public record Cursor(int step, int option, int variant) {
-        public Cursor(int step, int option) { this(step, option, 0); }
-    }
-    private record Navigation(ResourceKey resource, Cursor cursor) {}
-    public record Snapshot(ResourceKey key, JsonObject data, Cursor cursor) {}
+    private record Navigation(ResourceKey resource, ContentCursor cursor) {}
+    public record Snapshot(ResourceKey key, JsonObject data, ContentCursor cursor) {}
     private final Supplier<ProjectDraft> current;
     private final ResourceWorkspace resources;
     private final BiConsumer<ProjectDraft, String> edit;
     private final Runnable endEdit;
     private final Runnable changed;
-    private final Map<ResourceKey, Cursor> cursors = new HashMap<>();
+    private final Map<ResourceKey, ContentCursor> cursors = new HashMap<>();
     // History owns snapshots; these weak keys do not extend their lifetime or persist navigation to disk.
     private final Map<ProjectDraft, Navigation> navigation = new WeakHashMap<>();
     private ProjectDraft seen;
@@ -58,7 +55,7 @@ public final class ContentWorkspace {
             dataKey = null;
             dataRevision = null;
             dataCache = null;
-            return new Snapshot(null, null, new Cursor(END, -1));
+            return new Snapshot(null, null, new ContentCursor(END, -1));
         }
         ProjectResource revision = draft.revision(key);
         if (!key.equals(dataKey) || revision != dataRevision) {
@@ -67,7 +64,7 @@ public final class ContentWorkspace {
             dataRevision = revision;
         }
         JsonObject data = dataCache;
-        Cursor cursor = cursors.getOrDefault(key, new Cursor(END, 0));
+        ContentCursor cursor = cursors.getOrDefault(key, new ContentCursor(END, 0));
         if (draft != seen && key.equals(seenResource)) {
             Navigation saved = navigation.get(draft);
             if (saved != null && saved.resource().equals(key)) cursor = saved.cursor();
@@ -78,7 +75,7 @@ public final class ContentWorkspace {
         int option = options == null || options.isEmpty() ? -1 : Math.clamp(cursor.option(), 0, options.size() - 1);
         var text = get(node(data, step), "text");
         int variants = text != null && text.isJsonArray() ? text.getAsJsonArray().size() : 0;
-        cursor = new Cursor(step, option, variants == 0 ? 0 : Math.clamp(cursor.variant(), 0, variants - 1));
+        cursor = new ContentCursor(step, option, variants == 0 ? 0 : Math.clamp(cursor.variant(), 0, variants - 1));
         cursors.put(key, cursor);
         resources.reconcileStep(key, step);
         seen = draft;
@@ -90,8 +87,8 @@ public final class ContentWorkspace {
     public void acceptBrowserSelection() {
         ResourceTree.Node selected = resources.selection();
         if (!selected.isStep() || !selected.owner().equals(resources.opened())) return;
-        Cursor previous = cursors.getOrDefault(selected.owner(), new Cursor(END, 0));
-        Cursor cursor = new Cursor(selected.stepIndex(), previous.option());
+        ContentCursor previous = cursors.getOrDefault(selected.owner(), new ContentCursor(END, 0));
+        ContentCursor cursor = new ContentCursor(selected.stepIndex(), previous.option());
         cursors.put(selected.owner(), cursor);
         seen = current.get();
         seenResource = selected.owner();
@@ -125,7 +122,7 @@ public final class ContentWorkspace {
         if (!editable(state, ResourceKind.DIALOGUE)) return;
         JsonArray steps = array(state.data(), "steps");
         if (index != END && (steps == null || index < 0 || index >= steps.size())) return;
-        select(state, new Cursor(index, state.cursor().option()));
+        select(state, new ContentCursor(index, state.cursor().option()));
     }
 
     public void selectOption(int index) {
@@ -133,10 +130,10 @@ public final class ContentWorkspace {
         if (!editable(state, ResourceKind.DIALOGUE)) return;
         JsonArray options = options(state.data());
         if (options == null || index < 0 || index >= options.size()) return;
-        select(state, new Cursor(END, index));
+        select(state, new ContentCursor(END, index));
     }
 
-    private void select(Snapshot state, Cursor cursor) {
+    private void select(Snapshot state, ContentCursor cursor) {
         endEdit.run();
         cursors.put(state.key(), cursor);
         navigation.put(current.get(), new Navigation(state.key(), cursor));
@@ -172,7 +169,7 @@ public final class ContentWorkspace {
         int at = selected == END ? steps.size() : selected + 1;
         insert(steps, at, copy ? steps.get(selected).deepCopy() : newStep());
         state.data().add("steps", steps);
-        write(state, null, new Cursor(at, -1));
+        write(state, null, new ContentCursor(at, -1));
     }
     public void deleteStep() {
         Snapshot state = snapshot();
@@ -181,7 +178,7 @@ public final class ContentWorkspace {
         if (steps == null) return;
         int index = state.cursor().step();
         steps.remove(index);
-        write(state, null, new Cursor(index < steps.size() ? index : END, -1));
+        write(state, null, new ContentCursor(index < steps.size() ? index : END, -1));
     }
     public void moveStep(int delta) {
         if (Math.abs(delta) != 1) return;
@@ -191,13 +188,13 @@ public final class ContentWorkspace {
         int from = state.cursor().step(), to = from + delta;
         if (steps == null || from < 0 || to < 0 || to >= steps.size()) return;
         move(steps, from, to);
-        write(state, null, new Cursor(to, -1));
+        write(state, null, new ContentCursor(to, -1));
     }
     public void createEnd() {
         Snapshot state = snapshot();
         if (!editable(state, ResourceKind.DIALOGUE) || state.data().has("end")) return;
         state.data().add("end", newEnd());
-        write(state, null, new Cursor(END, -1));
+        write(state, null, new ContentCursor(END, -1));
     }
 
     public void setTextMode(String mode) {
@@ -218,7 +215,7 @@ public final class ContentWorkspace {
         var state = snapshot(); var values = get(node(state.data(), state.cursor().step()), "text");
         if (!editable(state, ResourceKind.DIALOGUE) || values == null || !values.isJsonArray()
                 || index < 0 || index >= values.getAsJsonArray().size()) return;
-        select(state, new Cursor(state.cursor().step(), state.cursor().option(), index));
+        select(state, new ContentCursor(state.cursor().step(), state.cursor().option(), index));
     }
     public void changeVariants(String operation) {
         var state = snapshot(); var values = get(node(state.data(), state.cursor().step()), "text");
@@ -234,7 +231,7 @@ public final class ContentWorkspace {
             }
             default -> { return; }
         }
-        write(state, null, new Cursor(state.cursor().step(), state.cursor().option(), index));
+        write(state, null, new ContentCursor(state.cursor().step(), state.cursor().option(), index));
     }
     public void rootOption(String field, boolean enabled) {
         if (!List.of("requires", "skip_summary", "must_complete").contains(field)) return;
@@ -365,7 +362,7 @@ public final class ContentWorkspace {
         int at = state.cursor().option() < 0 ? options.size() : state.cursor().option() + 1;
         insert(options, at, copy ? options.get(state.cursor().option()).deepCopy() : newOption());
         exit(state.data()).add("options", options);
-        write(state, null, new Cursor(END, at));
+        write(state, null, new ContentCursor(END, at));
     }
     public void deleteOption() {
         Snapshot state = snapshot();
@@ -373,7 +370,7 @@ public final class ContentWorkspace {
         JsonArray options = options(state.data());
         if (options == null) return;
         options.remove(state.cursor().option());
-        write(state, null, new Cursor(END, Math.min(state.cursor().option(), options.size() - 1)));
+        write(state, null, new ContentCursor(END, Math.min(state.cursor().option(), options.size() - 1)));
     }
     public void moveOption(int delta) {
         if (Math.abs(delta) != 1) return;
@@ -383,7 +380,7 @@ public final class ContentWorkspace {
         int from = state.cursor().option(), to = from + delta;
         if (options == null || from < 0 || to < 0 || to >= options.size()) return;
         move(options, from, to);
-        write(state, null, new Cursor(END, to));
+        write(state, null, new ContentCursor(END, to));
     }
     public void editOptionText(String text) { editTextField(ContentTextField.OPTION_TEXT, text); }
     public void setOptionIcon(String icon) {
@@ -423,10 +420,10 @@ public final class ContentWorkspace {
         return editable(state, ResourceKind.DIALOGUE) && state.cursor().step() == END
                 && "options".equals(string(exit(state.data()), "type"));
     }
-    private void write(Snapshot state, String group, Cursor cursor) {
+    private void write(Snapshot state, String group, ContentCursor cursor) {
         write(state, group, cursor, false);
     }
-    private void write(Snapshot state, String group, Cursor cursor, boolean keepSelection) {
+    private void write(Snapshot state, String group, ContentCursor cursor, boolean keepSelection) {
         ProjectDraft before = current.get();
         ProjectDraft after = before.withResource(state.key(), state.data());
         if (before.equals(after)) return;

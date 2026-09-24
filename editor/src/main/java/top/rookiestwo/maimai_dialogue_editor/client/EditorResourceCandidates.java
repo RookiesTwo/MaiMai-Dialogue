@@ -3,7 +3,7 @@ package top.rookiestwo.maimai_dialogue_editor.client;
 import icyllis.modernui.core.Core;
 import net.minecraft.client.Minecraft;
 import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import java.util.*;
 import java.util.function.*;

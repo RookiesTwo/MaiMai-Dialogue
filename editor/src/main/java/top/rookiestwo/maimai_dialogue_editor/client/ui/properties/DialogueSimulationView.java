@@ -13,7 +13,7 @@ import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionS
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.*;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import java.util.List;

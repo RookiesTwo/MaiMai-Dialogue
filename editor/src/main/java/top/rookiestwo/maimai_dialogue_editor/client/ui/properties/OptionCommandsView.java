@@ -11,7 +11,7 @@ import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.LinearLayout;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 
 import java.util.ArrayList;
 import java.util.List;

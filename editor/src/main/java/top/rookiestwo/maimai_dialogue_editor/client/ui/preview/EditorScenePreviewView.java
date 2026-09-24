@@ -9,7 +9,7 @@ import icyllis.modernui.graphics.RectF;
 import icyllis.modernui.widget.*;
 import top.rookiestwo.maimai_dialogue.client.scene.*;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.*;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace;
 import java.util.*;
 

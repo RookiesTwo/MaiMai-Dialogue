@@ -1,12 +1,13 @@
 package top.rookiestwo.maimai_dialogue_editor.project;
 
+import top.rookiestwo.maimai_dialogue_editor.document.ContentCursor;
+
 import com.google.gson.JsonObject;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentTextField;
-import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 
 /** Immutable input buffer; applying it never changes the preview draft or its undo history. */
-record PendingText(ResourceKey key, ProjectResource base, ContentWorkspace.Cursor cursor,
+record PendingText(ResourceKey key, ProjectResource base, ContentCursor cursor,
                    ContentTextField field, String text) {
     boolean appliesTo(ProjectDraft draft) { return draft != null && base == draft.revision(key); }
 

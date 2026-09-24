@@ -5,7 +5,7 @@ import top.rookiestwo.maimai_dialogue.client.ui.screen.DialogueFragment;
 import top.rookiestwo.maimai_dialogue_editor.document.ActionWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 
 import java.util.LinkedHashSet;
 import java.util.List;

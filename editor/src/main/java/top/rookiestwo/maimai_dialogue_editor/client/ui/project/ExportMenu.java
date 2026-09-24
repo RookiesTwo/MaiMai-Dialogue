@@ -10,7 +10,7 @@ import icyllis.modernui.widget.TextView;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import top.rookiestwo.maimai_dialogue_editor.export.*;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 
 /** Anchored export menu with scrollable validation results. */
 public final class ExportMenu extends LinearLayout {

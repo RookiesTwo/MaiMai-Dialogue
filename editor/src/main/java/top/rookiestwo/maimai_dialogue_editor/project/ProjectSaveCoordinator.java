@@ -1,10 +1,11 @@
 package top.rookiestwo.maimai_dialogue_editor.project;
 
+import top.rookiestwo.maimai_dialogue_editor.document.ContentCursor;
+
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
-import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentTextField;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 
@@ -83,7 +84,7 @@ public final class ProjectSaveCoordinator {
         state.statusChanged();
     }
 
-    public void stageText(Object owner, ResourceKey key, ContentWorkspace.Cursor cursor, ContentTextField field, String text) {
+    public void stageText(Object owner, ResourceKey key, ContentCursor cursor, ContentTextField field, String text) {
         if (state.disposed() || state.busy() || state.history() == null || draft().revision(key) == null || !draft().isLoaded(key)) return;
         var next = new PendingText(key, draft().revision(key), cursor, field, text);
         if (inputOwner == owner && next.equals(pendingText)) return;

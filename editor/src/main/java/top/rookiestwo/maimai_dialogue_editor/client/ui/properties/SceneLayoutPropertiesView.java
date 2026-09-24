@@ -16,7 +16,7 @@ import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
 import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import java.util.*;
 import java.util.function.*;

@@ -6,7 +6,7 @@ import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.*;
 import icyllis.modernui.widget.*;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialWorkspace;
 import java.nio.file.Path;
 import java.util.List;

@@ -8,7 +8,7 @@ import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceCatalog;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;

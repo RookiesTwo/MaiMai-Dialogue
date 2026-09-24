@@ -11,7 +11,7 @@ import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.ScrollView;
 import icyllis.modernui.widget.TextView;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.workspace.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceCatalog;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
