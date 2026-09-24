@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.document;
 
+import top.rookiestwo.maimai_dialogue_editor.document.edit.DocumentEditContext;
+
 import com.google.gson.*;
 import com.mojang.serialization.JsonOps;
 import top.rookiestwo.maimai_dialogue.audio.*;
@@ -37,26 +39,26 @@ public final class AudioWorkspace {
     public static final Number TYPING_VOLUME = new Number("volume", .15f, 0, 1, false, 1);
     public static final Number PITCH = new Number("pitch", 1, .5f, 2, false, 2);
     public static final Number INTERVAL = new Number("min_interval_ms", 50, 0, 60000, true, 200);
-    private final ProjectWorkspace project;
+    private final DocumentEditContext project;
     private Gesture gesture;
-    public AudioWorkspace(ProjectWorkspace project) { this.project = project; }
+    public AudioWorkspace(DocumentEditContext project) { this.project = project; }
 
     public Target target() {
-        var selected = project.resources().selection();
+        var selected = project.resourceSelection();
         var key = selected.owner();
-        if (key == null || !key.equals(project.resources().opened()) || project.content().snapshot().data() == null) return null;
+        if (key == null || !key.equals(project.openedResource()) || project.contentSnapshot().data() == null) return null;
         if (key.kind() == ResourceKind.DIALOGUE) {
             if (selected.isStep()) return new Target(key, selected.stepIndex(), false);
             if (selected.type() == ResourceTree.Type.RESOURCE) return new Target(key, -2, true);
         }
         return key.kind() == ResourceKind.SPEAKER && selected.type() == ResourceTree.Type.RESOURCE ? new Target(key, -2, false) : null;
     }
-    public boolean active() { return project.content().active() && target() != null; }
+    public boolean active() { return project.contentActive() && target() != null; }
     private JsonObject owner(JsonObject root, Target target) { return target.step() == -2 ? root : DialogueDraft.node(root, target.step()); }
     private String property(Target target) { return target.bgm() ? "bgm" : "typewriter_sound"; }
     public JsonElement value() {
         var target = target();
-        var owner = target == null ? null : owner(project.content().snapshot().data(), target);
+        var owner = target == null ? null : owner(project.contentSnapshot().data(), target);
         return owner == null ? null : owner.get(property(target));
     }
     public String mode() {
@@ -117,10 +119,10 @@ public final class AudioWorkspace {
     private void mutate(String group, Consumer<JsonObject> mutation) {
         var target = target();
         if (!active() || target == null) return;
-        var data = project.content().snapshot().data().deepCopy(); var node = owner(data, target);
+        var data = project.contentSnapshot().data().deepCopy(); var node = owner(data, target);
         if (node == null) return;
         mutation.accept(node);
-        if (!data.equals(project.content().snapshot().data())) project.editAsset(target.key(), data,
+        if (!data.equals(project.contentSnapshot().data())) project.editAsset(target.key(), data,
                 group == null ? null : "audio/" + target.step() + "/" + group);
     }
     public Optional<BgmOperation> bgm() { return Optional.ofNullable(value()).map(value -> BgmOperation.CODEC.parse(JsonOps.INSTANCE, value).getOrThrow()); }

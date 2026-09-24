@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.document;
 
+import top.rookiestwo.maimai_dialogue_editor.document.edit.DocumentEditContext;
+
 import com.google.gson.*;
 import com.mojang.serialization.JsonOps;
 import top.rookiestwo.maimai_dialogue.theme.ThemeDefinition;
@@ -11,18 +13,18 @@ import java.util.function.Consumer;
 
 // 主题草稿、校验和临时手势独立于 View，不更改游戏全局主题。
 public final class ThemeWorkspace {
-    private final ProjectWorkspace project;
+    private final DocumentEditContext project;
     private ProjectResource revision;
     private ThemeDefinition decoded;
     private String error = "";
     private Gesture gesture;
     private Consumer<Boolean> liveChanged = immediate -> {};
-    public ThemeWorkspace(ProjectWorkspace project) { this.project = project; }
-    public ContentWorkspace.Snapshot snapshot() { return project.content().snapshot(); }
+    public ThemeWorkspace(DocumentEditContext project) { this.project = project; }
+    public ContentWorkspace.Snapshot snapshot() { return project.contentSnapshot(); }
     public boolean active() {
         var state = snapshot();
-        return project.content().active() && state.key() != null && state.key().kind() == ResourceKind.THEME
-                && state.key().equals(project.resources().selection().resource()) && state.data() != null;
+        return project.contentActive() && state.key() != null && state.key().kind() == ResourceKind.THEME
+                && state.key().equals(project.resourceSelection().resource()) && state.data() != null;
     }
     public String value(ThemeFields.Field field) {
         if (gesture != null && gesture.valid() && gesture.field.equals(field) && gesture.changed)

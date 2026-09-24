@@ -4,7 +4,7 @@ import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
 
 import com.google.gson.*;
 import net.minecraft.resources.ResourceLocation;
-import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
+import top.rookiestwo.maimai_dialogue_editor.document.edit.DocumentEditContext;
 import top.rookiestwo.maimai_dialogue_editor.document.edit.EditOrigin;
 import top.rookiestwo.maimai_dialogue_editor.document.field.NumberField;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
@@ -37,7 +37,7 @@ public final class SceneWorkspace {
             new NumberField("vignette", .18f, 0, 1), new NumberField("noise", .025f, 0, 1),
             new NumberField("flicker", .01f, 0, 1), new NumberField("bloom", .1f, 0, 1),
             new NumberField("edge_feather", 0, 0, 1));
-    private final ProjectWorkspace project;
+    private final DocumentEditContext project;
     private final Runnable changed;
     private final Map<ResourceKey, String> objects = new HashMap<>();
     private final Map<String, String> variants = new HashMap<>();
@@ -114,7 +114,7 @@ public final class SceneWorkspace {
         catch (NumberFormatException invalid) { return false; }
     }
 
-    public SceneWorkspace(ProjectWorkspace project, Runnable changed) {
+    public SceneWorkspace(DocumentEditContext project, Runnable changed) {
         this.project = project; this.changed = changed;
     }
     public java.util.List<top.rookiestwo.maimai_dialogue_editor.project.EditorSessionState.Choice> objectPreferences() {
@@ -132,10 +132,10 @@ public final class SceneWorkspace {
         if (generation != project.projectGeneration()) {
             generation = project.projectGeneration(); objects.clear(); variants.clear(); drag = null; dragSnapshot = null;
         }
-        var state = project.content().snapshot();
+        var state = project.contentSnapshot();
         if (drag != null && (!drag.source.matches(project.draft(), generation) || !drag.key.equals(state.key())
-                || !drag.key.equals(project.resources().selection().resource())
-                || !drag.position.objectId.equals(objects.get(drag.key)) || !project.content().active())) drag = null;
+                || !drag.key.equals(project.resourceSelection().resource())
+                || !drag.position.objectId.equals(objects.get(drag.key)) || !project.contentActive())) drag = null;
         if (drag == null) { dragSnapshot = null; return state; }
         if (dragSnapshot != null) return dragSnapshot;
         JsonObject preview = state.data().deepCopy();
@@ -147,8 +147,8 @@ public final class SceneWorkspace {
     }
     public boolean active() {
         var state = snapshot();
-        return project.content().active() && state.key() != null && state.key().kind() == ResourceKind.SCENE
-                && state.key().equals(project.resources().selection().resource()) && state.data() != null;
+        return project.contentActive() && state.key() != null && state.key().kind() == ResourceKind.SCENE
+                && state.key().equals(project.resourceSelection().resource()) && state.data() != null;
     }
     public static JsonObject object(JsonElement value) { return value instanceof JsonObject data ? data : null; }
     public static String text(JsonObject data, String field, String fallback) {
@@ -239,7 +239,7 @@ public final class SceneWorkspace {
         };
     }
     private String firstImage() {
-        return project.resources().catalog().keys().stream().filter(key -> key.kind() == ResourceKind.IMAGE)
+        return project.resourceKeys().stream().filter(key -> key.kind() == ResourceKind.IMAGE)
                 .sorted(Comparator.comparing(ResourceKey::path)).map(key -> MaterialPack.imageId(key, project.draft().namespace()))
                 .findFirst().orElse("");
     }
@@ -304,7 +304,7 @@ public final class SceneWorkspace {
         if (location != null && location.getNamespace().equals(project.draft().namespace())) {
             var asset = new ResourceKey(ResourceKind.VISUAL_ASSET, location.getPath());
             var owner = snapshot().key(); String selected = objectId();
-            if (project.draft().revision(asset) != null && !project.resources().whenLoaded(asset, () -> {
+            if (project.draft().revision(asset) != null && !project.whenResourceLoaded(asset, () -> {
                 if (Objects.equals(assetRequests.get(part), request) && projectGeneration == project.projectGeneration()
                         && active() && owner.equals(snapshot().key()) && (part == Part.BACKGROUND || selected.equals(objectId())))
                     setAsset(part, requested);

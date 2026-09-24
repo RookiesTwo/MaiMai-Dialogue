@@ -11,6 +11,8 @@ import java.util.function.Consumer;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentTextField;
+import top.rookiestwo.maimai_dialogue_editor.document.edit.DocumentEditContext;
+import top.rookiestwo.maimai_dialogue_editor.document.edit.ActiveEdits;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;
@@ -19,7 +21,7 @@ import top.rookiestwo.maimai_dialogue_editor.material.MaterialWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialFiles;
 
 /** Per-open editor state. Mutations and completion callbacks run on the owning UI thread. */
-public final class ProjectWorkspace {
+public final class ProjectWorkspace implements DocumentEditContext {
     public enum Page { NONE, MENU, EXPORT, NEW, OPEN, SAVE_AS, CONFIRM, IMPORT }
     public enum Action { NEW, OPEN, CLOSE_PROJECT, CLOSE_EDITOR }
 
@@ -29,6 +31,7 @@ public final class ProjectWorkspace {
     private final Runnable closeEditor;
     private final Consumer<Runnable> autosaveDelay;
     private final MaterialWorkspace materials;
+    private final ActiveEdits activeEdits = new ActiveEdits();
     private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
     // A freshly opened Fragment has a different IO executor; its restore must follow the old screen's final write.
     private static CompletableFuture<Void> sessionWrites = CompletableFuture.completedFuture(null);
@@ -105,6 +108,11 @@ public final class ProjectWorkspace {
         this.ui = ui;
         this.closeEditor = closeEditor;
         this.autosaveDelay = autosaveDelay;
+        // 画布位置拖动由 View 结束；它仍阻止自动保存，数值手势沿用原来的提交顺序。
+        activeEdits.register(() -> scenes.dragPosition() != null || scenes.numberPreview() != null, scenes::endNumberDrag);
+        activeEdits.register(themes::editing, themes::endGesture);
+        activeEdits.register(audio::editing, audio::endGesture);
+        activeEdits.register(actions::editing, actions::endGesture);
         resources.setLoadRequest(this::loadResource);
         materials = new MaterialWorkspace(this, io, ui, () -> notifyChanged(), store.root().getParent());
     }
@@ -366,8 +374,7 @@ public final class ProjectWorkspace {
         autosaveDelay.accept(() -> {
             if (expected != autosaveRequest || disposed || !autoSave) return;
             if (busy || (page != Page.NONE && page != Page.MENU) || resources.form() != ResourceWorkspace.Form.NONE
-                    || scenes.dragPosition() != null || scenes.numberPreview() != null || themes.editing()
-                    || audio.editing() || actions.editing()) {
+                    || activeEdits.active()) {
                 scheduleAutosave();
                 return;
             }
@@ -455,6 +462,16 @@ public final class ProjectWorkspace {
     public List<ProjectStore.Entry> projects() { return projects; }
     public ResourceWorkspace resources() { return resources; }
     public ContentWorkspace content() { return content; }
+    @Override public ContentWorkspace.Snapshot contentSnapshot() { return content.snapshot(); }
+    @Override public boolean contentActive() { return content.active(); }
+    @Override public ResourceTree.Node resourceSelection() { return resources.selection(); }
+    @Override public ResourceKey openedResource() { return resources.opened(); }
+    @Override public long resourceSelectionRevision() { return resources.selectionRevision(); }
+    @Override public java.util.Collection<ResourceKey> resourceKeys() { return resources.catalog().keys(); }
+    @Override public boolean whenResourceLoaded(ResourceKey key, Runnable ready) { return resources.whenLoaded(key, ready); }
+    @Override public void beginExtract(top.rookiestwo.maimai_dialogue_editor.resource.InlineResource resource, String suggestedPath) {
+        resources.beginExtract(resource, suggestedPath);
+    }
     public long previewSelectionRevision() { return previewSelectionRevision; }
     public long issueFocusRevision() { return issueFocusRevision; }
     public ValidationIssue focusedIssue() {
@@ -743,10 +760,7 @@ public final class ProjectWorkspace {
     }
 
     private void finishGestures(boolean commit) {
-        scenes.endNumberDrag(commit);
-        themes.endGesture(commit);
-        audio.endGesture(commit);
-        actions.endGesture(commit);
+        activeEdits.finish(commit);
     }
 
     public void undo() {

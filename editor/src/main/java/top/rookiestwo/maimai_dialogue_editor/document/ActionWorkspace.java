@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.document;
 
+import top.rookiestwo.maimai_dialogue_editor.document.edit.DocumentEditContext;
+
 import com.google.gson.*;
 import top.rookiestwo.maimai_dialogue_editor.document.edit.EditOrigin;
 import top.rookiestwo.maimai_dialogue_editor.project.*;
@@ -12,7 +14,7 @@ import static top.rookiestwo.maimai_dialogue_editor.document.DialogueDraft.*;
 public final class ActionWorkspace {
     public record Context(ResourceKey resource, int step) { public boolean standalone() { return resource.kind() == ResourceKind.ACTION; } }
     private record Selection(Context context, int call) {}
-    private final ProjectWorkspace project;
+    private final DocumentEditContext project;
     private final Runnable changed;
     private final Map<Context, Integer> selections = new HashMap<>();
     private final Map<ProjectDraft, Selection> history = new WeakHashMap<>();
@@ -30,18 +32,18 @@ public final class ActionWorkspace {
     private CanvasCommit canvasCommit;
     // 只在本次草稿提交的同步通知中有效，不能误用于后续编辑或撤销。
     public CanvasCommit canvasCommit() { return canvasCommit; }
-    public ActionWorkspace(ProjectWorkspace project, Runnable changed) { this.project = project; this.changed = changed; }
+    public ActionWorkspace(DocumentEditContext project, Runnable changed) { this.project = project; this.changed = changed; }
     public Context context() {
         if (projectGeneration != project.projectGeneration()) {
             projectGeneration = project.projectGeneration(); selections.clear(); history.clear(); previewContexts.clear(); gesture = null; canvasGesture = null;
             seen = null; seenContext = null; seenNavigation = -1;
         }
-        var selected = project.resources().selection(); var key = selected.owner();
-        if (key == null || !key.equals(project.resources().opened()) || project.content().snapshot().data() == null) return null;
+        var selected = project.resourceSelection(); var key = selected.owner();
+        if (key == null || !key.equals(project.openedResource()) || project.contentSnapshot().data() == null) return null;
         if (key.kind() == ResourceKind.ACTION && selected.type() == ResourceTree.Type.RESOURCE) return new Context(key, -2);
         return selected.isStep() ? new Context(key, selected.stepIndex()) : null;
     }
-    public boolean active() { return project.content().active() && context() != null; }
+    public boolean active() { return project.contentActive() && context() != null; }
     /** Editor-only context, retained across View rebuilds and never serialized into the action. */
     public PreviewContext previewContext() {
         var context = context();
@@ -65,12 +67,12 @@ public final class ActionWorkspace {
         for (var entry : preferences) if (entry.resource().kind() == ResourceKind.ACTION && project.draft().revision(entry.resource()) != null)
             previewContexts.put(entry.resource(), new PreviewContext(entry.scene(), entry.target()));
     }
-    public JsonObject data() { return project.content().snapshot().data(); }
+    public JsonObject data() { return project.contentSnapshot().data(); }
     public JsonObject node() { var context = context(); return context == null ? null : context.standalone() ? data() : DialogueDraft.node(data(), context.step()); }
     public JsonArray calls() { return context() == null || context().standalone() ? null : array(node(), "actions"); }
     public int selected() {
         var context = context(); var calls = calls();
-        long navigation = project.resources().selectionRevision();
+        long navigation = project.resourceSelectionRevision();
         boolean navigated = navigation != seenNavigation || !Objects.equals(seenContext, context);
         int index = navigated ? -1 : selections.getOrDefault(context, -1);
         if (!navigated && seen != project.draft()) {
@@ -150,7 +152,7 @@ public final class ActionWorkspace {
         if (!active() || context().standalone() || definition() == null) return;
         endGesture(true); project.endEdit();
         var context = context();
-        project.resources().beginExtract(InlineResource.action(project.draft(), context.resource(), context.step(), selected()),
+        project.beginExtract(InlineResource.action(project.draft(), context.resource(), context.step(), selected()),
                 context.resource().path() + "_action");
     }
     public void set(boolean call, String path, JsonElement value) {
@@ -266,7 +268,7 @@ public final class ActionWorkspace {
     /** Shares save/undo/navigation lifecycle with numeric gestures, but publishes only once on release. */
     public final class CanvasGesture {
         private final EditOrigin origin = new EditOrigin(project.draft(), project.projectGeneration());
-        private final long navigation = project.resources().selectionRevision();
+        private final long navigation = project.resourceSelectionRevision();
         private final Context context = context();
         private final PreviewContext previewContext = previewContext();
         private final int index = selected();
@@ -278,7 +280,7 @@ public final class ActionWorkspace {
         }
         public boolean valid() {
             return canvasGesture == this && origin.matches(project.draft(), project.projectGeneration())
-                    && navigation == project.resources().selectionRevision() && active() && Objects.equals(context, context())
+                    && navigation == project.resourceSelectionRevision() && active() && Objects.equals(context, context())
                     && Objects.equals(previewContext, previewContext()) && index == selected() && previewCurrent.getAsBoolean();
         }
         public boolean update(float x, float y, float scale) { return valid() && edit.update(x, y, scale); }
