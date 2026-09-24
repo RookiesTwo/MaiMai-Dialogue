@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui.properties;
 
-import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorAudioAudition;
 
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
@@ -27,7 +27,7 @@ final class AudioPropertiesView extends LinearLayout {
     private final AudioWorkspace model;
     private final ChoicePresenter choices;
     private final PropertySectionState layout;
-    private final EditorPreviewHost preview;
+    private final EditorAudioAudition preview;
     private final List<Runnable> bindings = new ArrayList<>();
     private Binding binding;
     private boolean refreshing;
@@ -35,11 +35,11 @@ final class AudioPropertiesView extends LinearLayout {
     private EditorPropertySection section;
     private final Map<String, icyllis.modernui.view.View> fields = new HashMap<>();
     private final EditorIssueFocus issueFocus;
-    AudioPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout, EditorPreviewHost preview) {
+    AudioPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout, EditorAudioAudition preview) {
         super(context); setOrientation(VERTICAL);
         this.project = project; model = project.audio(); this.choices = choices; this.layout = layout; this.preview = preview;
         issueFocus = new EditorIssueFocus(this, project);
-        preview.setAudioListener(this::refresh);
+        preview.setListener(this::refresh);
     }
     void refresh() {
         var target = project.actions().inspecting() ? null : model.target();
@@ -123,13 +123,13 @@ final class AudioPropertiesView extends LinearLayout {
     private void audition() {
         Binding expected = binding;
         var row = new EditorActionRow(getContext()); body.addView(row);
-        var play = EditorWidgets.button(getContext(), "audio.audition", () -> { if (accepts(expected)) preview.audition(); });
-        var stop = EditorWidgets.button(getContext(), "preview.stop", preview::stopAudition);
+        var play = EditorWidgets.button(getContext(), "audio.audition", () -> { if (accepts(expected)) preview.play(); });
+        var stop = EditorWidgets.button(getContext(), "preview.stop", preview::stop);
         for (var button : List.of(play, stop)) row.addView(button);
         var error = EditorWidgets.compactParagraph(getContext(), ""); error.setTextColor(EditorWidgets.ERROR); body.addView(error);
         bindings.add(() -> {
-            EditorWidgets.enabled(play, model.active()); EditorWidgets.enabled(stop, preview.auditioning());
-            error.setText(preview.auditionError()); error.setVisibility(preview.auditionError().isEmpty() ? GONE : VISIBLE);
+            EditorWidgets.enabled(play, model.active()); EditorWidgets.enabled(stop, preview.active());
+            error.setText(preview.error()); error.setVisibility(preview.error().isEmpty() ? GONE : VISIBLE);
         });
     }
 }

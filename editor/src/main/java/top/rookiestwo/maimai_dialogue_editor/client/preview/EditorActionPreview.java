@@ -124,7 +124,7 @@ public final class EditorActionPreview {
     }
     public void play() {
         if (!canPlay()) return;
-        workspace.actions().endGesture(true); workspace.endEdit(); host.stopAudition();
+        workspace.actions().endGesture(true); workspace.endEdit(); host.audition().stop();
         closeAudio(); failure = "";
         if (displayed == session.prepared() && displayed != null && pendingImages == null) render(true);
         else if (session.error().isEmpty()) playRequested = true;
