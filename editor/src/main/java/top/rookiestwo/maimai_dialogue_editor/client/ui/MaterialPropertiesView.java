@@ -1,5 +1,13 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorChoiceField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySection;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextBinding;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionState;
+
 import com.google.gson.*;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.*;
@@ -15,7 +23,7 @@ final class MaterialPropertiesView extends LinearLayout {
     private final ProjectWorkspace project;
     private final MaterialWorkspace model;
     private final ChoicePresenter choices;
-    private final EditorLayoutState layout;
+    private final PropertySectionState layout;
     private LinearLayout group;
     private final List<Runnable> bindings = new ArrayList<>();
     private ResourceKey key;
@@ -23,7 +31,7 @@ final class MaterialPropertiesView extends LinearLayout {
     private String binding = "";
     private boolean refreshing;
 
-    MaterialPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
+    MaterialPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout) {
         super(context); this.project = project; this.model = project.materials(); this.choices = choices;
         this.layout = layout;
         setOrientation(VERTICAL);

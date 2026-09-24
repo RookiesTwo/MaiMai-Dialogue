@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+
 import icyllis.modernui.core.Core;
 import icyllis.modernui.graphics.Image;
 import net.minecraft.resources.ResourceLocation;

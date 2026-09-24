@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.graphics.Rect;
@@ -10,7 +10,7 @@ import icyllis.modernui.widget.FrameLayout;
 import icyllis.modernui.widget.ScrollView;
 
 /** 菜单与工作台保持在同一 View 树；透明外层接收菜单外点击，面板仍锚定顶栏按钮。 */
-final class EditorDropdownMenu extends FrameLayout {
+public final class EditorDropdownMenu extends FrameLayout {
     private final ScrollView scroll;
     private final View anchor;
     private final Runnable onDismiss;
@@ -23,11 +23,11 @@ final class EditorDropdownMenu extends FrameLayout {
     private boolean dismissQueued;
     private icyllis.modernui.graphics.PointF anchorPoint;
 
-    EditorDropdownMenu(View content, View anchor, Runnable onDismiss) {
+    public EditorDropdownMenu(View content, View anchor, Runnable onDismiss) {
         this(content, anchor, onDismiss, false);
     }
 
-    static EditorDropdownMenu forField(View content, View anchor, Runnable onDismiss) {
+    public static EditorDropdownMenu forField(View content, View anchor, Runnable onDismiss) {
         return new EditorDropdownMenu(content, anchor, onDismiss, true);
     }
 
@@ -35,10 +35,10 @@ final class EditorDropdownMenu extends FrameLayout {
         this(content, anchor, onDismiss, matchAnchorWidth, 380);
     }
 
-    static EditorDropdownMenu forContent(View content, View anchor, int widthDp, Runnable onDismiss) {
+    public static EditorDropdownMenu forContent(View content, View anchor, int widthDp, Runnable onDismiss) {
         return new EditorDropdownMenu(content, anchor, onDismiss, false, widthDp);
     }
-    static EditorDropdownMenu atPoint(View content, View anchor, float x, float y, Runnable onDismiss) {
+    public static EditorDropdownMenu atPoint(View content, View anchor, float x, float y, Runnable onDismiss) {
         var menu = new EditorDropdownMenu(content, anchor, onDismiss, false, 280);
         menu.anchorPoint = new icyllis.modernui.graphics.PointF(x, y);
         return menu;
@@ -119,9 +119,9 @@ final class EditorDropdownMenu extends FrameLayout {
     }
 
     // 只释放当前菜单 View；旧菜单的延迟回调不能取消后来打开的表单。
-    boolean hasAnchor() { return anchor.isAttachedToWindow(); }
+    public boolean hasAnchor() { return anchor.isAttachedToWindow(); }
 
-    void dispose() {
+    public void dispose() {
         disposed = true;
     }
 }

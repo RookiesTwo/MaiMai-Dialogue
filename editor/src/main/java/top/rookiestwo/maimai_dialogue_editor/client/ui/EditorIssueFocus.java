@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySection;
+
 import icyllis.modernui.graphics.Rect;
 import icyllis.modernui.view.View;
 import top.rookiestwo.maimai_dialogue_editor.export.ValidationIssue;

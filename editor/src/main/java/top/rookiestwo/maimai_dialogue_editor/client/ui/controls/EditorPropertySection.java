@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.text.TextPaint;
@@ -8,17 +8,17 @@ import icyllis.modernui.widget.Button;
 import icyllis.modernui.widget.LinearLayout;
 
 /** Collapsible inspector group; preferences belong to the Fragment's layout state. */
-final class EditorPropertySection extends LinearLayout {
+public final class EditorPropertySection extends LinearLayout {
     private final String key;
-    private final EditorLayoutState state;
+    private final PropertySectionState state;
     private final Button header;
     private final LinearLayout body;
 
-    EditorPropertySection(Context context, String key, EditorLayoutState state) {
+    public EditorPropertySection(Context context, String key, PropertySectionState state) {
         this(context, key, state, null);
     }
 
-    EditorPropertySection(Context context, String key, EditorLayoutState state, View accessory) {
+    public EditorPropertySection(Context context, String key, PropertySectionState state, View accessory) {
         super(context);
         this.key = key;
         this.state = state;
@@ -35,10 +35,9 @@ final class EditorPropertySection extends LinearLayout {
         body = new LinearLayout(context);
         body.setOrientation(VERTICAL);
         header = EditorWidgets.sectionButton(context, key, () -> {
-            boolean collapse = !state.collapsedPropertySections.contains(key);
-            if (collapse) state.collapsedPropertySections.add(key);
-            else state.collapsedPropertySections.remove(key);
-            state.changed.run();
+            boolean collapse = !state.collapsed(key);
+            state.collapsed(key, collapse);
+            state.changed();
             // Commit deferred fields before hiding their controls, including keyboard activation.
             if (collapse) body.clearFocus();
             refresh();
@@ -67,20 +66,20 @@ final class EditorPropertySection extends LinearLayout {
         refresh();
     }
 
-    LinearLayout body() { return body; }
+    public LinearLayout body() { return body; }
 
-    static void expandAncestors(View field) {
+    public static void expandAncestors(View field) {
         for (View view = field; view != null; view = view.getParent() instanceof View parent ? parent : null) {
             if (view instanceof EditorPropertySection section) {
-                section.state.collapsedPropertySections.remove(section.key);
-                section.state.changed.run();
+                section.state.collapsed(section.key, false);
+                section.state.changed();
                 section.refresh();
             }
         }
     }
 
-    void refresh() {
-        boolean collapsed = state.collapsedPropertySections.contains(key);
+    public void refresh() {
+        boolean collapsed = state.collapsed(key);
         String text = (collapsed ? "▸  " : "▾  ") + EditorWidgets.tr(key);
         if (!header.getText().toString().equals(text)) header.setText(text);
         body.setVisibility(collapsed ? GONE : VISIBLE);

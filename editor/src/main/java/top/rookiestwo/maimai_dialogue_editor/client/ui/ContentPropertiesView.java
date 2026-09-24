@@ -1,5 +1,15 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorActionRow;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorChoiceField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorNumberField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySection;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextBinding;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionState;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -34,7 +44,7 @@ final class ContentPropertiesView extends LinearLayout {
     private final ProjectWorkspace workspace;
     private final ContentWorkspace content;
     private final ChoicePresenter choices;
-    private final EditorLayoutState layout;
+    private final PropertySectionState layout;
     private LinearLayout group;
     private final List<Runnable> bindings = new ArrayList<>();
     private ContentWorkspace.Snapshot state;
@@ -43,7 +53,7 @@ final class ContentPropertiesView extends LinearLayout {
     private final EditorIssueFocus issueFocus;
     private final java.util.Map<String, View> fields = new java.util.HashMap<>();
 
-    ContentPropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, EditorLayoutState layout) {
+    ContentPropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, PropertySectionState layout) {
         super(context);
         this.workspace = workspace;
         issueFocus = new EditorIssueFocus(this, workspace);

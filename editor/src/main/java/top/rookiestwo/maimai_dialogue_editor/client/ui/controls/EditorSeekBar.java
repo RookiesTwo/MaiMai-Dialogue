@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.R;
 import icyllis.modernui.core.Context;
@@ -10,10 +10,10 @@ import icyllis.modernui.view.MotionEvent;
 import icyllis.modernui.widget.SeekBar;
 
 /** Native SeekBar input with the editor's square styling and explicit gesture cleanup. */
-final class EditorSeekBar extends SeekBar {
+public final class EditorSeekBar extends SeekBar {
     private boolean pointerDown;
 
-    EditorSeekBar(Context context) {
+    public EditorSeekBar(Context context) {
         super(context);
         setUserAnimationEnabled(false);
         setTickMark(null);
@@ -57,7 +57,7 @@ final class EditorSeekBar extends SeekBar {
         return handled;
     }
 
-    void cancelGesture() {
+    public void cancelGesture() {
         if (!pointerDown) return;
         pointerDown = false;
         MotionEvent cancel = MotionEvent.obtain(Core.timeNanos(), MotionEvent.ACTION_CANCEL, 0, 0, 0);

@@ -1,5 +1,12 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySection;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextBinding;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionState;
+
 import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.*;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
@@ -18,7 +25,7 @@ final class DialogueScenePropertiesView extends LinearLayout {
     private long generation;
     private boolean refreshing;
 
-    DialogueScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
+    DialogueScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout) {
         super(context); this.project = project; setOrientation(VERTICAL);
         section = new EditorPropertySection(context, "edit.scene", layout); addView(section);
         scene = new EditorTextField(context, EditorTextBinding.plain(this::value,

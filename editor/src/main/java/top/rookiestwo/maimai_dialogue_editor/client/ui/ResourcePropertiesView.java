@@ -1,5 +1,9 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionState;
+
 import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.TextView;
@@ -23,7 +27,7 @@ final class ResourcePropertiesView extends LinearLayout {
     private final ActionPropertiesView actions;
     private final DialogueSimulationView simulation;
 
-    ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, EditorLayoutState layout, EditorPreviewHost preview) {
+    ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, PropertySectionState layout, EditorPreviewHost preview) {
         super(context);
         this.workspace = workspace;
         setOrientation(VERTICAL);

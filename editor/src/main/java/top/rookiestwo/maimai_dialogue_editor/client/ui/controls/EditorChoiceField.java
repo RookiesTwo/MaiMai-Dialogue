@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
@@ -11,14 +11,14 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 // 统一下拉字段的交互与刷新，提交边界和未知值显示由所属面板提供。
-final class EditorChoiceField {
+public final class EditorChoiceField {
     private final Button button;
     private final Supplier<String> value;
     private final Supplier<List<ChoicePresenter.Item>> items;
     private final BooleanSupplier enabled;
     private final Function<String, String> unknownLabel;
 
-    EditorChoiceField(Context context, ChoicePresenter choices, Supplier<String> value,
+    public EditorChoiceField(Context context, ChoicePresenter choices, Supplier<String> value,
                       Supplier<List<ChoicePresenter.Item>> items, BooleanSupplier accepts,
                       BooleanSupplier enabled, Consumer<String> commit, Function<String, String> unknownLabel) {
         this.value = value;
@@ -40,9 +40,9 @@ final class EditorChoiceField {
         });
     }
 
-    Button button() { return button; }
+    public Button button() { return button; }
 
-    void refresh() {
+    public void refresh() {
         String selected = value.get();
         String text = items.get().stream().filter(item -> item.value().equals(selected))
                 .map(ChoicePresenter.Item::label).findFirst().orElseGet(() -> unknownLabel.apply(selected));

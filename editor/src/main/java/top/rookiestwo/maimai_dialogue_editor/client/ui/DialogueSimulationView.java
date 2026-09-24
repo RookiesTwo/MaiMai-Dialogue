@@ -1,5 +1,13 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorActionRow;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySection;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextBinding;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionState;
+
 import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.*;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
@@ -17,7 +25,7 @@ final class DialogueSimulationView extends LinearLayout {
     private final Button outcome, skip;
     private long generation = -1;
     private boolean refreshing;
-    DialogueSimulationView(Context context, ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices, EditorLayoutState layout) {
+    DialogueSimulationView(Context context, ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices, PropertySectionState layout) {
         super(context); this.project = project; this.preview = preview; setOrientation(VERTICAL);
         section = new EditorPropertySection(context, "simulation.title", layout); addView(section);
         var edit = new EditorTextBinding(() -> String.join("\n", project.simulation().progress()),

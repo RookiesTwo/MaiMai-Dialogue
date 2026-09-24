@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.View;
@@ -6,13 +6,13 @@ import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.TextView;
 
 // 将共享文本绑定接到输入框；程序刷新不触发编辑或输入暂存。
-final class EditorTextField {
+public final class EditorTextField {
     private final EditorTextBinding binding;
     private final EditText input;
     private TextView error;
     private boolean synchronizing;
 
-    EditorTextField(Context context, EditorTextBinding binding) {
+    public EditorTextField(Context context, EditorTextBinding binding) {
         this.binding = binding;
         input = EditorWidgets.compactInput(context, binding.text(), text -> {
             if (!synchronizing) binding.input(text);
@@ -24,9 +24,9 @@ final class EditorTextField {
         });
     }
 
-    EditText input() { return input; }
+    public EditText input() { return input; }
 
-    TextView error() {
+    public TextView error() {
         if (error == null) {
             error = EditorWidgets.compactParagraph(input.getContext(), "");
             error.setTextColor(EditorWidgets.ERROR);
@@ -35,17 +35,17 @@ final class EditorTextField {
         return error;
     }
 
-    void refresh() {
+    public void refresh() {
         binding.refresh();
         synchronize();
     }
 
-    void refresh(boolean enabled) {
+    public void refresh(boolean enabled) {
         refresh();
         input.setEnabled(enabled);
     }
 
-    void reset() {
+    public void reset() {
         binding.reset();
         synchronize();
     }

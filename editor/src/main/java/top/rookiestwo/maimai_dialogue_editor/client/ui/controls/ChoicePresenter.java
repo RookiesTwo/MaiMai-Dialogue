@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.view.View;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceCandidates;
@@ -8,9 +8,9 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /** Dropdowns are attached to the workspace root, never a separate native popup window. */
-interface ChoicePresenter {
+public interface ChoicePresenter {
     record Item(String value, String label, boolean enabled) {
-        Item(String value, String label) { this(value, label, true); }
+        public Item(String value, String label) { this(value, label, true); }
     }
     void show(View anchor, List<Item> items, String selected, Consumer<String> chosen);
     /** Command menus keep their own width instead of inheriting an icon button's width. */

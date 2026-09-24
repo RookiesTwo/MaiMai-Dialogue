@@ -1,5 +1,16 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorActionRow;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorChoiceField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorColorField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorNumberField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySection;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextBinding;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionState;
+
 import com.google.gson.*;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.*;
@@ -22,17 +33,17 @@ final class ScenePropertiesView extends LinearLayout {
     private final ProjectWorkspace project;
     private final SceneWorkspace model;
     private final ChoicePresenter choices;
-    private final EditorLayoutState layout;
+    private final PropertySectionState layout;
     private final List<Runnable> bindings = new ArrayList<>();
     private final List<EditorPropertySection> sections = new ArrayList<>();
     private LinearLayout group;
     private String binding = "";
     private boolean refreshing;
 
-    ScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
+    ScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout) {
         this(context, project, choices, layout, project.scenes());
     }
-    ScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout, SceneWorkspace model) {
+    ScenePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout, SceneWorkspace model) {
         super(context); this.project = project; this.model = model; this.choices = choices; setOrientation(VERTICAL);
         this.layout = layout;
     }

@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
@@ -7,11 +7,11 @@ import icyllis.modernui.view.View;
 import icyllis.modernui.widget.FrameLayout;
 
 /** Shared modal surface; each form supplies its own content, scrolling and focus policy. */
-abstract class EditorModalLayout extends FrameLayout {
+public abstract class EditorModalLayout extends FrameLayout {
     private final int maxWidthDp, maxHeightDp;
     private View panel;
 
-    EditorModalLayout(Context context, int maxWidthDp, int maxHeightDp) {
+    protected EditorModalLayout(Context context, int maxWidthDp, int maxHeightDp) {
         super(context);
         this.maxWidthDp = maxWidthDp; this.maxHeightDp = maxHeightDp;
         setBackground(EditorWidgets.shape(0x80788088, 0));
@@ -20,7 +20,7 @@ abstract class EditorModalLayout extends FrameLayout {
         setFocusableInTouchMode(true);
     }
 
-    final void setPanel(View panel) {
+    protected final void setPanel(View panel) {
         this.panel = panel;
         EditorWidgets.bindMetrics(panel, () -> panel.setBackground(EditorWidgets.shape(EditorWidgets.PANEL, dp(1))));
         addView(panel, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT, Gravity.CENTER));

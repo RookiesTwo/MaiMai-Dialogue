@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.*;
@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 import top.rookiestwo.maimai_dialogue_editor.document.EditGesture;
 
 /** Live HSV/alpha picker; reads are side-effect free and each gesture has an undo boundary. */
-final class EditorColorPalette extends LinearLayout {
+public final class EditorColorPalette extends LinearLayout {
     private final Supplier<String> value;
     private final Consumer<String> changed;
     private final Runnable endEdit;
@@ -29,7 +29,7 @@ final class EditorColorPalette extends LinearLayout {
     private final EditorSeekBar hue;
     private final EditorSeekBar opacity;
 
-    EditorColorPalette(Context context, Supplier<String> value, Consumer<String> changed, Runnable endEdit, Runnable close,
+    public EditorColorPalette(Context context, Supplier<String> value, Consumer<String> changed, Runnable endEdit, Runnable close,
                        Supplier<? extends EditGesture> beginEdit) {
         super(context); this.value = value; this.changed = changed; this.endEdit = endEdit;
         this.beginEdit = beginEdit;
@@ -115,7 +115,7 @@ final class EditorColorPalette extends LinearLayout {
         return control;
     }
 
-    void refresh() {
+    public void refresh() {
         if (gesture != null) return;
         String next = value.get();
         if (next.equals(current)) return;
@@ -139,7 +139,7 @@ final class EditorColorPalette extends LinearLayout {
         finishGesture(); endEdit.run();
         gesture = beginEdit == null ? null : beginEdit.get();
     }
-    void finishGesture() {
+    public void finishGesture() {
         var finished = gesture; gesture = null;
         if (finished != null) finished.finish(true);
         endEdit.run(); refresh();

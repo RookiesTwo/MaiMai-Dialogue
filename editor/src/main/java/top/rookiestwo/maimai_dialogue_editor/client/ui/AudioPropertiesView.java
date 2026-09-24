@@ -1,5 +1,15 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorActionRow;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorChoiceField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorNumberField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySection;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextBinding;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionState;
+
 import icyllis.modernui.core.*;
 import icyllis.modernui.widget.*;
 import top.rookiestwo.maimai_dialogue_editor.document.AudioWorkspace;
@@ -13,7 +23,7 @@ final class AudioPropertiesView extends LinearLayout {
     private final ProjectWorkspace project;
     private final AudioWorkspace model;
     private final ChoicePresenter choices;
-    private final EditorLayoutState layout;
+    private final PropertySectionState layout;
     private final EditorPreviewHost preview;
     private final List<Runnable> bindings = new ArrayList<>();
     private Binding binding;
@@ -22,7 +32,7 @@ final class AudioPropertiesView extends LinearLayout {
     private EditorPropertySection section;
     private final Map<String, icyllis.modernui.view.View> fields = new HashMap<>();
     private final EditorIssueFocus issueFocus;
-    AudioPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout, EditorPreviewHost preview) {
+    AudioPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout, EditorPreviewHost preview) {
         super(context); setOrientation(VERTICAL);
         this.project = project; model = project.audio(); this.choices = choices; this.layout = layout; this.preview = preview;
         issueFocus = new EditorIssueFocus(this, project);
@@ -46,7 +56,7 @@ final class AudioPropertiesView extends LinearLayout {
         if (!issue.field().equals(prefix) && !issue.field().startsWith(prefix + ".")) return;
         var field = fields.getOrDefault(issue.field().substring(Math.min(issue.field().length(), prefix.length() + 1)), fields.get("mode"));
         issueFocus.reveal(issue, field, () -> {
-            layout.collapsedPropertySections.remove(target.bgm() ? "audio.bgm" : "audio.typing"); section.refresh();
+            layout.collapsed(target.bgm() ? "audio.bgm" : "audio.typing", false); section.refresh();
         });
     }
     private boolean accepts(Binding expected) {

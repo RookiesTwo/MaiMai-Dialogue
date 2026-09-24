@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.View;
@@ -7,7 +7,7 @@ import java.util.*;
 import java.util.function.Consumer;
 
 /** Shared resource search with bounded View creation for large registries. */
-final class EditorSearchChoices extends LinearLayout {
+public final class EditorSearchChoices extends LinearLayout {
     private final List<ChoicePresenter.Item> source;
     private final LinearLayout results;
     private final String selected;
@@ -15,7 +15,7 @@ final class EditorSearchChoices extends LinearLayout {
     private final Button more;
     private List<ChoicePresenter.Item> filtered;
     private int shown;
-    EditorSearchChoices(Context context, List<ChoicePresenter.Item> source, String selected, Consumer<String> chosen) {
+    public EditorSearchChoices(Context context, List<ChoicePresenter.Item> source, String selected, Consumer<String> chosen) {
         super(context); setOrientation(VERTICAL);
         EditorWidgets.bindMetrics(this, () -> setPadding(dp(1), dp(1), dp(1), dp(1)));
         this.source = List.copyOf(source); this.selected = selected; this.chosen = chosen;

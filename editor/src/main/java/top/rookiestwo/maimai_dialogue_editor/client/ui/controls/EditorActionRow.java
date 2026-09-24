@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
@@ -6,8 +6,8 @@ import icyllis.modernui.view.MeasureSpec;
 import icyllis.modernui.widget.LinearLayout;
 
 /** Content-sized inspector actions, stacked when the sidebar cannot fit the whole row. */
-final class EditorActionRow extends LinearLayout {
-    EditorActionRow(Context context) {
+public final class EditorActionRow extends LinearLayout {
+    public EditorActionRow(Context context) {
         super(context);
         setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
         EditorWidgets.bindMetrics(this, () -> setPadding(dp(3), dp(3), dp(3), dp(3)));

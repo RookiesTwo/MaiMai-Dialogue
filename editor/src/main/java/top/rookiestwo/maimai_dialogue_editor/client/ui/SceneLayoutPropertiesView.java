@@ -1,5 +1,14 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorChoiceField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorNumberField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySection;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextBinding;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionState;
+
 import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.*;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
@@ -17,7 +26,7 @@ final class SceneLayoutPropertiesView extends LinearLayout {
     private final ProjectWorkspace project;
     private final SceneWorkspace model;
     private final ChoicePresenter choices;
-    private final EditorLayoutState layout;
+    private final PropertySectionState layout;
     private final LinearLayout form;
     private final List<Runnable> bindings = new ArrayList<>();
     private final List<EditorPropertySection> sections = new ArrayList<>();
@@ -25,7 +34,7 @@ final class SceneLayoutPropertiesView extends LinearLayout {
     private String binding = "";
     private boolean refreshing;
 
-    SceneLayoutPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
+    SceneLayoutPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout) {
         super(context); setOrientation(VERTICAL);
         this.project = project; model = project.scenes(); this.choices = choices; this.layout = layout;
         form = new LinearLayout(context); form.setOrientation(VERTICAL); addView(form);

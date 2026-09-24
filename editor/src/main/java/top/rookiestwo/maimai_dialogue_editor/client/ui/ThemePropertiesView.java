@@ -1,5 +1,12 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorColorField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorNumberField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySection;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionState;
+
 import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.*;
 import top.rookiestwo.maimai_dialogue_editor.document.*;
@@ -12,11 +19,11 @@ final class ThemePropertiesView extends LinearLayout {
     private final ProjectWorkspace project;
     private final ThemeWorkspace model;
     private final ChoicePresenter choices;
-    private final EditorLayoutState layout;
+    private final PropertySectionState layout;
     private final List<Runnable> bindings = new ArrayList<>();
     private String binding = "";
     private boolean refreshing;
-    ThemePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout) {
+    ThemePropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout) {
         super(context); setOrientation(VERTICAL);
         this.project = project; model = project.themes(); this.choices = choices; this.layout = layout;
     }

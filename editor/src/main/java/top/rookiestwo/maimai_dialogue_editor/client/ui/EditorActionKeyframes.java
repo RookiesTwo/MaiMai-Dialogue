@@ -1,5 +1,8 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+
 import icyllis.modernui.view.View;
 import net.minecraft.client.resources.language.I18n;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorContentPreparation;

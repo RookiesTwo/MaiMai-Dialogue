@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;
@@ -18,10 +18,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /** Rounded readout, full-precision editing, and an optional quick-adjust slider. */
-final class EditorNumberField extends LinearLayout {
-    record Slider(float minimum, float maximum, int keyIncrement) {
-        static Slider range(NumberField field) { return range(field.minimum(), field.maximum(), field.integer()); }
-        static Slider range(float minimum, float maximum, boolean integer) {
+public final class EditorNumberField extends LinearLayout {
+    public record Slider(float minimum, float maximum, int keyIncrement) {
+        public static Slider range(NumberField field) { return range(field.minimum(), field.maximum(), field.integer()); }
+        public static Slider range(float minimum, float maximum, boolean integer) {
             return new Slider(minimum, maximum, integer ? 1 : maximum - minimum > 10 ? 1000 : 10);
         }
     }
@@ -42,7 +42,7 @@ final class EditorNumberField extends LinearLayout {
     private boolean tracking;
     private EditGesture gesture;
 
-    EditorNumberField(Context context, NumberField field, Slider quickAdjust, Supplier<String> value,
+    public EditorNumberField(Context context, NumberField field, Slider quickAdjust, Supplier<String> value,
                       Function<String, String> setter, BooleanSupplier accepts, Runnable endEdit,
                       Supplier<? extends EditGesture> beginDrag, String label) {
         super(context);
@@ -148,7 +148,7 @@ final class EditorNumberField extends LinearLayout {
         }
     }
 
-    void refresh(boolean enabled) {
+    public void refresh(boolean enabled) {
         if (!enabled && slider != null) slider.cancelGesture();
         input.setEnabled(enabled);
         if (slider != null) slider.setEnabled(enabled);

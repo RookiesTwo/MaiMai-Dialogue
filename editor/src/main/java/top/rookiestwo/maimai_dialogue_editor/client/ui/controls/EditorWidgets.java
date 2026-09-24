@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.R;
 import icyllis.modernui.ModernUI;
@@ -26,27 +26,27 @@ import icyllis.modernui.text.TextWatcher;
 
 import java.util.function.Consumer;
 
-final class EditorWidgets {
+public final class EditorWidgets {
     // 单行资源列表与属性下拉菜单共用的紧凑密度。
-    static final int COMPACT_ROW_DP = 22;
-    static final int COMPACT_HORIZONTAL_PADDING_DP = 4;
-    static final int COMPACT_CONTROL_DP = 24;
+    public static final int COMPACT_ROW_DP = 22;
+    public static final int COMPACT_HORIZONTAL_PADDING_DP = 4;
+    public static final int COMPACT_CONTROL_DP = 24;
     static final int CONTROL_CORNER_DP = 4;
 
     // 白色内容区、浅灰框架和亮蓝交互反馈；文字使用深灰以保持可读性。
-    static final int BACKGROUND = 0xFFF2F4F7;
-    static final int PANEL = 0xFFFFFFFF;
-    static final int HEADER = 0xFFE9EDF2;
-    static final int PREVIEW = 0xFFFFFFFF;
-    static final int BORDER = 0xFFCDD3DA;
-    static final int ACCENT = 0xFF0088FF;
-    static final int TEXT = 0xFF2F3742;
-    static final int MUTED = 0xFF6B7280;
-    static final int ERROR = 0xFFC62828;
-    static final int SPLITTER_HOVER = 0xFF70B8FF;
+    public static final int BACKGROUND = 0xFFF2F4F7;
+    public static final int PANEL = 0xFFFFFFFF;
+    public static final int HEADER = 0xFFE9EDF2;
+    public static final int PREVIEW = 0xFFFFFFFF;
+    public static final int BORDER = 0xFFCDD3DA;
+    public static final int ACCENT = 0xFF0088FF;
+    public static final int TEXT = 0xFF2F3742;
+    public static final int MUTED = 0xFF6B7280;
+    public static final int ERROR = 0xFFC62828;
+    public static final int SPLITTER_HOVER = 0xFF70B8FF;
     private static final int BUTTON_HOVER = 0xFFE5F2FF;
     private static final int TOOLBAR_HOVER = 0xFFDCE2E9;
-    static final int SELECTION = 0xFFCDE6FF;
+    public static final int SELECTION = 0xFFCDE6FF;
     private static final int BUTTON_PRESSED = SELECTION;
     private static final int TREE_ROW_HOVER = 0x1A0088FF;
     private static final int TREE_ROW_PRESSED = 0x330088FF;
@@ -54,7 +54,7 @@ final class EditorWidgets {
     private static final int SCROLLBAR_THUMB = 0xFFA6AFBB;
     private static final int METRICS_TAG = 0x6D650001;
     private static final int TOOLTIP_STYLE_TAG = 0x6D650002;
-    static final int DEFERRED_INPUT_TAG = 0x6D650003;
+    public static final int DEFERRED_INPUT_TAG = 0x6D650003;
     private static final int PROPERTY_BUTTON_SCOPE_TAG = 0x6D650004;
     private static final int BUTTON_ROLE_TAG = 0x6D650005;
     private static final int EDITOR_TEXT_TAG = 0x6D650006;
@@ -67,7 +67,7 @@ final class EditorWidgets {
     private EditorWidgets() {
     }
 
-    static String tr(String key) {
+    public static String tr(String key) {
         return I18n.get("gui.maimai_dialogue_editor." + key);
     }
 
@@ -87,7 +87,7 @@ final class EditorWidgets {
         text.setTypeface(configuredTypeface());
     }
 
-    static TextView label(Context context, String key, int size, int color) {
+    public static TextView label(Context context, String key, int size, int color) {
         TextView text = new TextView(context);
         bindTypeface(text);
         text.setText(tr(key));
@@ -108,16 +108,16 @@ final class EditorWidgets {
         return text;
     }
 
-    static Button button(Context context, String key, Runnable action) {
+    public static Button button(Context context, String key, Runnable action) {
         return button(context, key, action, ButtonRole.ACTION);
     }
 
-    static Button fieldButton(Context context, String key, Runnable action) {
+    public static Button fieldButton(Context context, String key, Runnable action) {
         return button(context, key, action, ButtonRole.FIELD);
     }
 
     // 普通菜单与资源搜索共用同一套紧凑选项行。
-    static Button choiceRow(Context context, ChoicePresenter.Item item, String selected, Consumer<String> chosen) {
+    public static Button choiceRow(Context context, ChoicePresenter.Item item, String selected, Consumer<String> chosen) {
         Button row = button(context, "", () -> { if (item.enabled()) chosen.accept(item.value()); });
         row.setText(item.label());
         row.setTooltipText(item.label());
@@ -184,7 +184,7 @@ final class EditorWidgets {
         return button;
     }
 
-    static Button icon(Context context, EditorButtonIcon icon, String tooltip, Runnable action) {
+    public static Button icon(Context context, EditorButtonIcon icon, String tooltip, Runnable action) {
         Button button = button(context, tooltip, action, ButtonRole.ACTION, icon);
         button.setText("");
         // Geometry uses the visible button bounds, not TextView's wide single-line layout.
@@ -195,7 +195,7 @@ final class EditorWidgets {
         return button;
     }
 
-    static Button icon(Context context, String glyph, String tooltip, Runnable action) {
+    public static Button icon(Context context, String glyph, String tooltip, Runnable action) {
         Button button = button(context, tooltip, action);
         button.setText(glyph);
         button.setTooltipText(tr(tooltip));
@@ -206,31 +206,31 @@ final class EditorWidgets {
         return button;
     }
 
-    static Button panelIcon(Context context, EditorButtonIcon icon, String tooltip, Runnable action) {
+    public static Button panelIcon(Context context, EditorButtonIcon icon, String tooltip, Runnable action) {
         Button button = icon(context, icon, tooltip, action);
         button.setTag(BUTTON_ROLE_TAG, ButtonRole.PANEL_CONTROL);
         refreshButtonStyle(button);
         return button;
     }
 
-    static void toolbarButton(Button button) {
+    public static void toolbarButton(Button button) {
         button.setTag(BUTTON_ROLE_TAG, ButtonRole.TOOLBAR);
         refreshButtonStyle(button);
     }
 
-    static LinearLayout.LayoutParams squareIconParams(View icon) {
+    public static LinearLayout.LayoutParams squareIconParams(View icon) {
         var params = new LinearLayout.LayoutParams(icon.dp(COMPACT_CONTROL_DP), icon.dp(COMPACT_CONTROL_DP));
         params.topMargin = icon.dp(2);
         params.bottomMargin = icon.dp(2);
         return params;
     }
 
-    static void enabled(Button button, boolean enabled) {
+    public static void enabled(Button button, boolean enabled) {
         button.setEnabled(enabled);
         button.setTextColor(buttonTextColor(button));
     }
 
-    static EditText input(Context context, String value, Consumer<String> changed, Runnable endEdit) {
+    public static EditText input(Context context, String value, Consumer<String> changed, Runnable endEdit) {
         EditText input = new EditText(context);
         bindTypeface(input);
         input.setSingleLine(true);
@@ -264,7 +264,7 @@ final class EditorWidgets {
         return input;
     }
 
-    static void formLabel(LinearLayout container, String key) {
+    public static void formLabel(LinearLayout container, String key) {
         TextView label = label(container.getContext(), key, 13, MUTED);
         container.addView(label);
         bindMetrics(label, () -> {
@@ -273,7 +273,7 @@ final class EditorWidgets {
         });
     }
 
-    static Button formButton(LinearLayout container, String key, Runnable action) {
+    public static Button formButton(LinearLayout container, String key, Runnable action) {
         Button button = button(container.getContext(), key, action);
         container.addView(button);
         bindMetrics(button, () -> {
@@ -284,7 +284,7 @@ final class EditorWidgets {
         return button;
     }
 
-    static EditText compactInput(Context context, String value, Consumer<String> changed, Runnable endEdit) {
+    public static EditText compactInput(Context context, String value, Consumer<String> changed, Runnable endEdit) {
         EditText input = input(context, value, changed, endEdit);
         bindMetrics(input, () -> {
             input.setTextSize(13);
@@ -295,22 +295,22 @@ final class EditorWidgets {
         return input;
     }
 
-    static void propertyRow(LinearLayout container, String key, View control, boolean multiline) {
+    public static void propertyRow(LinearLayout container, String key, View control, boolean multiline) {
         container.addView(new EditorPropertyRow(key, control, multiline),
                 new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
-    static void referenceRow(LinearLayout container, String key, EditText input, Button picker) {
+    public static void referenceRow(LinearLayout container, String key, EditText input, Button picker) {
         propertyRow(container, key, new EditorReferenceField(input, picker), false);
     }
 
-    static TextView compactParagraph(Context context, String key) {
+    public static TextView compactParagraph(Context context, String key) {
         TextView text = paragraph(context, key);
         bindMetrics(text, () -> text.setPadding(0, text.dp(2), 0, text.dp(2)));
         return text;
     }
 
-    static TextView paragraph(Context context, String key) {
+    public static TextView paragraph(Context context, String key) {
         TextView text = label(context, key, 13, MUTED);
         text.setSingleLine(false);
         text.setEllipsize(null);
@@ -318,7 +318,7 @@ final class EditorWidgets {
         return text;
     }
 
-    static ScrollView formScroll(Context context, View content) {
+    public static ScrollView formScroll(Context context, View content) {
         ScrollView scroll = new ScrollView(context);
         scroll.setVerticalScrollbarThumbDrawable(shape(SCROLLBAR_THUMB, 0));
         scroll.setVerticalScrollbarTrackDrawable(shape(HEADER, 0));
@@ -328,7 +328,7 @@ final class EditorWidgets {
     }
 
     // 通用背景保持直角，属性控件按操作、值选择和分组标题分别设置样式。
-    static ShapeDrawable shape(int color, int stroke) {
+    public static ShapeDrawable shape(int color, int stroke) {
         ShapeDrawable shape = new ShapeDrawable();
         shape.setColor(color);
         shape.setCornerRadius(0);
@@ -338,13 +338,13 @@ final class EditorWidgets {
         return shape;
     }
 
-    static ShapeDrawable panelControlShape(int color) {
+    public static ShapeDrawable panelControlShape(int color) {
         ShapeDrawable shape = shape(color, 0);
         shape.setStroke(1, HEADER);
         return shape;
     }
 
-    static void propertyButtonScope(View root) {
+    public static void propertyButtonScope(View root) {
         root.setTag(PROPERTY_BUTTON_SCOPE_TAG, Boolean.TRUE);
     }
 
@@ -356,7 +356,7 @@ final class EditorWidgets {
         return false;
     }
 
-    static boolean propertyAction(View view) {
+    public static boolean propertyAction(View view) {
         return view instanceof Button && view.getTag(BUTTON_ROLE_TAG) == ButtonRole.ACTION;
     }
 
@@ -426,7 +426,7 @@ final class EditorWidgets {
     }
 
     // Pointer feedback remains active after selection and lets the moving selection show through.
-    static StateListDrawable treeRowBackground() {
+    public static StateListDrawable treeRowBackground() {
         StateListDrawable background = new StateListDrawable();
         background.addState(new int[]{-R.attr.state_enabled}, shape(0, 0));
         background.addState(new int[]{R.attr.state_pressed}, shape(TREE_ROW_PRESSED, 0));
@@ -437,7 +437,7 @@ final class EditorWidgets {
 
     // 为新创建的编辑器提示框应用浅色直角样式，不修改其他界面或反复触发布局。
     @SuppressWarnings("UnstableApiUsage")
-    static void styleTooltips(View owner) {
+    public static void styleTooltips(View owner) {
         styleTooltips(owner, configuredTypeface());
     }
 
@@ -464,7 +464,7 @@ final class EditorWidgets {
     }
 
     // 每个 View 自己携带尺寸刷新动作，销毁后不留下全局引用。
-    static void bindMetrics(View view, Runnable refresh) {
+    public static void bindMetrics(View view, Runnable refresh) {
         Runnable previous = (Runnable) view.getTag(METRICS_TAG);
         view.setTag(METRICS_TAG, previous == null ? refresh : (Runnable) () -> {
             previous.run();
@@ -473,7 +473,7 @@ final class EditorWidgets {
         refresh.run();
     }
 
-    static void refreshMetrics(View view) {
+    public static void refreshMetrics(View view) {
         Runnable refresh = (Runnable) view.getTag(METRICS_TAG);
         if (refresh != null) {
             refresh.run();

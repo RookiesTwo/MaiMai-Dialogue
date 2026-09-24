@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.EditText;
@@ -10,18 +10,18 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /** Deferred hex input and an anchored color palette share the same tint value. */
-final class EditorColorField extends LinearLayout {
+public final class EditorColorField extends LinearLayout {
     private final Supplier<String> value;
     private final EditText input;
     private final TextView error;
     private final EditorColorSwatch swatch;
     private boolean invalid;
 
-    EditorColorField(Context context, Supplier<String> value, Consumer<String> setter,
+    public EditorColorField(Context context, Supplier<String> value, Consumer<String> setter,
                      BooleanSupplier accepts, Runnable endEdit, ChoicePresenter choices) {
         this(context, value, setter, accepts, endEdit, choices, null);
     }
-    EditorColorField(Context context, Supplier<String> value, Consumer<String> setter,
+    public EditorColorField(Context context, Supplier<String> value, Consumer<String> setter,
                      BooleanSupplier accepts, Runnable endEdit, ChoicePresenter choices,
                      Supplier<? extends top.rookiestwo.maimai_dialogue_editor.document.EditGesture> gesture) {
         super(context);
@@ -65,7 +65,7 @@ final class EditorColorField extends LinearLayout {
         refresh(true);
     }
 
-    void refresh(boolean enabled) {
+    public void refresh(boolean enabled) {
         input.setEnabled(enabled); swatch.setEnabled(enabled);
         if (!input.isFocused() && !invalid && !input.getText().toString().equals(value.get())) input.setText(value.get());
         swatch.setValue(value.get());

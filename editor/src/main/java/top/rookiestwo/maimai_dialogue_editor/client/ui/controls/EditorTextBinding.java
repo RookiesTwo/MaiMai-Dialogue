@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -6,7 +6,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 // 保存输入期间的正文和校验结果；只在有效目标失焦时提交，不依赖 View。
-final class EditorTextBinding {
+public final class EditorTextBinding {
     private final Supplier<String> value;
     private final BooleanSupplier accepts;
     private final Function<String, String> commit;
@@ -19,7 +19,7 @@ final class EditorTextBinding {
     private boolean commitUnchanged;
     private boolean keepErrorOnFocus;
 
-    EditorTextBinding(Supplier<String> value, BooleanSupplier accepts,
+    public EditorTextBinding(Supplier<String> value, BooleanSupplier accepts,
                       Function<String, String> commit, Runnable endEdit) {
         this.value = value;
         this.accepts = accepts;
@@ -28,15 +28,15 @@ final class EditorTextBinding {
         text = value.get();
     }
 
-    static EditorTextBinding plain(Supplier<String> value, BooleanSupplier accepts,
+    public static EditorTextBinding plain(Supplier<String> value, BooleanSupplier accepts,
                                    Consumer<String> commit, Runnable endEdit) {
         return new EditorTextBinding(value, accepts, text -> { commit.accept(text); return ""; }, endEdit);
     }
 
-    EditorTextBinding commitUnchanged() { commitUnchanged = true; return this; }
-    EditorTextBinding keepErrorOnFocus() { keepErrorOnFocus = true; return this; }
-    EditorTextBinding onChange(Consumer<String> listener) { changed = listener; return this; }
-    EditorTextBinding onBlur(Runnable listener) { blurred = listener; return this; }
+    public EditorTextBinding commitUnchanged() { commitUnchanged = true; return this; }
+    public EditorTextBinding keepErrorOnFocus() { keepErrorOnFocus = true; return this; }
+    public EditorTextBinding onChange(Consumer<String> listener) { changed = listener; return this; }
+    public EditorTextBinding onBlur(Runnable listener) { blurred = listener; return this; }
     String text() { return text; }
     String error() { return error; }
 

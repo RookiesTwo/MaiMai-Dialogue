@@ -1,5 +1,9 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorButtonIcon;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+
 import com.google.gson.JsonObject;
 import icyllis.modernui.core.Context;
 import icyllis.modernui.view.Gravity;

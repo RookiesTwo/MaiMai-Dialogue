@@ -1,11 +1,11 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.controls;
 
 import icyllis.modernui.graphics.Canvas;
 import icyllis.modernui.graphics.Paint;
 import icyllis.modernui.widget.Button;
 
 /** Geometric icons centered by their visible bounds instead of font metrics. */
-enum EditorButtonIcon {
+public enum EditorButtonIcon {
     ADD(-1, 0, 1, 0, 0, -1, 0, 1),
     CLOSE(-1, -1, 1, 1, -1, 1, 1, -1),
     CHEVRON_LEFT(0.5f, -1, -0.5f, 0, -0.5f, 0, 0.5f, 1),

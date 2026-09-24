@@ -1,5 +1,14 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorChoiceField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorNumberField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorPropertySection;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextBinding;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorTextField;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.PropertySectionState;
+
 import com.google.gson.*;
 import icyllis.modernui.core.*;
 import icyllis.modernui.view.Gravity;
@@ -22,7 +31,7 @@ final class ActionPropertiesView extends LinearLayout {
     private final ProjectWorkspace project;
     private final ActionWorkspace model;
     private final ChoicePresenter choices;
-    private final EditorLayoutState layout;
+    private final PropertySectionState layout;
     private final EditorPreviewHost preview;
     private final EditorActionKeyframes keyframes;
     private final List<Runnable> keyframeBindings = new ArrayList<>();
@@ -35,7 +44,7 @@ final class ActionPropertiesView extends LinearLayout {
     private long metadataRequest, conversionRequest;
     private final EditorIssueFocus issueFocus;
     private ActionSceneContext scene;
-    ActionPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, EditorLayoutState layout, EditorPreviewHost preview) {
+    ActionPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout, EditorPreviewHost preview) {
         super(context); setOrientation(VERTICAL); this.project = project; model = project.actions(); this.choices = choices; this.layout = layout;
         this.preview = preview; keyframes = new EditorActionKeyframes(project, preview, choices);
         issueFocus = new EditorIssueFocus(this, project);
@@ -143,7 +152,7 @@ final class ActionPropertiesView extends LinearLayout {
                     .map(field -> new ChoicePresenter.Item(field, EditorWidgets.tr("action." + field))).toList();
             choices.showMenu(add, available, "", field -> {
                 if (!accepts(expected)) return;
-                layout.collapsedPropertySections.remove("action." + field);
+                layout.collapsed("action." + field, false);
                 discrete(() -> model.enabled(field, true));
             });
         });
@@ -290,7 +299,7 @@ final class ActionPropertiesView extends LinearLayout {
         String normalized = path.replaceAll("\\[(\\d+)]", ".$1"); var field = fields.get(normalized);
         if (field == null) field = fields.get(normalized.startsWith("target") ? "action.target" : normalized.startsWith("action") ? "action.source" : "action.add_component");
         issueFocus.reveal(issue, field, () -> {
-            layout.collapsedPropertySections.removeIf(key -> key.startsWith("action.")); bindings.forEach(Runnable::run);
+            layout.expandPrefix("action."); bindings.forEach(Runnable::run);
         });
     }
 }

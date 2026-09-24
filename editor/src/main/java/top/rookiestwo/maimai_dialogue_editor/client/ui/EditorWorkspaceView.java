@@ -1,5 +1,11 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorColorPalette;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorDropdownMenu;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorSearchChoices;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+
 import icyllis.modernui.annotation.NonNull;
 import icyllis.modernui.R;
 import icyllis.modernui.core.Context;
