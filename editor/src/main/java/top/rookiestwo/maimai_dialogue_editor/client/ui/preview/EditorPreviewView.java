@@ -80,7 +80,7 @@ public final class EditorPreviewView extends ResponsiveFrameLayout implements to
         canvas.addView(materialImage, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         scene = new EditorScenePreviewView(context, host, surface);
         canvas.addView(scene, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
-        actionCanvas = new EditorActionCanvas(context, host, surface);
+        actionCanvas = new EditorActionCanvas(context, host.workspace(), host.timeline(), surface);
         canvas.addView(actionCanvas, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         themeError = EditorWidgets.compactParagraph(context, "");
         themeError.setTextColor(EditorWidgets.ERROR);

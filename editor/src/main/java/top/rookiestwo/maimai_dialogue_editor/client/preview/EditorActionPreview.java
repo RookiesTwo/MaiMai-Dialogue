@@ -65,10 +65,10 @@ public final class EditorActionPreview {
                 : new ActionPreviewSession.Request(workspace.projectGeneration(), workspace.draft(), workspace.resources().opened(), model.previewContext());
         if (Objects.equals(next, request)) { prepared(); return; }
         boolean sameDocument = next != null && request != null && next.project() == request.project() && next.key().equals(request.key());
-        restorePosition = sameDocument && next.context().equals(request.context()) ? host.timeline().position() : null;
+        restorePosition = sameDocument && next.context().equals(request.context()) ? host.timeline().model().position() : null;
         cancelPending(); closeAudio(); playRequested = playing = false;
-        if (sameDocument && displayed != null) host.freezeTimelineFrame();
-        else { actions = null; displayed = null; closeImages(); host.clearActionPreview(); host.clearTimeline(this); }
+        if (sameDocument && displayed != null) host.timeline().freezeFrame();
+        else { actions = null; displayed = null; closeImages(); host.clearActionPreview(); host.timeline().clear(this); }
         request = next; preparing = null; failure = "";
         session.select(next);
     }
@@ -118,7 +118,7 @@ public final class EditorActionPreview {
             playRequested = false; render(play);
         } catch (RuntimeException invalid) { failure = String.valueOf(invalid.getMessage()); playRequested = false; }
         finally { source.close(); pendingImages = null; }
-        if (!play && restorePosition != null) host.seekTimeline(host.timelinePlayback(), restorePosition);
+        if (!play && restorePosition != null) host.timeline().seek(host.timeline().playback(), restorePosition);
         restorePosition = null;
         host.refresh();
     }
@@ -145,7 +145,7 @@ public final class EditorActionPreview {
         ScenePlayback timelinePlayback = null;
         try { timelinePlayback = play ? playback : displayed.playback(request.context().target(), token); }
         catch (RuntimeException invalid) { failure = String.valueOf(invalid.getMessage()); }
-        host.bindTimeline(this, timelinePlayback, 1, play);
+        host.timeline().bind(this, timelinePlayback, 1, play);
         var state = new DialogueScreenState(token, Optional.of(displayed.scene().scene()), Optional.of(displayed.scene().theme()),
                 Optional.of(playback), PlaybackPhase.READY, !play, Optional.empty(), false, false, 0,
                 Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_speaker")), Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_text")),
@@ -169,7 +169,7 @@ public final class EditorActionPreview {
         cancelPending(); closeAudio(); closeImages(); actions = null; request = null; preparing = displayed = null;
         playRequested = playing = false; session.select(null); failure = "";
         restorePosition = null;
-        host.clearTimeline(this);
+        host.timeline().clear(this);
     }
     void dispose() { release(); session.dispose(); }
 
@@ -188,7 +188,7 @@ public final class EditorActionPreview {
             Core.getUiHandler().post(() -> {
                 if (actions == this && playing && audio != null && state.generation() == generation)
                 {
-                    host.followTimeline(EditorActionPreview.this, token, elapsed);
+                    host.timeline().follow(EditorActionPreview.this, token, elapsed);
                     audio.frame(generation, token, elapsed);
                 }
             });

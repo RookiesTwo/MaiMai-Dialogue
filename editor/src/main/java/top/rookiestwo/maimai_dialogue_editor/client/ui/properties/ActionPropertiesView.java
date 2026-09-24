@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui.properties;
 
-import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorTimelinePreview;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.preview.EditorActionKeyframes;
 
 
@@ -36,7 +36,7 @@ final class ActionPropertiesView extends LinearLayout {
     private final ActionWorkspace model;
     private final ChoicePresenter choices;
     private final PropertySectionState layout;
-    private final EditorPreviewHost preview;
+    private final EditorTimelinePreview preview;
     private final EditorActionKeyframes keyframes;
     private final List<Runnable> keyframeBindings = new ArrayList<>();
     private final Runnable timelineListener = () -> keyframeBindings.forEach(Runnable::run);
@@ -48,7 +48,7 @@ final class ActionPropertiesView extends LinearLayout {
     private long metadataRequest, conversionRequest;
     private final EditorIssueFocus issueFocus;
     private ActionSceneContext scene;
-    ActionPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout, EditorPreviewHost preview) {
+    ActionPropertiesView(Context context, ProjectWorkspace project, ChoicePresenter choices, PropertySectionState layout, EditorTimelinePreview preview) {
         super(context); setOrientation(VERTICAL); this.project = project; model = project.actions(); this.choices = choices; this.layout = layout;
         this.preview = preview; keyframes = new EditorActionKeyframes(project, preview, choices);
         issueFocus = new EditorIssueFocus(this, project);
@@ -283,10 +283,10 @@ final class ActionPropertiesView extends LinearLayout {
         });
     }
     @Override protected void onAttachedToWindow() {
-        super.onAttachedToWindow(); preview.addTimelineObserver(timelineListener); timelineListener.run();
+        super.onAttachedToWindow(); preview.addObserver(timelineListener); timelineListener.run();
     }
     @Override protected void onDetachedFromWindow() {
-        preview.removeTimelineObserver(timelineListener);
+        preview.removeObserver(timelineListener);
         ++metadataRequest; ++conversionRequest; sceneSignature = ""; scene = null;
         super.onDetachedFromWindow();
     }

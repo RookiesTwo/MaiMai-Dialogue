@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui.preview;
 
-import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorTimelinePreview;
 
 import com.google.gson.JsonObject;
 import icyllis.modernui.core.*;
@@ -17,7 +17,7 @@ import java.util.*;
 final class EditorActionCanvas extends FrameLayout implements SceneCanvasOverlay.Host {
     private record Binding(long project, ProjectDraft draft, ActionWorkspace.Context context, int index,
                            ScenePlayback playback, ResolvedActionCall call) {}
-    private final EditorPreviewHost host;
+    private final EditorTimelinePreview timeline;
     private final EditorPreviewSurface surface;
     private final ProjectWorkspace project;
     private final SceneCanvasOverlay overlay;
@@ -28,17 +28,17 @@ final class EditorActionCanvas extends FrameLayout implements SceneCanvasOverlay
     private int candidateTime = -1;
     private ActionWorkspace.CanvasGesture gesture;
 
-    EditorActionCanvas(Context context, EditorPreviewHost host, EditorPreviewSurface surface) {
-        super(context); this.host = host; this.surface = surface; project = host.workspace();
+    EditorActionCanvas(Context context, ProjectWorkspace project, EditorTimelinePreview timeline, EditorPreviewSurface surface) {
+        super(context); this.timeline = timeline; this.surface = surface; this.project = project;
         overlay = new SceneCanvasOverlay(context, this);
         addView(overlay, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
     }
     private Binding current() {
         var model = project.actions(); var context = model.context();
-        if (!model.active() || !model.inspecting() || context == null || !host.canSeekTimeline()) return null;
+        if (!model.active() || !model.inspecting() || context == null || !timeline.canSeek()) return null;
         int index = context.standalone() ? 0 : model.selected();
-        var call = host.timeline().call(index);
-        return call == null ? null : new Binding(project.projectGeneration(), project.draft(), context, index, host.timelinePlayback(), call);
+        var call = timeline.model().call(index);
+        return call == null ? null : new Binding(project.projectGeneration(), project.draft(), context, index, timeline.playback(), call);
     }
     void synchronize() {
         var next = current();
@@ -62,8 +62,8 @@ final class EditorActionCanvas extends FrameLayout implements SceneCanvasOverlay
         });
     }
     private ActionCanvasEdit candidate() {
-        if (binding == null || definition == null || !host.timelineCanvasReady() || !Objects.equals(binding, current())) return null;
-        int time = host.timeline().position();
+        if (binding == null || definition == null || !timeline.canvasReady() || !Objects.equals(binding, current())) return null;
+        int time = timeline.model().position();
         if (candidateTime != time) {
             candidateTime = time; candidate = null;
             try { candidate = new ActionCanvasEdit(binding.playback(), binding.playback().calls().indexOf(binding.call()), time, definition); }
@@ -80,24 +80,24 @@ final class EditorActionCanvas extends FrameLayout implements SceneCanvasOverlay
     public String objectId() { return binding == null ? "" : binding.call().target(); }
     public void selectObject(String id) { /* Target selection belongs to the action inspector. */ }
     public Map<String, RectF> objectBounds() {
-        var fragment = host.timelineFragment();
+        var fragment = timeline.fragment();
         if (!canInteract() || fragment == null) return Map.of();
         var bounds = fragment.visualObjectBounds().get(objectId());
         if (bounds == null) return Map.of();
         surface.mapContentBounds(bounds); return Map.of(objectId(), bounds);
     }
     public RectF objectAnchor(String id) {
-        var fragment = host.timelineFragment(); if (fragment == null) return null;
+        var fragment = timeline.fragment(); if (fragment == null) return null;
         var point = fragment.visualObjectAnchor(id).orElse(null); if (point == null) return null;
         var bounds = new RectF(point.x, point.y, point.x, point.y); surface.mapContentBounds(bounds); return bounds;
     }
     public boolean beginPositionDrag(String id) {
         if (!canInteract() || !id.equals(objectId())) return false;
         var edit = candidate();
-        host.seekTimeline(binding.playback(), host.timeline().position());
-        var expected = binding; int time = host.timeline().position();
+        timeline.seek(binding.playback(), timeline.model().position());
+        var expected = binding; int time = timeline.model().position();
         gesture = project.actions().beginCanvas(edit,
-                () -> Objects.equals(expected, current()) && host.timeline().manual() && time == host.timeline().position(), this::finishing);
+                () -> Objects.equals(expected, current()) && timeline.model().manual() && time == timeline.model().position(), this::finishing);
         return gesture != null;
     }
     public SceneWorkspace.Transform dragPosition() {
@@ -113,22 +113,22 @@ final class EditorActionCanvas extends FrameLayout implements SceneCanvasOverlay
         if (canResize()) update(start.x() + surface.normalizedDeltaX(dx), start.y() + surface.normalizedDeltaY(dy), scaleX);
     }
     private void update(float x, float y, float scale) {
-        if (gesture != null && gesture.update(x, y, scale)) host.renderCanvasFrame(binding.playback(), gesture.edit().preview(), false);
+        if (gesture != null && gesture.update(x, y, scale)) timeline.renderCanvasFrame(binding.playback(), gesture.edit().preview(), false);
     }
     private void finishing(boolean commit) {
         if (gesture == null) return;
-        if (commit) host.renderCanvasFrame(binding.playback(), gesture.edit().preview(), true);
-        else if (binding != null) host.renderCanvasFrame(binding.playback(), null, true);
+        if (commit) timeline.renderCanvasFrame(binding.playback(), gesture.edit().preview(), true);
+        else if (binding != null) timeline.renderCanvasFrame(binding.playback(), null, true);
         gesture = null; candidate = null; candidateTime = -1;
         overlay.synchronize();
     }
     public void endPositionDrag(boolean commit) { if (gesture != null) gesture.finish(commit); }
     void finish(boolean commit) { overlay.finish(commit); }
     @Override protected void onAttachedToWindow() {
-        super.onAttachedToWindow(); host.addTimelineObserver(timelineChanged); synchronize();
+        super.onAttachedToWindow(); timeline.addObserver(timelineChanged); synchronize();
     }
     @Override protected void onDetachedFromWindow() {
-        host.removeTimelineObserver(timelineChanged); finish(false); binding = null; definition = null;
+        timeline.removeObserver(timelineChanged); finish(false); binding = null; definition = null;
         super.onDetachedFromWindow();
     }
 }

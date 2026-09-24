@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui.preview;
 
-import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorTimelinePreview;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
 
@@ -14,7 +14,9 @@ import top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline;
 final class ActionTimelineStrip extends View {
     static final int EDGE_INSET_DP = 10;
     static final int RULER_HANDLE_DP = 8;
-    private final EditorPreviewHost host;
+    private final EditorTimelinePreview timeline;
+    private final java.util.function.IntSupplier selectedCall;
+    private final Hover hover;
     private ActionTimeline.Lane lane;
     private final Runnable select;
     private final EditorActionKeyframes keyframes;
@@ -26,15 +28,15 @@ final class ActionTimelineStrip extends View {
     private float contextX, contextY, hoverX, hoverY;
     private boolean pointerInside;
     private boolean contextTouchUpPending;
-    ActionTimelineStrip(Context context, EditorPreviewHost host, ActionTimeline.Lane lane, Runnable select, EditorActionKeyframes keyframes) {
-        super(context); this.host = host; this.lane = lane; this.select = select; this.keyframes = keyframes;
+    ActionTimelineStrip(Context context, EditorTimelinePreview timeline, java.util.function.IntSupplier selectedCall, Hover hover, ActionTimeline.Lane lane, Runnable select, EditorActionKeyframes keyframes) {
+        super(context); this.timeline = timeline; this.selectedCall = selectedCall; this.hover = hover; this.lane = lane; this.select = select; this.keyframes = keyframes;
         setClickable(true); setFocusable(true); setFocusableInTouchMode(true); setWillNotDraw(false);
         paint.setAntiAlias(true);
     }
-    private int duration() { return host.timelinePlayback() == null ? 0 : host.timeline().duration(); }
+    private int duration() { return timeline.playback() == null ? 0 : timeline.model().duration(); }
     void updateLane(ActionTimeline.Lane next) {
         lane = next;
-        if (dragging != null && dragging != host.timelinePlayback()) finish();
+        if (dragging != null && dragging != timeline.playback()) finish();
         invalidate();
     }
     private float inset() { return Math.min(dp(EDGE_INSET_DP), getWidth() / 2f); }
@@ -43,13 +45,13 @@ final class ActionTimelineStrip extends View {
     private int time(float x) { return (int)Math.round(Math.clamp((x - inset()) / Math.max(1.0, span()), 0, 1) * duration()); }
     private float headCenter() {
         float width = Math.max(1, dp(1));
-        return Math.round(x(host.timelinePlayback() == null ? 0 : host.timeline().position()) - width / 2) + width / 2;
+        return Math.round(x(timeline.playback() == null ? 0 : timeline.model().position()) - width / 2) + width / 2;
     }
     private boolean hitHead(float x, float y) {
-        return host.canSeekTimeline() && Math.abs(x - headCenter()) <= dp(6)
+        return timeline.canSeek() && Math.abs(x - headCenter()) <= dp(6)
                 && y >= (lane == null ? Math.max(0, getHeight() - dp(RULER_HANDLE_DP)) : 0) && y < getHeight();
     }
-    void refreshPointerHover() { host.playheadHover(this, pointerInside && hitHead(hoverX, hoverY)); }
+    void refreshPointerHover() { hover.update(this, pointerInside && hitHead(hoverX, hoverY)); }
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         paint.setColor(EditorWidgets.BORDER);
@@ -60,7 +62,7 @@ final class ActionTimelineStrip extends View {
         if (lane != null) {
             float top = dp(4), bottom = Math.max(top, getHeight() - dp(4));
             boolean readOnly = lane.callIndex() < 0;
-            boolean selected = !readOnly && host.workspace().actions().selected() == lane.callIndex();
+            boolean selected = !readOnly && selectedCall.getAsInt() == lane.callIndex();
             paint.setColor(readOnly ? EditorWidgets.HEADER : selected ? EditorWidgets.SPLITTER_HOVER : EditorWidgets.SELECTION);
             float start = x(lane.startMs()), end = Math.max(start + 2, x(lane.endMs()));
             canvas.drawRect(start, top, end, bottom, paint);
@@ -77,7 +79,7 @@ final class ActionTimelineStrip extends View {
         float lineWidth = Math.max(1, dp(1));
         // Snap the line edges to pixels, then use that exact center for both the triangle and stem.
         float head = headCenter();
-        if (host.playheadHovered()) {
+        if (hover.hovered) {
             paint.setColor(EditorWidgets.SELECTION);
             canvas.drawRect(head - dp(3), lane == null ? Math.max(0, getHeight() - dp(RULER_HANDLE_DP)) : 0, head + dp(3), getHeight(), paint);
             paint.setColor(EditorWidgets.SPLITTER_HOVER);
@@ -97,13 +99,13 @@ final class ActionTimelineStrip extends View {
     }
     private boolean beginContext(MotionEvent event) {
         if (contextPlayback != null) return true;
-        if (!host.canSeekTimeline()) return false;
+        if (!timeline.canSeek()) return false;
         finish(); requestFocus();
-        if (!host.canSeekTimeline()) return false;
-        contextPlayback = host.timelinePlayback(); contextX = event.getX(); contextY = event.getY();
+        if (!timeline.canSeek()) return false;
+        contextPlayback = timeline.playback(); contextX = event.getX(); contextY = event.getY();
         contextTouchUpPending = true;
-        contextTime = hitHead(contextX, contextY) ? host.timeline().position() : time(contextX);
-        host.seekTimeline(contextPlayback, contextTime);
+        contextTime = hitHead(contextX, contextY) ? timeline.model().position() : time(contextX);
+        timeline.seek(contextPlayback, contextTime);
         return true;
     }
     private boolean endContext() {
@@ -112,22 +114,22 @@ final class ActionTimelineStrip extends View {
         contextPlayback = null;
         // ModernUI emits both generic button events and touch events. Open only after release/dispatch.
         post(() -> {
-            if (isAttachedToWindow() && expected == host.timelinePlayback()) keyframes.show(this, x, y, lane == null ? null : lane.callIndex(), time);
+            if (isAttachedToWindow() && expected == timeline.playback()) keyframes.show(this, x, y, lane == null ? null : lane.callIndex(), time);
         });
         return true;
     }
     private void move(float x) {
-        if (dragging != host.timelinePlayback() || !host.canSeekTimeline()) { finish(); return; }
+        if (dragging != timeline.playback() || !timeline.canSeek()) { finish(); return; }
         int time = time(x);
         if (lane != null) for (var marker : lane.markers()) if (Math.abs(x(marker.timeMs()) - x) <= dp(4)) { time = marker.timeMs(); break; }
-        host.seekTimeline(dragging, time);
+        timeline.seek(dragging, time);
     }
     @Override public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN -> {
                 if (event.isButtonPressed(MotionEvent.BUTTON_SECONDARY)) return beginContext(event);
-                if (!host.canSeekTimeline() || !event.isButtonPressed(MotionEvent.BUTTON_PRIMARY)) return false;
-                requestFocus(); select.run(); dragging = host.timelinePlayback();
+                if (!timeline.canSeek() || !event.isButtonPressed(MotionEvent.BUTTON_PRIMARY)) return false;
+                requestFocus(); select.run(); dragging = timeline.playback();
                 setPressed(true); getParent().requestDisallowInterceptTouchEvent(true); move(event.getX()); return true;
             }
             case MotionEvent.ACTION_MOVE -> {
@@ -154,12 +156,12 @@ final class ActionTimelineStrip extends View {
         pointerInside = event.getAction() != MotionEvent.ACTION_HOVER_EXIT; hoverX = event.getX(); hoverY = event.getY();
         refreshPointerHover();
         int time = time(event.getX()); String text = time + " ms";
-        if (hitHead(event.getX(), event.getY())) text = EditorWidgets.tr("timeline.keyframe.playhead_hint") + " · " + host.timeline().position() + " ms";
+        if (hitHead(event.getX(), event.getY())) text = EditorWidgets.tr("timeline.keyframe.playhead_hint") + " · " + timeline.model().position() + " ms";
         if (lane != null) for (var marker : lane.markers()) if (Math.abs(x(marker.timeMs()) - event.getX()) <= dp(5))
             text += "\n" + EditorWidgets.tr("action." + marker.property()) + " · " + marker.timeMs() + " ms";
         setTooltipText(text); return super.onHoverEvent(event);
     }
-    private void clearPointer() { pointerInside = false; contextPlayback = null; contextTouchUpPending = false; host.playheadHover(this, false); }
+    private void clearPointer() { pointerInside = false; contextPlayback = null; contextTouchUpPending = false; hover.update(this, false); }
     private void finish() {
         boolean captured = dragging != null; dragging = null; setPressed(false);
         if (captured && getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
@@ -167,4 +169,21 @@ final class ActionTimelineStrip extends View {
     @Override public void onWindowFocusChanged(boolean focused) { super.onWindowFocusChanged(focused); if (!focused) { finish(); clearPointer(); } }
     @Override protected void onFocusChanged(boolean focused, int direction, Rect previous) { super.onFocusChanged(focused, direction, previous); if (!focused) { finish(); clearPointer(); } }
     @Override protected void onDetachedFromWindow() { finish(); clearPointer(); super.onDetachedFromWindow(); }
+
+    // 各轨道共享播放头高亮，但鼠标状态随所属 View 一起释放。
+    static final class Hover {
+        private final View root;
+        private final Runnable changed;
+        private View owner;
+        private boolean hovered;
+        Hover(View root, Runnable changed) { this.root = root; this.changed = changed; }
+        void update(View source, boolean value) {
+            if (!value && owner != source) return;
+            owner = value ? source : null;
+            if (hovered == value) return;
+            hovered = value;
+            // 行可能正在移除；延后刷新，避免在布局重建中递归进入。
+            root.post(() -> { if (root.isAttachedToWindow()) changed.run(); });
+        }
+    }
 }

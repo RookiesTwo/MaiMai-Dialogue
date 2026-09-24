@@ -72,100 +72,8 @@ public final class EditorPreviewHost {
     private boolean disposed;
     private String message = "preview.idle";
     private String error = "";
-    private final top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline timeline = new top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline();
-    private Runnable timelineChanged = () -> {};
-    private record TimelineBinding(long project, ProjectDraft draft, top.rookiestwo.maimai_dialogue_editor.document.ActionWorkspace.Context context) {}
-    private TimelineBinding timelineBinding;
-    private boolean timelineFramePending;
-    private top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback canvasBase, canvasFrame;
-    private top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback sampledPlayback;
-    private int sampledPosition;
-    private final Runnable timelineFrame = () -> {
-        timelineFramePending = false;
-        if (!disposed && timeline.manual() && canSeekTimeline()) {
-            freezeTimelineFrame();
-            if (view != null) view.refreshActionCanvas();
-        }
-    };
-    private TimelineBinding currentTimelineBinding() {
-        return new TimelineBinding(workspace.projectGeneration(), workspace.draft(), workspace.actions().context());
-    }
-    public top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback timelinePlayback() {
-        return Objects.equals(timelineBinding, currentTimelineBinding()) ? timeline.playback() : null;
-    }
-    public top.rookiestwo.maimai_dialogue_editor.preview.ActionTimeline timeline() { return timeline; }
-    public void setTimelineListener(Runnable listener) { timelineChanged = listener; }
-    private final java.util.Set<Runnable> timelineObservers = new java.util.LinkedHashSet<>();
-    private View timelineHoverOwner;
-    private boolean playheadHovered;
-    public void addTimelineObserver(Runnable listener) { timelineObservers.add(listener); }
-    public void removeTimelineObserver(Runnable listener) { timelineObservers.remove(listener); }
-    private void notifyTimelineChanged() {
-        timelineChanged.run(); java.util.List.copyOf(timelineObservers).forEach(Runnable::run);
-    }
-    public boolean playheadHovered() { return playheadHovered; }
-    public void playheadHover(View owner, boolean hovered) {
-        if (!hovered && timelineHoverOwner != owner) return;
-        timelineHoverOwner = hovered ? owner : null;
-        if (playheadHovered == hovered) return;
-        playheadHovered = hovered;
-        // Hover exit may run while rows are being removed; never rebuild the timeline recursively.
-        var expectedView = view;
-        if (expectedView != null) expectedView.root().post(() -> {
-            if (!disposed && view == expectedView) notifyTimelineChanged();
-        });
-    }
-
-    void bindTimeline(Object owner, top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback scene, int calls, boolean playing) {
-        canvasBase = canvasFrame = null;
-        sampledPlayback = null;
-        timelineBinding = currentTimelineBinding();
-        timeline.bind(owner, scene, calls, playing); notifyTimelineChanged();
-    }
-    void followTimeline(Object owner, long token, int elapsed) {
-        if (timeline.follow(owner, token, elapsed)) notifyTimelineChanged();
-    }
-    void clearTimeline(Object owner) {
-        timeline.clear(owner);
-        if (canvasBase != timeline.playback()) canvasBase = canvasFrame = null;
-        if (sampledPlayback != timeline.playback()) sampledPlayback = null;
-        notifyTimelineChanged();
-    }
-    void freezeTimelineFrame() {
-        if (fragment != null && timeline.playback() != null) {
-            fragment.renderScenePlaybackPreview(
-                canvasBase == timeline.playback() && canvasFrame != null ? canvasFrame : timeline.playback(), timeline.position());
-            sampledPlayback = timeline.playback(); sampledPosition = timeline.position();
-        }
-    }
-    public boolean timelineCanvasReady() {
-        return timeline.manual() && sampledPlayback == timelinePlayback() && sampledPosition == timeline.position();
-    }
-    public DialogueFragment timelineFragment() { return canSeekTimeline() ? fragment : null; }
-    public void renderCanvasFrame(top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback expected,
-                           top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback frame, boolean immediate) {
-        if (expected != timeline.playback()) return;
-        canvasBase = expected; canvasFrame = frame;
-        if (immediate) {
-            if (view != null) view.root().removeCallbacks(timelineFrame);
-            timelineFramePending = false; freezeTimelineFrame();
-        } else if (!timelineFramePending && view != null) {
-            timelineFramePending = true; view.root().postOnAnimation(timelineFrame);
-        }
-    }
-    public boolean canSeekTimeline() {
-        return timelinePlayback() != null && fragment != null && !loading && (mode() == Mode.ACTION ? actionPreview.canSeek()
-                : canOperate() && source == workspace.draft() && workspace.resources().selection().isStep());
-    }
-    public void seekTimeline(top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback expected, int elapsed) {
-        if (!canSeekTimeline() || !timeline.seek(expected, elapsed)) return;
-        canvasBase = canvasFrame = null;
-        closeDialogueAudio(); if (auditioning()) stopAudition();
-        if (mode() == Mode.ACTION) actionPreview.pauseForSeek();
-        if (!timelineFramePending && view != null) { timelineFramePending = true; view.root().postOnAnimation(timelineFrame); }
-        notifyTimelineChanged();
-    }
-    public void replayTimeline() { if (mode() == Mode.ACTION) actionPreview.play(); else restartStep(); }
+    private final EditorTimelinePreview timeline;
+    public EditorTimelinePreview timeline() { return timeline; }
     private ProjectDraft observedDraft;
     private long observedProject = -1;
     private ResourceKey observedDocument;
@@ -201,6 +109,20 @@ public final class EditorPreviewHost {
         this.owner = owner;
         this.workspace = workspace;
         this.assets = assets;
+        timeline = new EditorTimelinePreview(workspace, new EditorTimelinePreview.Surface() {
+            @Override public PreviewDisplay display() { return view; }
+            @Override public DialogueFragment fragment() { return fragment; }
+            @Override public boolean active() { return !disposed; }
+            @Override public boolean canSeek() {
+                return fragment != null && !loading && (mode() == Mode.ACTION ? actionPreview.canSeek()
+                        : canOperate() && source == workspace.draft() && workspace.resources().selection().isStep());
+            }
+            @Override public void pauseForSeek() {
+                closeDialogueAudio(); if (auditioning()) stopAudition();
+                if (mode() == Mode.ACTION) actionPreview.pauseForSeek();
+            }
+            @Override public void replay() { if (mode() == Mode.ACTION) actionPreview.play(); else restartStep(); }
+        });
         audio = new AudioPreviewSession(audioBackend, this::refresh);
         scenes = new ScenePreviewSession((draft, key) -> EditorContentPreparation.prepare(workspace,
                 external -> ScenePreviewSession.prepare(draft, key, external)), task -> Core.getUiHandler().post(task), this::refresh);
@@ -381,7 +303,7 @@ public final class EditorPreviewHost {
             startAt(selected.stepIndex());
         } else {
             if (selected.isStep() && Objects.equals(selected.owner(), opened) && source != draft && canOperate()) {
-                startAt(selected.stepIndex(), false, projectChanged ? 0 : timeline.manual() ? timeline.position() : Integer.MAX_VALUE);
+                startAt(selected.stepIndex(), false, projectChanged ? 0 : timeline.model().manual() ? timeline.model().position() : Integer.MAX_VALUE);
             } else if (source != null && (source != draft || !Objects.equals(dialogue, opened))) stop();
             if (!draftChanged && selectionChanged && selected.kind() == ResourceKind.DIALOGUE
                     && selected.type() == ResourceTree.Type.RESOURCE) stop();
@@ -394,22 +316,15 @@ public final class EditorPreviewHost {
     // 拖动结束时只更换采样数据，已挂载的 Fragment、图片和播放头保持原位。
     private void acceptCanvasCommit() {
         var commit = workspace.actions().canvasCommit();
-        if (commit == null || disposed || loading || fragment == null || timelineBinding == null || !timeline.manual()
-                || timelineBinding.project() != workspace.projectGeneration() || timelineBinding.draft() != commit.before()
-                || !Objects.equals(commit.context(), workspace.actions().context())
-                || commit.index() != workspace.actions().selected() || commit.original() != timeline.playback()
-                || canvasBase != commit.original() || canvasFrame != commit.updated()) return;
+        if (disposed || loading || fragment == null || !timeline.matches(commit)) return;
         if (commit.context().standalone()) {
             if (!actionPreview.acceptCanvasCommit(commit.before(), commit.updated().calls().getFirst().action())) return;
         } else if (!running() || source != commit.before()) return;
         var calls = workspace.actions().calls();
-        if (!timeline.replace(commit.original(), commit.updated(), commit.context().standalone() ? 1 : calls.size())) return;
-        timelineBinding = currentTimelineBinding();
-        canvasBase = canvasFrame = null;
-        sampledPlayback = timeline.playback(); sampledPosition = timeline.position();
+        if (!timeline.replace(commit, commit.context().standalone() ? 1 : calls.size())) return;
         // Dialogue 会话保持暂停；显式播放／推进仍从最新草稿重新开始，避免使用旧定义。
         if (!commit.context().standalone()) { source = workspace.draft(); staleDialogueSession = true; }
-        notifyTimelineChanged();
+        timeline.notifyChanged();
     }
 
     public void start() {
@@ -431,7 +346,7 @@ public final class EditorPreviewHost {
         if (playNow) workspace.endEdit();
         stopAudition();
         closeDialogueAudio();
-        freezeTimelineFrame();
+        timeline.freezeFrame();
         // Keep the displayed session and controls until the replacement is ready.
         // Its callbacks are suspended while loading, then discarded by session identity.
         source = workspace.draft();
@@ -512,8 +427,8 @@ public final class EditorPreviewHost {
                     }
                     render();
                     if (!playNow && running()) {
-                        seekTimeline(timeline.playback(), seekTime);
-                        freezeTimelineFrame();
+                        timeline.seek(timeline.model().playback(), seekTime);
+                        timeline.freezeFrame();
                     }
                 } catch (RuntimeException failure) {
                     closeDialogueAudio();
@@ -559,7 +474,7 @@ public final class EditorPreviewHost {
         if (mode() == Mode.ACTION) {
             reset(); actionPreview.stop(); return;
         }
-        if (timeline.manual()) { restartStep(); return; }
+        if (timeline.model().manual()) { restartStep(); return; }
         reset();
         showIdleControls();
         refresh();
@@ -579,11 +494,7 @@ public final class EditorPreviewHost {
     }
 
     private void reset() {
-        if (view != null) view.root().removeCallbacks(timelineFrame);
-        timelineFramePending = false;
-        canvasBase = canvasFrame = null;
-        sampledPlayback = null;
-        timeline.clear(); notifyTimelineChanged();
+        timeline.reset();
         closeDialogueAudio();
         ++revision;
         loading = false;
@@ -635,12 +546,12 @@ public final class EditorPreviewHost {
         error = playback.error();
         if (running() && fragment != null) {
             var calls = workspace.actions().calls();
-            bindTimeline(playback, playback.state().scenePlayback().orElse(null), calls == null ? 0 : calls.size(), true);
+            timeline.bind(playback, playback.state().scenePlayback().orElse(null), calls == null ? 0 : calls.size(), true);
             if (dialogueAudio != null) dialogueAudio.render(playback.state(), playback.drainBgm());
-            if (!timeline.manual()) fragment.render(playback.state());
+            if (!timeline.model().manual()) fragment.render(playback.state());
         }
         else {
-            timeline.clear(); notifyTimelineChanged();
+            timeline.clear();
             closeDialogueAudio();
             // Drop decoded definitions, history and simulated commands as soon as playback ends.
             playback = null;
@@ -667,7 +578,7 @@ public final class EditorPreviewHost {
         if (view != null) view.refresh();
         simulationChanged.run();
         audioChanged.run();
-        notifyTimelineChanged();
+        timeline.notifyChanged();
     }
 
     public DialogueFragment sceneFragment() { return sceneActions == null ? null : fragment; }
@@ -834,8 +745,7 @@ public final class EditorPreviewHost {
         showingIdle = false;
         observedProject = -1;
         view = null;
-        timelineChanged = () -> {};
-        timelineObservers.clear(); timelineHoverOwner = null; playheadHovered = false;
+        timeline.releaseListeners();
         simulationChanged = () -> {};
     }
 
@@ -866,7 +776,7 @@ public final class EditorPreviewHost {
             if (target == null) return;
             Core.getUiHandler().post(() -> {
                 // Old animation, text and destruction callbacks must never operate on a restarted preview.
-                if (disposed || loading || timeline.manual() || playback != target || !target.running()) return;
+                if (disposed || loading || timeline.model().manual() || playback != target || !target.running()) return;
                 action.accept(target);
                 render();
             });
@@ -879,7 +789,7 @@ public final class EditorPreviewHost {
             Core.getUiHandler().post(() -> {
                 if (disposed || loading || target == null || playback != target || !target.running()
                         || !canOperate() || source != workspace.draft() || !target.state().options().contains(option)) return;
-                if (timeline.manual() || staleDialogueSession) {
+                if (timeline.model().manual() || staleDialogueSession) {
                     // 显式点击才重新进入可播放会话，始终用最新草稿校验选项和命令。
                     startAt(workspace.resources().selection().stepIndex()); optionAfterLoad = option;
                 } else { target.selectOption(option); render(); }
@@ -894,7 +804,7 @@ public final class EditorPreviewHost {
         private void audio(Consumer<EditorDialogueAudio> action) {
             var target = session;
             Core.getUiHandler().post(() -> {
-                if (!disposed && !loading && !timeline.manual() && target != null && playback == target && target.running() && dialogueAudio != null)
+                if (!disposed && !loading && !timeline.model().manual() && target != null && playback == target && target.running() && dialogueAudio != null)
                     action.accept(dialogueAudio);
             });
         }
@@ -902,7 +812,7 @@ public final class EditorPreviewHost {
             var target = session;
             Core.getUiHandler().post(() -> {
                 if (!disposed && !loading && playback == target && target != null && target.state().generation() == generation)
-                    followTimeline(target, token, elapsedMs);
+                    timeline.follow(target, token, elapsedMs);
             });
             audio(audio -> audio.frame(generation, token, elapsedMs));
         }

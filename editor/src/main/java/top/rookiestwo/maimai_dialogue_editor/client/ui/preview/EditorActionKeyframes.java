@@ -1,6 +1,6 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui.preview;
 
-import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorPreviewHost;
+import top.rookiestwo.maimai_dialogue_editor.client.preview.EditorTimelinePreview;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
@@ -19,17 +19,17 @@ public final class EditorActionKeyframes {
     private record Target(long project, ProjectDraft draft, ActionWorkspace.Context context, int index,
                           ScenePlayback playback, ResolvedActionCall call) {}
     private final ProjectWorkspace project;
-    private final EditorPreviewHost preview;
+    private final EditorTimelinePreview preview;
     private final ChoicePresenter choices;
-    public EditorActionKeyframes(ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices) {
+    public EditorActionKeyframes(ProjectWorkspace project, EditorTimelinePreview preview, ChoicePresenter choices) {
         this.project = project; this.preview = preview; this.choices = choices;
     }
     private Target current() {
         var context = project.actions().context();
-        if (context == null || !preview.canSeekTimeline() || !project.actions().active() || project.actions().editing()) return null;
+        if (context == null || !preview.canSeek() || !project.actions().active() || project.actions().editing()) return null;
         int index = context.standalone() ? 0 : project.actions().selected();
-        var call = preview.timeline().call(index);
-        return call == null ? null : new Target(project.projectGeneration(), project.draft(), context, index, preview.timelinePlayback(), call);
+        var call = preview.model().call(index);
+        return call == null ? null : new Target(project.projectGeneration(), project.draft(), context, index, preview.playback(), call);
     }
     private boolean valid(Target target) {
         var now = current();
@@ -39,35 +39,35 @@ public final class EditorActionKeyframes {
     private static String issue(Target target, String track, int time) {
         return target == null ? "unavailable" : ActionKeyframes.plan(target.call().action(), track, time, target.call().delayMs()).error();
     }
-    public boolean canAdd(String track) { return issue(current(), track, preview.timeline().position()).isEmpty(); }
+    public boolean canAdd(String track) { return issue(current(), track, preview.model().position()).isEmpty(); }
     public String tooltip(String track) {
-        var target = current(); int time = preview.timeline().position(); String issue = issue(target, track, time);
+        var target = current(); int time = preview.model().position(); String issue = issue(target, track, time);
         if (!issue.isEmpty()) return EditorWidgets.tr("timeline.keyframe." + issue);
         return I18n.get("gui.maimai_dialogue_editor.timeline.keyframe.at_playhead", time,
                 EditorWidgets.tr("action." + track), time - target.call().delayMs());
     }
     public void addAtPlayhead(View anchor, String track) {
-        var target = current(); int time = preview.timeline().position();
+        var target = current(); int time = preview.model().position();
         if (!issue(target, track, time).isEmpty()) return;
-        preview.seekTimeline(target.playback(), time);
+        preview.seek(target.playback(), time);
         insert(anchor, 0, anchor.getHeight(), target, track, time);
     }
     void show(View anchor, float x, float y, Integer lane, int time) {
-        if (!preview.canSeekTimeline()) return;
+        if (!preview.canSeek()) return;
         var context = project.actions().context();
         if (context == null) return;
         if (lane != null && lane < 0) { message(anchor, x, y, EditorWidgets.tr("timeline.keyframe.readonly")); return; }
         int index = lane != null ? lane : context.standalone() ? 0 : project.actions().selected();
-        var playback = preview.timelinePlayback(); var draft = project.draft();
-        preview.seekTimeline(playback, time);
+        var playback = preview.playback(); var draft = project.draft();
+        preview.seek(playback, time);
         if (index >= 0) { tracks(anchor, x, y, index, time); return; }
-        var items = preview.timeline().lanes().stream().filter(value -> value.callIndex() >= 0)
+        var items = preview.model().lanes().stream().filter(value -> value.callIndex() >= 0)
                 .map(value -> new ChoicePresenter.Item(Integer.toString(value.callIndex()),
                         (value.callIndex() + 1) + " · " + (value.target().isEmpty() ? EditorWidgets.tr("action.no_target") : value.target()),
                         time >= value.startMs() && time <= value.endMs())).toList();
         if (items.isEmpty()) { message(anchor, x, y, EditorWidgets.tr("timeline.keyframe.no_action")); return; }
         choices.showMenuAt(anchor, x, y, items, selected -> {
-            if (draft == project.draft() && playback == preview.timelinePlayback() && context.equals(project.actions().context()))
+            if (draft == project.draft() && playback == preview.playback() && context.equals(project.actions().context()))
                 tracks(anchor, x, y, Integer.parseInt(selected), time);
         });
     }

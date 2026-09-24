@@ -23,6 +23,7 @@ public final class ActionCallsView extends LinearLayout {
     private final ActionWorkspace model;
     private final EditorPreviewHost preview;
     private final EditorActionKeyframes keyframes;
+    private final ActionTimelineStrip.Hover hover = new ActionTimelineStrip.Hover(this, this::refreshPosition);
     private final ActionTimelineStrip rulerStrip;
     private final ActionTimelineRow ruler;
     private final EditText position;
@@ -39,7 +40,7 @@ public final class ActionCallsView extends LinearLayout {
     private Object revision;
     private ActionWorkspace.Context context;
     public ActionCallsView(Context context, ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices) {
-        super(context); this.project = project; this.preview = preview; model = project.actions(); setOrientation(VERTICAL); keyframes = new EditorActionKeyframes(project, preview, choices);
+        super(context); this.project = project; this.preview = preview; model = project.actions(); setOrientation(VERTICAL); keyframes = new EditorActionKeyframes(project, preview.timeline(), choices);
         var toolbar = new LinearLayout(context); toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setBaselineAligned(false);
         EditorWidgets.propertyButtonScope(toolbar);
@@ -53,8 +54,8 @@ public final class ActionCallsView extends LinearLayout {
         button(toolbar, EditorButtonIcon.REMOVE, "browser.delete", model::delete);
         button(toolbar, EditorButtonIcon.MOVE_UP, "edit.up", () -> model.move(-1));
         button(toolbar, EditorButtonIcon.MOVE_DOWN, "edit.down", () -> model.move(1));
-        button(toolbar, EditorButtonIcon.PLAY, "timeline.replay", preview::replayTimeline);
-        button(toolbar, EditorButtonIcon.STOP, "timeline.stop", () -> preview.seekTimeline(preview.timelinePlayback(), 0));
+        button(toolbar, EditorButtonIcon.PLAY, "timeline.replay", preview.timeline()::replay);
+        button(toolbar, EditorButtonIcon.STOP, "timeline.stop", () -> preview.timeline().seek(preview.timeline().playback(), 0));
         position = EditorWidgets.compactInput(context, "0", ignored -> {}, () -> {});
         position.setTooltipText(EditorWidgets.tr("timeline.position"));
         toolbar.addView(position);
@@ -66,15 +67,15 @@ public final class ActionCallsView extends LinearLayout {
         toolbar.addView(totalTime, new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT));
         EditorWidgets.bindMetrics(totalTime, () -> totalTime.setPadding(0, 0, dp(6), 0));
         position.setOnFocusChangeListener((view, focused) -> {
-            if (focused) editingPosition = preview.timelinePlayback();
+            if (focused) editingPosition = preview.timeline().playback();
             else {
-                try { preview.seekTimeline(editingPosition, Integer.parseInt(position.getText().toString().strip())); }
+                try { preview.timeline().seek(editingPosition, Integer.parseInt(position.getText().toString().strip())); }
                 catch (NumberFormatException ignored) { /* Restore the current playhead on invalid input. */ }
                 editingPosition = null; refreshPosition();
             }
         });
         var rulerArea = new FrameLayout(context);
-        rulerStrip = new ActionTimelineStrip(context, preview, null, () -> {}, keyframes);
+        rulerStrip = new ActionTimelineStrip(context, preview.timeline(), model::selected, hover, null, () -> {}, keyframes);
         var strip = rulerStrip;
         rulerArea.addView(strip, new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         var labels = new LinearLayout(context);
@@ -103,7 +104,7 @@ public final class ActionCallsView extends LinearLayout {
         scroll.setScrollBarStyle(View.SCROLLBARS_OUTSIDE_OVERLAY);
         EditorWidgets.bindMetrics(scroll, () -> { scroll.setPadding(0, 0, dp(4), 0); scroll.setScrollBarSize(dp(4)); });
         addView(scroll, new LayoutParams(LayoutParams.MATCH_PARENT, 0, 1));
-        preview.setTimelineListener(this::refreshTimeline);
+        preview.timeline().setListener(this::refreshTimeline);
     }
     private Button button(LinearLayout toolbar, EditorButtonIcon icon, String label, Runnable action) {
         var button = EditorWidgets.icon(getContext(), icon, label, action); toolbar.addView(button); controls.add(button);
@@ -116,22 +117,22 @@ public final class ActionCallsView extends LinearLayout {
     }
     public void refresh() {
         var next = model.context(); var resource = next == null ? null : project.draft().revision(next.resource());
-        var playback = preview.timelinePlayback();
+        var playback = preview.timeline().playback();
         if (!Objects.equals(context, next) || revision != resource || shownPlayback != playback) {
             boolean reuse = Objects.equals(context, next) && shownPlayback != null && playback != null
-                    && preview.timeline().lanes().stream().map(ActionTimeline.Lane::callIndex).toList().equals(callIndices);
+                    && preview.timeline().model().lanes().stream().map(ActionTimeline.Lane::callIndex).toList().equals(callIndices);
             context = next; revision = resource; shownPlayback = playback;
             if (reuse) {
                 for (int i = 0; i < rows.size(); i++) {
-                    var lane = preview.timeline().lanes().get(i);
+                    var lane = preview.timeline().model().lanes().get(i);
                     updateRow(rows.get(i), lane.callIndex(), lane); strips.get(i).updateLane(lane);
                 }
             } else {
                 list.removeAllViews(); rows.clear(); strips.clear(); callIndices.clear(); lastSelected = Integer.MIN_VALUE;
                 var calls = model.calls();
                 if (context != null && playback != null) {
-                    for (var lane : preview.timeline().lanes()) addRow(lane.callIndex(), lane);
-                    if (preview.timeline().lanes().isEmpty()) { empty.setText(EditorWidgets.tr("action.empty")); list.addView(empty); }
+                    for (var lane : preview.timeline().model().lanes()) addRow(lane.callIndex(), lane);
+                    if (preview.timeline().model().lanes().isEmpty()) { empty.setText(EditorWidgets.tr("action.empty")); list.addView(empty); }
                 } else if (calls == null || calls.isEmpty()) {
                     empty.setText(EditorWidgets.tr(context == null || context.standalone() ? "no_step" : calls == null ? "edit.invalid_object" : "action.empty")); list.addView(empty);
                 } else for (int i = 0; i < calls.size(); i++) addRow(i, null);
@@ -140,7 +141,7 @@ public final class ActionCallsView extends LinearLayout {
         int selected = model.selected();
         for (int i = 0; i < controls.size(); i++) EditorWidgets.enabled(controls.get(i), switch (i) {
             case 6 -> context != null && (context.standalone() ? preview.actionPreview().canPlay() : model.active());
-            case 7 -> preview.canSeekTimeline();
+            case 7 -> preview.timeline().canSeek();
             default -> model.canAdd() && switch (i) {
                 case 0, 1 -> true; case 4 -> selected > 0;
                 case 5 -> selected >= 0 && selected + 1 < model.calls().size(); default -> selected >= 0;
@@ -148,7 +149,7 @@ public final class ActionCallsView extends LinearLayout {
         });
         for (int i = 0; i < rows.size(); i++) EditorWidgets.enabled(rows.get(i), model.active() && callIndices.get(i) >= 0);
         ruler.setVisibility(context == null ? GONE : VISIBLE);
-        lastCanSeek = preview.canSeekTimeline(); position.setEnabled(lastCanSeek);
+        lastCanSeek = preview.timeline().canSeek(); position.setEnabled(lastCanSeek);
         refreshPosition();
     }
     private void addRow(int index, ActionTimeline.Lane lane) {
@@ -163,7 +164,7 @@ public final class ActionCallsView extends LinearLayout {
         EditorWidgets.bindMetrics(button, () -> button.setPadding(dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0, dp(EditorWidgets.COMPACT_HORIZONTAL_PADDING_DP), 0));
         View row = button;
         if (lane != null) {
-            var strip = new ActionTimelineStrip(getContext(), preview, lane, () -> {
+            var strip = new ActionTimelineStrip(getContext(), preview.timeline(), model::selected, hover, lane, () -> {
                 if (index >= 0 && !expected.standalone() && Objects.equals(expected, model.context())) model.select(index);
             }, keyframes);
             strips.add(strip); row = new ActionTimelineRow(getContext(), button, strip);
@@ -185,15 +186,15 @@ public final class ActionCallsView extends LinearLayout {
         button.setText(title); button.setTooltipText(title + (lane == null ? "" : "\n" + lane.startMs() + "–" + lane.endMs() + " ms"));
     }
     private void refreshTimeline() {
-        if (shownPlayback != preview.timelinePlayback() || lastCanSeek != preview.canSeekTimeline()
+        if (shownPlayback != preview.timeline().playback() || lastCanSeek != preview.timeline().canSeek()
                 || !Objects.equals(context, model.context())) refresh(); else refreshPosition();
     }
     private void refreshPosition() {
         if (!position.isFocused()) {
-            String text = Integer.toString(shownPlayback == null ? 0 : preview.timeline().position());
+            String text = Integer.toString(shownPlayback == null ? 0 : preview.timeline().model().position());
             if (!position.getText().toString().equals(text)) position.setText(text);
         }
-        int duration = shownPlayback == null ? 0 : preview.timeline().duration();
+        int duration = shownPlayback == null ? 0 : preview.timeline().model().duration();
         String total = "ms / " + duration + " ms";
         if (!totalTime.getText().toString().equals(total)) totalTime.setText(total);
         for (int i = 0; i < ticks.length; i++) {
