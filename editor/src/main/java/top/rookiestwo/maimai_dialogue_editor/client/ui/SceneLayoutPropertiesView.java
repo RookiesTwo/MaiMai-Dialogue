@@ -53,10 +53,10 @@ final class SceneLayoutPropertiesView extends LinearLayout {
         if (model.data().has("dialogue_box") && model.box() == null) group.addView(EditorWidgets.compactParagraph(getContext(), "edit.invalid_object"));
         for (var field : SceneWorkspace.BOX_NUMBERS) {
             String expected = binding;
-            var input = new EditorNumberField(getContext(), field,
+            var input = new EditorNumberField(getContext(), field, EditorNumberField.Slider.range(field),
                     () -> SceneWorkspace.text(model.box(), field.name(), Float.toString(field.fallback())),
                     value -> model.setBoxNumber(field, value), () -> accepts(expected), project::endEdit,
-                    () -> model.beginNumberDrag(SceneWorkspace.Part.BOX, field));
+                    () -> model.beginNumberDrag(SceneWorkspace.Part.BOX, field), "scene." + field.name());
             EditorWidgets.propertyRow(group, "scene.box." + field.name(), input, false);
             bindings.add(() -> input.refresh(model.active()));
         }

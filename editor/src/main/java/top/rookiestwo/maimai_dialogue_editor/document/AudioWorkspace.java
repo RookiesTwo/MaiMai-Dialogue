@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.mojang.serialization.JsonOps;
 import top.rookiestwo.maimai_dialogue.audio.*;
 import top.rookiestwo.maimai_dialogue_editor.document.edit.EditOrigin;
+import top.rookiestwo.maimai_dialogue_editor.document.field.NumberField;
 import top.rookiestwo.maimai_dialogue_editor.project.*;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import java.math.BigDecimal;
@@ -13,16 +14,23 @@ import java.util.function.Consumer;
 /** Audio drafts retain omitted fields, explicit silence and unrecognized fields until edited. */
 public final class AudioWorkspace {
     public record Target(ResourceKey key, int step, boolean bgm) {}
-    public record Number(String name, float fallback, float minimum, float maximum, boolean integer, int quickMaximum) {
+    public record Number(NumberField constraints, int quickMaximum) {
+        public Number(String name, float fallback, float minimum, float maximum, boolean integer, int quickMaximum) {
+            this(new NumberField(name, fallback, minimum, maximum, integer), quickMaximum);
+        }
+        public String name() { return constraints.name(); }
+        public float fallback() { return constraints.fallback(); }
+        public float minimum() { return constraints.minimum(); }
+        public float maximum() { return constraints.maximum(); }
+        public boolean integer() { return constraints.integer(); }
         public JsonPrimitive parse(String raw) {
             if (raw.isBlank()) return null;
             var value = new BigDecimal(raw.strip());
-            if (value.compareTo(BigDecimal.valueOf(minimum)) < 0 || value.compareTo(BigDecimal.valueOf(maximum)) > 0)
+            if (value.compareTo(BigDecimal.valueOf(minimum())) < 0 || value.compareTo(BigDecimal.valueOf(maximum())) > 0)
                 throw new IllegalArgumentException("Out of range");
-            if (integer) value.intValueExact();
+            if (integer()) value.intValueExact();
             return new JsonPrimitive(value);
         }
-        public SceneWorkspace.NumberField control() { return new SceneWorkspace.NumberField(name, fallback, minimum, maximum, integer); }
     }
     public static final Number BGM_VOLUME = new Number("volume", 1, 0, 1, false, 1);
     public static final Number FADE = new Number("fade_ms", 500, 0, 60000, true, 3000);

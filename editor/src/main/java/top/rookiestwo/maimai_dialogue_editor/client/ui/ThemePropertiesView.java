@@ -47,7 +47,8 @@ final class ThemePropertiesView extends LinearLayout {
                     EditorWidgets.propertyRow(body, field.label(), control, false);
                     bindings.add(() -> control.refresh(model.active()));
                 } else {
-                    var control = new EditorNumberField(getContext(), field.number(), () -> model.value(field), value -> model.set(field, value),
+                    var number = field.number();
+                    var control = new EditorNumberField(getContext(), number, EditorNumberField.Slider.range(number), () -> model.value(field), value -> model.set(field, value),
                             () -> accepts(expected), project::endEdit, () -> model.beginGesture(field), field.label());
                     EditorWidgets.propertyRow(body, field.label(), control, false);
                     bindings.add(() -> control.refresh(model.active()));

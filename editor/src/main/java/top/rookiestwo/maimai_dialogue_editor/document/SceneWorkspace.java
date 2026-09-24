@@ -6,6 +6,7 @@ import com.google.gson.*;
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.edit.EditOrigin;
+import top.rookiestwo.maimai_dialogue_editor.document.field.NumberField;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialPack;
 import java.util.*;
@@ -20,11 +21,6 @@ public final class SceneWorkspace {
             new NumberField("max_height", DialogueBoxLayout.DEFAULT.maxHeight(), Float.MIN_VALUE, 1));
 
     public enum Part { BACKGROUND, OBJECT, FILTER, BOX }
-    public record NumberField(String name, float fallback, float minimum, float maximum, boolean integer) {
-        public NumberField(String name, float fallback, float minimum, float maximum) {
-            this(name, fallback, minimum, maximum, false);
-        }
-    }
     public static final List<NumberField> OBJECT_NUMBERS = List.of(
             new NumberField("x", .5f, -Float.MAX_VALUE, Float.MAX_VALUE),
             new NumberField("y", .5f, -Float.MAX_VALUE, Float.MAX_VALUE),
@@ -409,7 +405,7 @@ public final class SceneWorkspace {
         editPart(part, field.name(), data -> data.addProperty(field.name(), number)); return "";
     }
     public JsonObject box() { return data() == null ? null : object(data().get("dialogue_box")); }
-    public String setBoxNumber(SceneWorkspace.NumberField field, String text) {
+    public String setBoxNumber(NumberField field, String text) {
         if (!active()) return "";
         java.math.BigDecimal number = null;
         if (!text.isBlank()) {

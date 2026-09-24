@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.mojang.serialization.JsonOps;
 import top.rookiestwo.maimai_dialogue.presentation.filter.SceneColor;
 import top.rookiestwo.maimai_dialogue.theme.*;
+import top.rookiestwo.maimai_dialogue_editor.document.field.NumberField;
 import java.util.*;
 
 // 字段清单同时供属性面板、草稿校验和临时预览使用；默认值来自主 MOD。
@@ -12,8 +13,8 @@ public final class ThemeFields {
     public record Field(String group, String name, String fallback, boolean color, int minimum, int maximum) {
         public String path() { return group + "." + name; }
         public String label() { return "theme." + path(); }
-        public SceneWorkspace.NumberField number() {
-            return new SceneWorkspace.NumberField(name, Integer.parseInt(fallback), minimum, maximum, true);
+        public NumberField number() {
+            return new NumberField(name, Integer.parseInt(fallback), minimum, maximum, true);
         }
         public JsonPrimitive parse(String raw) {
             if (raw.isBlank()) return null;

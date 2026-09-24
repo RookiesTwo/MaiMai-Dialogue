@@ -12,6 +12,7 @@ import icyllis.modernui.widget.LinearLayout;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.ContentTextField;
 import top.rookiestwo.maimai_dialogue_editor.document.DialogueFields;
+import top.rookiestwo.maimai_dialogue_editor.document.field.NumberField;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceCandidates;
@@ -234,14 +235,14 @@ final class ContentPropertiesView extends LinearLayout {
                 () -> items("edit.interval.", "default", "custom"), value -> content.intervalDefault(value.equals("default")));
         if (!selectedNode().has("typewriter_interval_ms")) return;
         var expected = binding;
-        var field = new top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.NumberField("typewriter_interval_ms", 30, 0, 1000, true);
+        var field = new NumberField("typewriter_interval_ms", 30, 0, 1000, true);
         Supplier<String> value = () -> { var number = get(selectedNode(), "typewriter_interval_ms"); return number != null && number.isJsonPrimitive() ? number.getAsString() : ""; };
-        var input = new EditorNumberField(getContext(), field, value, content::editInterval, () -> accepts(expected), workspace::endEdit,
+        var input = new EditorNumberField(getContext(), field, EditorNumberField.Slider.range(field), value, content::editInterval, () -> accepts(expected), workspace::endEdit,
                 () -> new top.rookiestwo.maimai_dialogue_editor.document.EditGesture() {
                     final Object draft = workspace.draft(); String pending;
                     public boolean update(String text) { if (!accepts(expected) || workspace.draft() != draft) return false; pending = text; return true; }
                     public void finish(boolean commit) { if (commit && pending != null && accepts(expected) && workspace.draft() == draft) content.editInterval(pending); }
-                }, "edit.typewriter_interval", 1000);
+                }, "edit.typewriter_interval");
         EditorWidgets.propertyRow(group, "edit.typewriter_interval", input, false); fields.put("edit.typewriter_interval", input);
         bindings.add(() -> input.refresh(canEdit()));
         error(() -> DialogueFields.error("typewriter_interval_ms", get(selectedNode(), "typewriter_interval_ms")));

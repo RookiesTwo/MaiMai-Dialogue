@@ -229,8 +229,9 @@ final class ActionPropertiesView extends LinearLayout {
     }
     private void number(LinearLayout body, String label, boolean call, ActionFields.Number field) {
         var expected = binding;
-        var control = new EditorNumberField(getContext(), field.control(), () -> model.text(call, field.path(), field.integer() ? Integer.toString((int) field.fallback()) : Float.toString(field.fallback())),
-                raw -> model.number(call, field, raw), () -> accepts(expected), project::endEdit, () -> model.beginGesture(call, field), label, field.quickMax());
+        var slider = Float.isFinite(field.quickMax()) ? EditorNumberField.Slider.range(field.quickMin(), field.quickMax(), field.integer()) : null;
+        var control = new EditorNumberField(getContext(), field.constraints(), slider, () -> model.text(call, field.path(), field.integer() ? Integer.toString((int) field.fallback()) : Float.toString(field.fallback())),
+                raw -> model.number(call, field, raw), () -> accepts(expected), project::endEdit, () -> model.beginGesture(call, field), label);
         EditorWidgets.propertyRow(body, label, control, false); fields.put(field.path(), control); bindings.add(() -> control.refresh(model.active()));
     }
     private void choice(LinearLayout body, String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {

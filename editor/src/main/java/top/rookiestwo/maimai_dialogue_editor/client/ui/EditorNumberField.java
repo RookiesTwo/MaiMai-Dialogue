@@ -8,7 +8,7 @@ import icyllis.modernui.widget.EditText;
 import icyllis.modernui.widget.LinearLayout;
 import icyllis.modernui.widget.SeekBar;
 import icyllis.modernui.widget.TextView;
-import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.NumberField;
+import top.rookiestwo.maimai_dialogue_editor.document.field.NumberField;
 import top.rookiestwo.maimai_dialogue_editor.document.EditGesture;
 
 import java.math.BigDecimal;
@@ -19,6 +19,12 @@ import java.util.function.Supplier;
 
 /** Rounded readout, full-precision editing, and an optional quick-adjust slider. */
 final class EditorNumberField extends LinearLayout {
+    record Slider(float minimum, float maximum, int keyIncrement) {
+        static Slider range(NumberField field) { return range(field.minimum(), field.maximum(), field.integer()); }
+        static Slider range(float minimum, float maximum, boolean integer) {
+            return new Slider(minimum, maximum, integer ? 1 : maximum - minimum > 10 ? 1000 : 10);
+        }
+    }
     private final Supplier<String> value;
     private final Function<String, String> setter;
     private final BooleanSupplier accepts;
@@ -36,19 +42,9 @@ final class EditorNumberField extends LinearLayout {
     private boolean tracking;
     private EditGesture gesture;
 
-    EditorNumberField(Context context, NumberField field, Supplier<String> value,
-                      Function<String, String> setter, BooleanSupplier accepts, Runnable endEdit,
-                      Supplier<? extends EditGesture> beginDrag) {
-        this(context, field, value, setter, accepts, endEdit, beginDrag, "scene." + field.name());
-    }
-    EditorNumberField(Context context, NumberField field, Supplier<String> value,
+    EditorNumberField(Context context, NumberField field, Slider quickAdjust, Supplier<String> value,
                       Function<String, String> setter, BooleanSupplier accepts, Runnable endEdit,
                       Supplier<? extends EditGesture> beginDrag, String label) {
-        this(context, field, value, setter, accepts, endEdit, beginDrag, label, Float.NaN);
-    }
-    EditorNumberField(Context context, NumberField field, Supplier<String> value,
-                      Function<String, String> setter, BooleanSupplier accepts, Runnable endEdit,
-                      Supplier<? extends EditGesture> beginDrag, String label, float quickMaximum) {
         super(context);
         this.value = value;
         this.setter = setter;
@@ -69,17 +65,13 @@ final class EditorNumberField extends LinearLayout {
         error.setTextColor(EditorWidgets.ERROR);
         error.setVisibility(GONE);
 
-        boolean scale = field.name().equals("scale");
-        boolean bounded = Float.isFinite(quickMaximum) || field.minimum() >= -100 && field.maximum() <= 100;
-        float maximum = Float.isFinite(quickMaximum) ? quickMaximum : field.maximum();
         int ticks = integer ? 1 : 1000;
-        // Scale has no upper data limit. This interval is only a convenient slider range.
-        sliderMinimum = scale ? 1 : bounded
-                ? Math.max(field.minimum() > 0 ? 1 : Integer.MIN_VALUE, Math.round(field.minimum() * ticks)) : 0;
-        slider = scale || bounded ? new EditorSeekBar(context) : null;
+        sliderMinimum = quickAdjust == null ? 0
+                : Math.max(quickAdjust.minimum() > 0 ? 1 : Integer.MIN_VALUE, Math.round(quickAdjust.minimum() * ticks));
+        slider = quickAdjust == null ? null : new EditorSeekBar(context);
         if (slider != null) {
-            slider.setMax((scale ? 4000 : Math.round(maximum * ticks)) - sliderMinimum);
-            slider.setKeyProgressIncrement(integer ? 1 : field.maximum() - field.minimum() > 10 ? 1000 : 10);
+            slider.setMax(Math.round(quickAdjust.maximum() * ticks) - sliderMinimum);
+            slider.setKeyProgressIncrement(quickAdjust.keyIncrement());
             slider.setTooltipText(EditorWidgets.tr(label));
             line.addView(slider, new LayoutParams(0, dp(EditorWidgets.COMPACT_CONTROL_DP), 1));
             EditorWidgets.bindMetrics(slider, () -> slider.setLayoutParams(

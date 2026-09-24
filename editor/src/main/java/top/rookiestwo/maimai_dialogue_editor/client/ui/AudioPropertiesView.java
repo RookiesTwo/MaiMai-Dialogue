@@ -100,8 +100,9 @@ final class AudioPropertiesView extends LinearLayout {
     }
     private void number(AudioWorkspace.Number field) {
         Binding expected = binding;
-        var control = new EditorNumberField(getContext(), field.control(), () -> model.number(field), raw -> model.number(field, raw),
-                () -> accepts(expected), project::endEdit, () -> model.beginGesture(field), "audio." + field.name(), field.quickMaximum());
+        var slider = EditorNumberField.Slider.range(field.minimum(), field.quickMaximum(), field.integer());
+        var control = new EditorNumberField(getContext(), field.constraints(), slider, () -> model.number(field), raw -> model.number(field, raw),
+                () -> accepts(expected), project::endEdit, () -> model.beginGesture(field), "audio." + field.name());
         EditorWidgets.propertyRow(body, "audio." + field.name(), control, false);
         fields.put(field.name(), control);
         bindings.add(() -> control.refresh(model.active()));

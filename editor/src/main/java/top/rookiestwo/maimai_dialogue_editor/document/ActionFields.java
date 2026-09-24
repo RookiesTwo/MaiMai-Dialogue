@@ -4,6 +4,7 @@ import com.google.gson.*;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import top.rookiestwo.maimai_dialogue.presentation.action.*;
+import top.rookiestwo.maimai_dialogue_editor.document.field.NumberField;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -12,18 +13,22 @@ public final class ActionFields {
     private ActionFields() {}
     public static final List<String> TRACKS = List.of("x", "y", "scale", "opacity");
     public static final List<String> COMPONENTS = List.of("x", "y", "scale", "opacity", "variant", "visible", "sound", "bgm");
-    public record Number(String path, float fallback, float min, float max, boolean integer, float quickMin, float quickMax, boolean required) {
-        public JsonPrimitive parse(String raw) {
-            if (raw.isBlank()) return required ? new JsonPrimitive(fallback) : null;
-            var number = new BigDecimal(raw.strip());
-            if (!Float.isFinite(number.floatValue()) || number.doubleValue() < min || number.doubleValue() > max)
-                throw new IllegalArgumentException("Out of range");
-            if (integer) number.intValueExact();
-            return new JsonPrimitive(number);
+    public record Number(NumberField constraints, float quickMin, float quickMax, boolean required) {
+        public Number(String path, float fallback, float min, float max, boolean integer, float quickMin, float quickMax, boolean required) {
+            this(new NumberField(path, fallback, min, max, integer), quickMin, quickMax, required);
         }
-        public SceneWorkspace.NumberField control() {
-            return new SceneWorkspace.NumberField("action_value", fallback,
-                    Float.isFinite(quickMax) ? quickMin : min, Float.isFinite(quickMax) ? quickMax : max, integer);
+        public String path() { return constraints.name(); }
+        public float fallback() { return constraints.fallback(); }
+        public float min() { return constraints.minimum(); }
+        public float max() { return constraints.maximum(); }
+        public boolean integer() { return constraints.integer(); }
+        public JsonPrimitive parse(String raw) {
+            if (raw.isBlank()) return required ? new JsonPrimitive(fallback()) : null;
+            var number = new BigDecimal(raw.strip());
+            if (!Float.isFinite(number.floatValue()) || number.doubleValue() < min() || number.doubleValue() > max())
+                throw new IllegalArgumentException("Out of range");
+            if (integer()) number.intValueExact();
+            return new JsonPrimitive(number);
         }
     }
     public static Number time(String path, float fallback) { return new Number(path, fallback, 0, 60000, true, 0, 3000, false); }

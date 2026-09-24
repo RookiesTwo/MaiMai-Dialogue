@@ -9,6 +9,7 @@ import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.Part;
+import top.rookiestwo.maimai_dialogue_editor.document.field.NumberField;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
@@ -178,9 +179,14 @@ final class ScenePropertiesView extends LinearLayout {
     private void number(Part part, NumberField field) {
         String fallback = field.integer() ? Integer.toString((int)field.fallback()) : Float.toString(field.fallback());
         String expected = binding;
-        var control = new EditorNumberField(getContext(), field, () -> value(part, field.name(), fallback),
+        var slider = part != Part.OBJECT ? EditorNumberField.Slider.range(field) : switch (field.name()) {
+            case "scale" -> new EditorNumberField.Slider(.001f, 4, 1000);
+            case "opacity" -> EditorNumberField.Slider.range(field);
+            default -> null;
+        };
+        var control = new EditorNumberField(getContext(), field, slider, () -> value(part, field.name(), fallback),
                 value -> model.setNumber(part, field, value), () -> accepts(expected), project::endEdit,
-                () -> model.beginNumberDrag(part, field));
+                () -> model.beginNumberDrag(part, field), "scene." + field.name());
         EditorWidgets.propertyRow(group, "scene." + field.name(), control, false);
         bindings.add(() -> control.refresh(model.active()));
     }
