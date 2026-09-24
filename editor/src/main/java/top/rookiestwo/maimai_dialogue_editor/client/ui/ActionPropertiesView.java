@@ -5,8 +5,7 @@ import icyllis.modernui.core.*;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.view.View;
 import icyllis.modernui.widget.*;
-import net.minecraft.client.Minecraft;
-import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorContentPreparation;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
 import top.rookiestwo.maimai_dialogue_editor.document.*;
 import top.rookiestwo.maimai_dialogue_editor.preview.ActionSceneContext;
@@ -249,10 +248,7 @@ final class ActionPropertiesView extends LinearLayout {
     private void changeMode(String mode) {
         if (!mode.equals("inline") || model.text(true, "action.id", "").isBlank()) { model.mode(mode, null); return; }
         var expected = binding; var captured = project.draft(); String reference = model.text(true, "action.id", ""); long request = ++conversionRequest;
-        prepare(external -> {
-            try { return ActionSceneContext.reference(captured, reference, external); }
-            catch (java.io.IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
-        }, (definition, failure) -> {
+        EditorContentPreparation.prepare(project, external -> ActionSceneContext.reference(captured, reference, external), (definition, failure) -> {
             if (!accepts(expected) || captured != project.draft() || request != conversionRequest) return;
             if (failure == null) model.mode(mode, definition); else { conversionError = String.valueOf(failure.getMessage()); refresh(); }
         });
@@ -266,23 +262,10 @@ final class ActionPropertiesView extends LinearLayout {
         sceneSignature = signature; long request = ++metadataRequest; scene = null; contextError = "";
         if (id.isEmpty()) return;
         var captured = project.draft();
-        prepare(external -> ActionSceneContext.prepare(captured, id, external), (result, failure) -> {
+        EditorContentPreparation.prepare(project, external -> ActionSceneContext.prepare(captured, id, external), (result, failure) -> {
             if (request != metadataRequest || !isAttachedToWindow() || !signature.equals(sceneSignature)) return;
             if (failure == null) scene = result; else contextError = String.valueOf(failure.getMessage());
             refresh();
-        });
-    }
-    private <T> void prepare(Function<top.rookiestwo.maimai_dialogue.client.resource.ClientContentSnapshot, T> operation,
-                             java.util.function.BiConsumer<T, Throwable> completed) {
-        Minecraft.getInstance().execute(() -> {
-            try {
-                var external = ClientServices.get().content().current();
-                project.prepare(() -> operation.apply(external)).whenComplete((value, failure) ->
-                        Core.getUiHandler().post(() -> completed.accept(value, failure)));
-            } catch (RuntimeException failure) {
-                // The workspace executor can close while this client-thread task is queued.
-                Core.getUiHandler().post(() -> completed.accept(null, failure));
-            }
         });
     }
     @Override protected void onAttachedToWindow() {

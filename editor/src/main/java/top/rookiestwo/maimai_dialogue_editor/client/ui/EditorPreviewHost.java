@@ -18,6 +18,7 @@ import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueOption;
 import top.rookiestwo.maimai_dialogue_editor.content.ProjectContentSnapshot;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorDialogueAudio;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorContentPreparation;
 import top.rookiestwo.maimai_dialogue_editor.material.MaterialSnapshot;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
 import top.rookiestwo.maimai_dialogue_editor.preview.EditorPreviewSession;
@@ -202,24 +203,8 @@ final class EditorPreviewHost {
         this.workspace = workspace;
         this.assets = assets;
         audio = new AudioPreviewSession(audioBackend, this::refresh);
-        scenes = new ScenePreviewSession((draft, key) -> {
-            var future = new java.util.concurrent.CompletableFuture<ScenePreviewSession.Prepared>();
-            Minecraft.getInstance().execute(() -> {
-                try {
-                    var external = ClientServices.get().content().current();
-                    workspace.prepare(() -> {
-                        try { return ScenePreviewSession.prepare(draft, key, external); }
-                        catch (java.io.IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
-                    }).whenComplete((result, failure) -> {
-                        if (failure == null) future.complete(result); else future.completeExceptionally(failure);
-                    });
-                } catch (RuntimeException failure) {
-                    // The editor IO executor may already be shut down while this client callback was queued.
-                    future.completeExceptionally(failure);
-                }
-            });
-            return future;
-        }, task -> Core.getUiHandler().post(task), this::refresh);
+        scenes = new ScenePreviewSession((draft, key) -> EditorContentPreparation.prepare(workspace,
+                external -> ScenePreviewSession.prepare(draft, key, external)), task -> Core.getUiHandler().post(task), this::refresh);
         actionPreview = new EditorActionPreview(this);
     }
 

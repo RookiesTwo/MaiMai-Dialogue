@@ -1,10 +1,8 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
-import icyllis.modernui.core.Core;
 import icyllis.modernui.view.View;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.language.I18n;
-import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorContentPreparation;
 import top.rookiestwo.maimai_dialogue.client.scene.*;
 import top.rookiestwo.maimai_dialogue_editor.document.*;
 import top.rookiestwo.maimai_dialogue_editor.preview.ActionSceneContext;
@@ -93,20 +91,10 @@ final class EditorActionKeyframes {
             project.actions().addFrameAt(track, time, target.call().delayMs(), null); return;
         }
         String reference = project.actions().text(true, "action.id", "");
-        Minecraft.getInstance().execute(() -> {
-            try {
-                var external = ClientServices.get().content().current();
-                project.prepare(() -> {
-                    try { return ActionSceneContext.reference(target.draft(), reference, external); }
-                    catch (java.io.IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
-                }).whenComplete((definition, failure) -> Core.getUiHandler().post(() -> {
-                    if (!anchor.isAttachedToWindow() || !valid(target)) return;
-                    if (failure == null) project.actions().addFrameAt(track, time, target.call().delayMs(), definition);
-                    else message(anchor, x, y, String.valueOf(failure.getMessage()));
-                }));
-            } catch (RuntimeException failure) {
-                Core.getUiHandler().post(() -> { if (anchor.isAttachedToWindow() && valid(target)) message(anchor, x, y, String.valueOf(failure.getMessage())); });
-            }
+        EditorContentPreparation.prepare(project, external -> ActionSceneContext.reference(target.draft(), reference, external), (definition, failure) -> {
+            if (!anchor.isAttachedToWindow() || !valid(target)) return;
+            if (failure == null) project.actions().addFrameAt(track, time, target.call().delayMs(), definition);
+            else message(anchor, x, y, String.valueOf(failure.getMessage()));
         });
     }
     private void message(View anchor, float x, float y, String text) {

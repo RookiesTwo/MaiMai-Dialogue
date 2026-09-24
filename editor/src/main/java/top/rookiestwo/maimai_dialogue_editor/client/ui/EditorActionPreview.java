@@ -2,21 +2,19 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Core;
 import icyllis.modernui.graphics.Image;
-import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import top.rookiestwo.maimai_dialogue.audio.TypewriterSound;
-import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
 import top.rookiestwo.maimai_dialogue.client.controller.*;
 import top.rookiestwo.maimai_dialogue.client.scene.ScenePlayback;
 import top.rookiestwo.maimai_dialogue.client.session.*;
 import top.rookiestwo.maimai_dialogue.client.ui.scene.DialogueImageSource;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueOption;
 import top.rookiestwo.maimai_dialogue_editor.client.EditorDialogueAudio;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorContentPreparation;
 import top.rookiestwo.maimai_dialogue_editor.preview.*;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
 import java.util.*;
-import java.util.concurrent.*;
 
 /** UI-thread lifecycle of a standalone action preview. All asynchronous completions are request-scoped. */
 final class EditorActionPreview {
@@ -36,21 +34,8 @@ final class EditorActionPreview {
 
     EditorActionPreview(EditorPreviewHost host) {
         this.host = host; workspace = host.workspace();
-        session = new ActionPreviewSession(request -> {
-            var future = new CompletableFuture<ActionPreviewSession.Prepared>();
-            Minecraft.getInstance().execute(() -> {
-                try {
-                    var external = ClientServices.get().content().current();
-                    workspace.prepare(() -> {
-                        try { return ActionPreviewSession.prepare(request, external); }
-                        catch (java.io.IOException failure) { throw new CompletionException(failure); }
-                    }).whenComplete((value, failure) -> {
-                        if (failure == null) future.complete(value); else future.completeExceptionally(failure);
-                    });
-                } catch (RuntimeException failure) { future.completeExceptionally(failure); }
-            });
-            return future;
-        }, task -> Core.getUiHandler().post(task), this::prepared);
+        session = new ActionPreviewSession(request -> EditorContentPreparation.prepare(workspace,
+                external -> ActionPreviewSession.prepare(request, external)), task -> Core.getUiHandler().post(task), this::prepared);
     }
     boolean canPlay() { return host.mode() == EditorPreviewHost.Mode.ACTION && workspace.actions().active(); }
     boolean playing() { return playing || playRequested; }

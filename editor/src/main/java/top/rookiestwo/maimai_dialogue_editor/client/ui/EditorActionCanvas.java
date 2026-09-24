@@ -4,8 +4,7 @@ import com.google.gson.JsonObject;
 import icyllis.modernui.core.*;
 import icyllis.modernui.graphics.RectF;
 import icyllis.modernui.widget.FrameLayout;
-import net.minecraft.client.Minecraft;
-import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorContentPreparation;
 import top.rookiestwo.maimai_dialogue.client.scene.*;
 import top.rookiestwo.maimai_dialogue_editor.document.*;
 import top.rookiestwo.maimai_dialogue_editor.preview.ActionSceneContext;
@@ -53,18 +52,11 @@ final class EditorActionCanvas extends FrameLayout implements SceneCanvasOverlay
         overlay.synchronize();
     }
     private void loadReference(Binding expected, String id) {
-        Minecraft.getInstance().execute(() -> {
-            try {
-                var external = ClientServices.get().content().current();
-                project.prepare(() -> {
-                    try { return ActionSceneContext.reference(expected.draft(), id, external); }
-                    catch (java.io.IOException failure) { throw new java.util.concurrent.CompletionException(failure); }
-                }).whenComplete((value, failure) -> Core.getUiHandler().post(() -> {
-                    if (isAttachedToWindow() && binding == expected && Objects.equals(current(), expected)) {
-                        definition = failure == null ? value : null; candidateTime = -1; overlay.synchronize();
-                    }
-                }));
-            } catch (RuntimeException ignored) { /* The existing action inspector reports unresolved references. */ }
+        EditorContentPreparation.prepare(project, external -> ActionSceneContext.reference(expected.draft(), id, external), (value, failure) -> {
+            if (isAttachedToWindow() && binding == expected && Objects.equals(current(), expected)) {
+                // The existing action inspector reports unresolved references.
+                definition = failure == null ? value : null; candidateTime = -1; overlay.synchronize();
+            }
         });
     }
     private ActionCanvasEdit candidate() {
