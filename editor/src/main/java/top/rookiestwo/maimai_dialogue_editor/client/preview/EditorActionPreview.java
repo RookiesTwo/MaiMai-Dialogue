@@ -19,7 +19,13 @@ import java.util.*;
 
 /** UI-thread lifecycle of a standalone action preview. All asynchronous completions are request-scoped. */
 public final class EditorActionPreview {
-    private final EditorPreviewHost host;
+    private final PreviewMount mount;
+    private final top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets assets;
+    private final EditorTimelinePreview timeline;
+    private final EditorAudioAudition audition;
+    private final Runnable changed;
+    private DialogueImageSource mountedImages;
+    private top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey mountedDocument;
     private final ProjectWorkspace workspace;
     private final ActionPreviewSession session;
     private ActionPreviewSession.Request request;
@@ -33,12 +39,30 @@ public final class EditorActionPreview {
     private Integer restorePosition;
     private String failure = "";
 
-    EditorActionPreview(EditorPreviewHost host) {
-        this.host = host; workspace = host.workspace();
+    EditorActionPreview(ProjectWorkspace workspace, top.rookiestwo.maimai_dialogue_editor.client.EditorPreviewAssets assets,
+                        EditorTimelinePreview timeline, EditorAudioAudition audition, PreviewMount mount, Runnable changed) {
+        this.workspace = workspace; this.assets = assets; this.timeline = timeline;
+        this.audition = audition; this.mount = mount; this.changed = changed;
         session = new ActionPreviewSession(request -> EditorContentPreparation.prepare(workspace,
                 external -> ActionPreviewSession.prepare(request, external)), task -> Core.getUiHandler().post(task), this::prepared);
     }
-    public boolean canPlay() { return host.mode() == EditorPreviewHost.Mode.ACTION && workspace.actions().active(); }
+    private boolean selected() {
+        var key = workspace.resources().opened();
+        return key != null && key.kind() == top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind.ACTION;
+    }
+    private boolean ready() { return mount.ready() && selected(); }
+    void forgetDisplay() { mountedImages = null; mountedDocument = null; }
+    private void clearView() { if (mount.active() && mountedDocument != null) mount.clear(); }
+    private void show(DialogueScreenState state, DialogueUiActions actions, DialogueImageSource images) {
+        if (!ready()) return;
+        // 只在场景或图片 scope 改变时重建 Fragment；重播保持原挂载。
+        if (mount.fragment() == null || mountedImages != images) {
+            mount.clear();
+            mount.show(actions, images.fork(), "editor-action-preview");
+            mountedImages = images; mountedDocument = workspace.resources().opened();
+        } else mount.fragment().render(state);
+    }
+    public boolean canPlay() { return selected() && workspace.actions().active(); }
     public boolean playing() { return playing || playRequested; }
     boolean canSeek() { return canPlay() && displayed != null && displayed == session.prepared() && pendingImages == null; }
     boolean acceptCanvasCommit(ProjectDraft before, top.rookiestwo.maimai_dialogue.presentation.action.SceneAction action) {
@@ -50,9 +74,9 @@ public final class EditorActionPreview {
         return true;
     }
     void pauseForSeek() {
-        boolean changed = playing || playRequested || audio != null;
+        boolean wasPlaying = playing || playRequested || audio != null;
         closeAudio(); playRequested = playing = false;
-        if (changed) host.refresh();
+        if (wasPlaying) changed.run();
     }
     public String error() { return failure.isEmpty() ? session.error() : failure; }
     public List<String> targets() {
@@ -61,24 +85,24 @@ public final class EditorActionPreview {
     }
     void synchronize() {
         var model = workspace.actions();
-        var next = host.mode() != EditorPreviewHost.Mode.ACTION || workspace.draft() == null ? null
+        var next = !selected() || workspace.draft() == null ? null
                 : new ActionPreviewSession.Request(workspace.projectGeneration(), workspace.draft(), workspace.resources().opened(), model.previewContext());
         if (Objects.equals(next, request)) { prepared(); return; }
         boolean sameDocument = next != null && request != null && next.project() == request.project() && next.key().equals(request.key());
-        restorePosition = sameDocument && next.context().equals(request.context()) ? host.timeline().model().position() : null;
+        restorePosition = sameDocument && next.context().equals(request.context()) ? timeline.model().position() : null;
         cancelPending(); closeAudio(); playRequested = playing = false;
-        if (sameDocument && displayed != null) host.timeline().freezeFrame();
-        else { actions = null; displayed = null; closeImages(); host.clearActionPreview(); host.timeline().clear(this); }
+        if (sameDocument && displayed != null) timeline.freezeFrame();
+        else { actions = null; displayed = null; closeImages(); clearView(); timeline.clear(this); }
         request = next; preparing = null; failure = "";
         session.select(next);
     }
     private void prepared() {
         var next = session.prepared();
-        if (request == null || !host.actionViewReady()) return;
-        if (next == null) { playRequested = false; host.refresh(); return; }
+        if (request == null || !ready()) return;
+        if (next == null) { playRequested = false; changed.run(); return; }
         if (preparing == next) return;
         preparing = next; cancelPending(); long expected = revision;
-        pendingImages = host.assets().openImages(next.scene().images());
+        pendingImages = assets.openImages(next.scene().images());
         var source = pendingImages;
         var ids = ScenePreviewSession.initialImageIds(next.scene().scene());
         // Only the initial frame and the selected action's destination variant need image handles.
@@ -101,12 +125,12 @@ public final class EditorActionPreview {
             else loaded.put(id, image);
             if (--remaining[0] == 0) {
                 if (!failed[0]) publish(next, loaded, source);
-                else { source.close(); pendingImages = null; playRequested = false; host.refresh(); }
+                else { source.close(); pendingImages = null; playRequested = false; changed.run(); }
             }
         });
     }
     private void publish(ActionPreviewSession.Prepared next, Map<ResourceLocation, Image> loaded, DialogueImageSource source) {
-        if (!host.actionViewReady()) {
+        if (!ready()) {
             // Keep the prepared data retryable when attachment/resume happens after the image callbacks.
             preparing = null;
             source.close(); pendingImages = null;
@@ -118,25 +142,25 @@ public final class EditorActionPreview {
             playRequested = false; render(play);
         } catch (RuntimeException invalid) { failure = String.valueOf(invalid.getMessage()); playRequested = false; }
         finally { source.close(); pendingImages = null; }
-        if (!play && restorePosition != null) host.timeline().seek(host.timeline().playback(), restorePosition);
+        if (!play && restorePosition != null) timeline.seek(timeline.playback(), restorePosition);
         restorePosition = null;
-        host.refresh();
+        changed.run();
     }
     public void play() {
         if (!canPlay()) return;
-        workspace.actions().endGesture(true); workspace.endEdit(); host.audition().stop();
+        workspace.actions().endGesture(true); workspace.endEdit(); audition.stop();
         closeAudio(); failure = "";
         if (displayed == session.prepared() && displayed != null && pendingImages == null) render(true);
         else if (session.error().isEmpty()) playRequested = true;
-        host.refresh();
+        changed.run();
     }
     public void stop() {
         playRequested = false; closeAudio(); playing = false;
         if (displayed != null) render(false);
-        host.refresh();
+        changed.run();
     }
     private void render(boolean play) {
-        if (displayed == null || images == null || !host.actionViewReady()) return;
+        if (displayed == null || images == null || !ready()) return;
         closeAudio(); playing = false;
         long token = ++generation;
         ScenePlayback playback;
@@ -145,7 +169,7 @@ public final class EditorActionPreview {
         ScenePlayback timelinePlayback = null;
         try { timelinePlayback = play ? playback : displayed.playback(request.context().target(), token); }
         catch (RuntimeException invalid) { failure = String.valueOf(invalid.getMessage()); }
-        host.timeline().bind(this, timelinePlayback, 1, play);
+        timeline.bind(this, timelinePlayback, 1, play);
         var state = new DialogueScreenState(token, Optional.of(displayed.scene().scene()), Optional.of(displayed.scene().theme()),
                 Optional.of(playback), PlaybackPhase.READY, !play, Optional.empty(), false, false, 0,
                 Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_speaker")), Optional.of(net.minecraft.client.resources.language.I18n.get("gui.maimai_dialogue_editor.scene.preview_text")),
@@ -156,11 +180,11 @@ public final class EditorActionPreview {
             long expected = revision;
             audio = new EditorDialogueAudio(displayed.scene().images(), task -> workspace.prepare(() -> { task.run(); return null; }),
                     detail -> Core.getUiHandler().post(() -> {
-                        if (expected == revision && generation == token) { failure = detail; host.refresh(); }
+                        if (expected == revision && generation == token) { failure = detail; changed.run(); }
                     }), () -> {});
             audio.render(state, List.of());
         }
-        host.showAction(state, actions, images);
+        show(state, actions, images);
     }
     private void cancelPending() { ++revision; if (pendingImages != null) pendingImages.close(); pendingImages = null; }
     private void closeAudio() { if (audio != null) audio.close(); audio = null; }
@@ -169,7 +193,7 @@ public final class EditorActionPreview {
         cancelPending(); closeAudio(); closeImages(); actions = null; request = null; preparing = displayed = null;
         playRequested = playing = false; session.select(null); failure = "";
         restorePosition = null;
-        host.timeline().clear(this);
+        timeline.clear(this);
     }
     void dispose() { release(); session.dispose(); }
 
@@ -188,7 +212,7 @@ public final class EditorActionPreview {
             Core.getUiHandler().post(() -> {
                 if (actions == this && playing && audio != null && state.generation() == generation)
                 {
-                    host.timeline().follow(EditorActionPreview.this, token, elapsed);
+                    timeline.follow(EditorActionPreview.this, token, elapsed);
                     audio.frame(generation, token, elapsed);
                 }
             });

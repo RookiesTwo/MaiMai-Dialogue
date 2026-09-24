@@ -26,7 +26,6 @@ public final class EditorPreviewHost {
     private final EditorAudioAudition audition;
     private final EditorStaticPreview staticPreview;
     private final EditorActionPreview actionPreview;
-    private DialogueImageSource actionImages;
     private final int containerId = View.generateViewId();
     private PreviewDisplay view;
     private DialogueFragment fragment;
@@ -34,7 +33,6 @@ public final class EditorPreviewHost {
     private final EditorTimelinePreview timeline;
     public EditorTimelinePreview timeline() { return timeline; }
     public EditorDialoguePreview dialogue() { return dialoguePreview; }
-    private ResourceKey actionDocument;
     private boolean releasingView;
 
     public EditorPreviewHost(Fragment owner, ProjectWorkspace workspace, EditorPreviewAssets assets, AudioPreviewSession.Backend audioBackend) {
@@ -59,17 +57,17 @@ public final class EditorPreviewHost {
             if (running() || loading()) stop();
             audio.stop();
         }, this::refresh);
-        staticPreview = new EditorStaticPreview(workspace, assets, new PreviewMount() {
+        var mount = new PreviewMount() {
             @Override public boolean active() { return !disposed && !releasingView; }
             @Override public boolean ready() { return viewReady(); }
             @Override public PreviewDisplay display() { return view; }
             @Override public DialogueFragment fragment() { return fragment; }
             @Override public void clear() { clearFragments(); }
             @Override public void show(DialogueUiActions actions, DialogueImageSource images, String tag) {
-                fragment = embeddedFragment(actions, images);
-                owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, tag).commitNow();
+                mountPreview(actions, images, tag);
             }
-        }, this::refresh);
+        };
+        staticPreview = new EditorStaticPreview(workspace, assets, mount, this::refresh);
         dialoguePreview = new EditorDialoguePreview(workspace, assets, timeline, audition, new EditorDialoguePreview.Surface() {
             @Override public boolean disposed() { return disposed; }
             @Override public boolean ready() { return viewReady(); }
@@ -77,14 +75,13 @@ public final class EditorPreviewHost {
             @Override public DialogueFragment fragment() { return fragment; }
             @Override public void show(DialogueUiActions actions, DialogueImageSource images) {
                 showingIdle = false;
-                fragment = embeddedFragment(actions, images);
-                owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, "editor-preview").commitNow();
+                mountPreview(actions, images, "editor-preview");
             }
             @Override public void showIdle() { showIdleControls(); }
             @Override public void refresh() { EditorPreviewHost.this.refresh(); }
             @Override public void stop() { EditorPreviewHost.this.stop(); }
         });
-        actionPreview = new EditorActionPreview(this);
+        actionPreview = new EditorActionPreview(workspace, assets, timeline, audition, mount, this::refresh);
     }
 
     public View createView(java.util.function.IntFunction<? extends PreviewDisplay> factory) {
@@ -208,18 +205,16 @@ public final class EditorPreviewHost {
         if (manager.isDestroyed() || manager.isStateSaved()) return;
         if (showingIdle && fragment != null) return;
         clearFragments();
-        fragment = embeddedFragment(dialoguePreview.idleActions(), DialogueImageSource.RESOURCES);
-        manager.beginTransaction().replace(containerId, fragment, "editor-preview").commitNow();
+        mountPreview(dialoguePreview.idleActions(), DialogueImageSource.RESOURCES, "editor-preview");
         showingIdle = true;
     }
 
     private void clearFragments() {
         dialoguePreview.forgetDisplay();
-        actionImages = null;
+        actionPreview.forgetDisplay();
         staticPreview.clear();
         fragment = null;
         staticPreview.clear();
-        actionDocument = null;
         showingIdle = false;
         FragmentManager manager = owner.getChildFragmentManager();
         if (manager.isDestroyed() || manager.isStateSaved()) return;
@@ -241,9 +236,6 @@ public final class EditorPreviewHost {
     }
 
 
-    boolean actionViewReady() {
-        return viewReady() && mode() == Mode.ACTION;
-    }
     private boolean viewReady() {
         return !disposed && !releasingView && view != null && view.root().isAttachedToWindow()
                 && !owner.getChildFragmentManager().isDestroyed() && !owner.getChildFragmentManager().isStateSaved();
@@ -252,20 +244,10 @@ public final class EditorPreviewHost {
     private static DialogueFragment embeddedFragment(DialogueUiActions actions, DialogueImageSource images) {
         return new DialogueFragment(actions, DialogueFragment.CornerControls.DISPLAY_ONLY, images, false);
     }
-    void clearActionPreview() {
-        if (!releasingView && actionDocument != null) clearFragments();
+    private void mountPreview(DialogueUiActions actions, DialogueImageSource images, String tag) {
+        fragment = embeddedFragment(actions, images);
+        owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, tag).commitNow();
     }
-    void showAction(DialogueScreenState state, DialogueUiActions actions, DialogueImageSource images) {
-        if (!actionViewReady()) return;
-        // Replay can reuse the mounted views; changing the scene/assets gets a fresh set of image handles.
-        if (fragment == null || actionImages != images) {
-            clearFragments();
-            fragment = embeddedFragment(actions, images.fork());
-            owner.getChildFragmentManager().beginTransaction().replace(containerId, fragment, "editor-action-preview").commitNow();
-            actionImages = images; actionDocument = workspace.resources().opened();
-        } else fragment.render(state);
-    }
-
     public void releaseView() {
         workspace.actions().endGesture(true);
         workspace.audio().endGesture(true);
@@ -277,7 +259,7 @@ public final class EditorPreviewHost {
         workspace.themes().setLiveListener(immediate -> {});
         staticPreview.stopFrames();
         releasingView = true;
-        actionPreview.release(); actionImages = null;
+        actionPreview.release(); actionPreview.forgetDisplay();
         audio.stop();
         finishSceneDrag(false);
         staticPreview.releaseView();
@@ -285,7 +267,6 @@ public final class EditorPreviewHost {
         dialoguePreview.reset();
         fragment = null;
         staticPreview.clear();
-        actionDocument = null;
         showingIdle = false;
         view = null;
         timeline.releaseListeners();
