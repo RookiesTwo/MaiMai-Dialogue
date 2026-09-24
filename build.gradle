@@ -23,6 +23,14 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+// Stable archive bytes let a failed release upload be retried without changing its JARs.
+allprojects {
+    tasks.withType(AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+}
+
 neoForge {
     // Specify the version of NeoForge to use.
     version = project.neo_version

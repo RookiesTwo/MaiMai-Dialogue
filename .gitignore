@@ -38,6 +38,9 @@ AGENTS.md
 /editor/README.md
 /editor/IMPLEMENTATION_PLAN.md
 
+# Local release workflow notes
+/.github/RELEASING.md
+
 # Node.js and VitePress
 /node_modules/
 /docs/.vitepress/cache/
