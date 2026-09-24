@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.properties;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
 
@@ -10,7 +10,7 @@ import top.rookiestwo.maimai_dialogue_editor.project.ProjectDraft;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 
 /** 项目下拉菜单中的基本设置；不占用对象属性面板。 */
-final class ProjectProperties extends LinearLayout {
+public final class ProjectProperties extends LinearLayout {
     private final ProjectWorkspace workspace;
     private final TextView empty;
     private final LinearLayout fields;
@@ -21,7 +21,7 @@ final class ProjectProperties extends LinearLayout {
     private boolean refreshing;
     private long focusedRevision = -1;
 
-    ProjectProperties(Context context, ProjectWorkspace workspace) {
+    public ProjectProperties(Context context, ProjectWorkspace workspace) {
         super(context);
         this.workspace = workspace;
         setOrientation(VERTICAL);
@@ -50,7 +50,7 @@ final class ProjectProperties extends LinearLayout {
         refresh();
     }
 
-    void refresh() {
+    public void refresh() {
         ProjectDraft draft = workspace.draft();
         empty.setVisibility(draft == null ? VISIBLE : GONE);
         fields.setVisibility(draft == null ? GONE : VISIBLE);
@@ -71,7 +71,7 @@ final class ProjectProperties extends LinearLayout {
         var issue = workspace.focusedIssue();
         if (issue != null && issue.resource() == null) {
             warning.setVisibility(VISIBLE);
-            warning.setText(issue.field() + "\n" + ExportMenu.describe(issue));
+            warning.setText(issue.field() + "\n" + top.rookiestwo.maimai_dialogue_editor.client.EditorIssueText.describe(issue));
             EditText target = issue.field().equals("name") ? name : issue.field().equals("namespace") ? namespace : null;
             if (focusedRevision != workspace.issueFocusRevision()) {
                 focusedRevision = workspace.issueFocusRevision();

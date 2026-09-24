@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.project;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorModalLayout;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 /** Confirms native file selections and their logical resource names; never browses the filesystem. */
-final class MaterialImportConfirmation extends EditorModalLayout {
+public final class MaterialImportConfirmation extends EditorModalLayout {
     private final ProjectWorkspace project;
     private final MaterialWorkspace model;
     private final LinearLayout panel, files;
@@ -23,7 +23,7 @@ final class MaterialImportConfirmation extends EditorModalLayout {
     private List<Path> displayed = List.of();
     private boolean refreshing;
 
-    MaterialImportConfirmation(Context context, ProjectWorkspace project) {
+    public MaterialImportConfirmation(Context context, ProjectWorkspace project) {
         super(context, 560, 420); this.project = project; model = project.materials();
         panel = new LinearLayout(context); panel.setOrientation(LinearLayout.VERTICAL);
         EditorWidgets.bindMetrics(panel, () -> panel.setPadding(dp(12), dp(8), dp(12), dp(8)));
@@ -47,7 +47,7 @@ final class MaterialImportConfirmation extends EditorModalLayout {
         refresh();
     }
 
-    void refresh() {
+    public void refresh() {
         refreshing = true;
         try {
             if (!target.getText().toString().equals(model.target())) target.setText(model.target());

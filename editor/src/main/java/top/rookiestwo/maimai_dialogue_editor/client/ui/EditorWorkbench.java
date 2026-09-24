@@ -1,5 +1,9 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.properties.ResourcePropertiesView;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.resource.ResourceBrowserView;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.resource.ResourceDocumentView;
+
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
 
@@ -176,16 +180,16 @@ final class EditorWorkbench extends ResponsiveFrameLayout implements EditorSplit
         boolean verticalResizable = layout.preview() >= dp(EditorLayout.PREVIEW_MIN_DP);
         actionsSplitter.setEnabled(verticalResizable);
 
-        EditorPanel.measureExact(toolbar, layout.width(), layout.toolbar());
-        EditorPanel.measureExact(status, layout.width(), layout.status());
-        EditorPanel.measureExact(layout.leftCollapsed() ? leftRail : resources, layout.left(), layout.workHeight());
-        EditorPanel.measureExact(layout.rightCollapsed() ? rightRail : properties, layout.right(), layout.workHeight());
-        EditorPanel.measureExact(document, layout.center(), layout.document());
-        EditorPanel.measureExact(preview, layout.center(), layout.preview());
-        EditorPanel.measureExact(actions, layout.center(), layout.actions());
-        EditorPanel.measureExact(leftSplitter, layout.horizontalGap(), layout.workHeight());
-        EditorPanel.measureExact(rightSplitter, layout.horizontalGap(), layout.workHeight());
-        EditorPanel.measureExact(actionsSplitter, layout.center(), layout.verticalGap());
+        EditorWidgets.measureExact(toolbar, layout.width(), layout.toolbar());
+        EditorWidgets.measureExact(status, layout.width(), layout.status());
+        EditorWidgets.measureExact(layout.leftCollapsed() ? leftRail : resources, layout.left(), layout.workHeight());
+        EditorWidgets.measureExact(layout.rightCollapsed() ? rightRail : properties, layout.right(), layout.workHeight());
+        EditorWidgets.measureExact(document, layout.center(), layout.document());
+        EditorWidgets.measureExact(preview, layout.center(), layout.preview());
+        EditorWidgets.measureExact(actions, layout.center(), layout.actions());
+        EditorWidgets.measureExact(leftSplitter, layout.horizontalGap(), layout.workHeight());
+        EditorWidgets.measureExact(rightSplitter, layout.horizontalGap(), layout.workHeight());
+        EditorWidgets.measureExact(actionsSplitter, layout.center(), layout.verticalGap());
         setMeasuredDimension(layout.width(), layout.height());
     }
 

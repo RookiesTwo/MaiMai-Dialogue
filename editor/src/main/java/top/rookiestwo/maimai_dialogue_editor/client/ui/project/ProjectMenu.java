@@ -1,4 +1,6 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.project;
+
+import top.rookiestwo.maimai_dialogue_editor.client.ui.properties.ProjectProperties;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
 
@@ -13,14 +15,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** “项目”下拉菜单：常用操作和当前项目设置在同一个入口中。 */
-final class ProjectMenu extends LinearLayout {
+public final class ProjectMenu extends LinearLayout {
     private final ProjectWorkspace workspace;
     private final List<Button> items = new ArrayList<>();
     private final ProjectProperties properties;
     private final Button save;
     private final Button autoSave;
 
-    ProjectMenu(Context context, ProjectWorkspace workspace, Runnable resetLayout) {
+    public ProjectMenu(Context context, ProjectWorkspace workspace, Runnable resetLayout) {
         super(context);
         this.workspace = workspace;
         setOrientation(VERTICAL);
@@ -72,13 +74,13 @@ final class ProjectMenu extends LinearLayout {
         });
     }
 
-    void refresh() {
+    public void refresh() {
         items.forEach(button -> EditorWidgets.enabled(button, !workspace.busy()));
         refreshSaveState();
         if (properties != null) properties.refresh();
     }
 
-    void refreshSaveState() {
+    public void refreshSaveState() {
         if (save != null) EditorWidgets.enabled(save, !workspace.busy() && workspace.dirty());
         if (autoSave != null) {
             autoSave.setText(EditorWidgets.tr(workspace.autoSave() ? "project.autosave_on" : "project.autosave_off"));

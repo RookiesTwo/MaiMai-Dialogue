@@ -49,11 +49,11 @@ final class EditorPanel extends FrameLayout {
         int innerHeight = Math.max(0, height - inset * 2);
         headerHeight = Math.min(dp(EditorLayout.HEADER_DP), innerHeight);
         collapseWidth = collapse == null ? 0 : Math.min(dp(EditorWidgets.COMPACT_CONTROL_DP), Math.min(innerWidth, headerHeight));
-        measureExact(title, innerWidth, headerHeight);
+        EditorWidgets.measureExact(title, innerWidth, headerHeight);
         if (collapse != null) {
-            measureExact(collapse, collapseWidth, collapseWidth);
+            EditorWidgets.measureExact(collapse, collapseWidth, collapseWidth);
         }
-        measureExact(content, innerWidth, innerHeight - headerHeight);
+        EditorWidgets.measureExact(content, innerWidth, innerHeight - headerHeight);
         setMeasuredDimension(width, height);
     }
 
@@ -68,8 +68,4 @@ final class EditorPanel extends FrameLayout {
         content.layout(inset, inset + headerHeight, width - inset, bottom - top - inset);
     }
 
-    static void measureExact(View view, int width, int height) {
-        view.measure(MeasureSpec.makeMeasureSpec(Math.max(0, width), MeasureSpec.EXACTLY),
-                MeasureSpec.makeMeasureSpec(Math.max(0, height), MeasureSpec.EXACTLY));
-    }
 }

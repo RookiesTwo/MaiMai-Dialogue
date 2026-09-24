@@ -1,5 +1,11 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.project.ExportMenu;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.project.MaterialImportConfirmation;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.project.ProjectDialog;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.project.ProjectMenu;
+import top.rookiestwo.maimai_dialogue_editor.client.ui.resource.ResourceDialog;
+
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorColorPalette;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorDropdownMenu;

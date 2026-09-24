@@ -201,10 +201,10 @@ final class EditorPreviewView extends ResponsiveFrameLayout {
             viewportWidth = (int)Math.min(width, availableHeight * 16L / 9L);
             viewportHeight = (int)Math.min(availableHeight, viewportWidth * 9L / 16L);
         }
-        EditorPanel.measureExact(toolbar, width, toolbarHeight);
-        EditorPanel.measureExact(actionControls, width, toolbarHeight);
-        EditorPanel.measureExact(canvas, viewportWidth, viewportHeight);
-        EditorPanel.measureExact(audio, width, height);
+        EditorWidgets.measureExact(toolbar, width, toolbarHeight);
+        EditorWidgets.measureExact(actionControls, width, toolbarHeight);
+        EditorWidgets.measureExact(canvas, viewportWidth, viewportHeight);
+        EditorWidgets.measureExact(audio, width, height);
         setMeasuredDimension(width, height);
     }
 

@@ -13,13 +13,13 @@ import top.rookiestwo.maimai_dialogue_editor.project.*;
 import java.util.*;
 
 /** Shared insertion commands for a timeline context menu and the inspector's playhead buttons. */
-final class EditorActionKeyframes {
+public final class EditorActionKeyframes {
     private record Target(long project, ProjectDraft draft, ActionWorkspace.Context context, int index,
                           ScenePlayback playback, ResolvedActionCall call) {}
     private final ProjectWorkspace project;
     private final EditorPreviewHost preview;
     private final ChoicePresenter choices;
-    EditorActionKeyframes(ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices) {
+    public EditorActionKeyframes(ProjectWorkspace project, EditorPreviewHost preview, ChoicePresenter choices) {
         this.project = project; this.preview = preview; this.choices = choices;
     }
     private Target current() {
@@ -37,14 +37,14 @@ final class EditorActionKeyframes {
     private static String issue(Target target, String track, int time) {
         return target == null ? "unavailable" : ActionKeyframes.plan(target.call().action(), track, time, target.call().delayMs()).error();
     }
-    boolean canAdd(String track) { return issue(current(), track, preview.timeline().position()).isEmpty(); }
-    String tooltip(String track) {
+    public boolean canAdd(String track) { return issue(current(), track, preview.timeline().position()).isEmpty(); }
+    public String tooltip(String track) {
         var target = current(); int time = preview.timeline().position(); String issue = issue(target, track, time);
         if (!issue.isEmpty()) return EditorWidgets.tr("timeline.keyframe." + issue);
         return I18n.get("gui.maimai_dialogue_editor.timeline.keyframe.at_playhead", time,
                 EditorWidgets.tr("action." + track), time - target.call().delayMs());
     }
-    void addAtPlayhead(View anchor, String track) {
+    public void addAtPlayhead(View anchor, String track) {
         var target = current(); int time = preview.timeline().position();
         if (!issue(target, track, time).isEmpty()) return;
         preview.seekTimeline(target.playback(), time);

@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.resource;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorModalLayout;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
@@ -17,7 +17,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** Resource ID forms and deletion confirmation in the existing workspace View tree. */
-final class ResourceDialog extends EditorModalLayout {
+public final class ResourceDialog extends EditorModalLayout {
     private final ProjectWorkspace workspace;
     private final ResourceWorkspace resources;
     private final LinearLayout content;
@@ -28,7 +28,7 @@ final class ResourceDialog extends EditorModalLayout {
     private final Map<ResourceKind, Button> kinds = new LinkedHashMap<>();
     private boolean refreshing;
 
-    ResourceDialog(Context context, ProjectWorkspace workspace) {
+    public ResourceDialog(Context context, ProjectWorkspace workspace) {
         super(context, 520, 480);
         this.workspace = workspace;
         resources = workspace.resources();
@@ -72,9 +72,9 @@ final class ResourceDialog extends EditorModalLayout {
         refresh();
     }
 
-    void focusFirst() { if (path != null) path.requestFocus(); else requestFocus(); }
+    public void focusFirst() { if (path != null) path.requestFocus(); else requestFocus(); }
 
-    void refresh() {
+    public void refresh() {
         refreshing = true;
         try {
             if (path != null && !path.getText().toString().equals(resources.formPath())) path.setText(resources.formPath());

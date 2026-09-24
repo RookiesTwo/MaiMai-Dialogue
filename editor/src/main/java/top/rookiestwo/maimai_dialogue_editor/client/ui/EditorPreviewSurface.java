@@ -1,5 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
+import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
+
 import icyllis.modernui.core.Context;
 import icyllis.modernui.graphics.RectF;
 import icyllis.modernui.fragment.FragmentContainerView;
@@ -74,7 +76,7 @@ final class EditorPreviewSurface extends FrameLayout {
         int height = MeasureSpec.getSize(heightSpec);
         logicalHeight = referenceHeight;
         logicalWidth = Math.max(1, (int) Math.round(logicalHeight * 16.0 / 9.0));
-        EditorPanel.measureExact(content, logicalWidth, logicalHeight);
+        EditorWidgets.measureExact(content, logicalWidth, logicalHeight);
         boolean visible = width > 0 && height > 0;
         content.setVisibility(visible ? VISIBLE : INVISIBLE);
         // Keep an invertible transform even while the panel temporarily has no drawable area.

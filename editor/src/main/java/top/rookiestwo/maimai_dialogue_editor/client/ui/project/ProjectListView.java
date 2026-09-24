@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.project;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
 

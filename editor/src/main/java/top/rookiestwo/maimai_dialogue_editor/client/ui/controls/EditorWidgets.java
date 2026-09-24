@@ -27,6 +27,11 @@ import icyllis.modernui.text.TextWatcher;
 import java.util.function.Consumer;
 
 public final class EditorWidgets {
+    public static void measureExact(View view, int width, int height) {
+        view.measure(icyllis.modernui.view.MeasureSpec.makeMeasureSpec(Math.max(0, width), icyllis.modernui.view.MeasureSpec.EXACTLY),
+                icyllis.modernui.view.MeasureSpec.makeMeasureSpec(Math.max(0, height), icyllis.modernui.view.MeasureSpec.EXACTLY));
+    }
+
     // 单行资源列表与属性下拉菜单共用的紧凑密度。
     public static final int COMPACT_ROW_DP = 22;
     public static final int COMPACT_HORIZONTAL_PADDING_DP = 4;

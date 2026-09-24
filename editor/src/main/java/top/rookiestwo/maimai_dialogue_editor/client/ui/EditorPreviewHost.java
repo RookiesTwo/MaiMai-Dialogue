@@ -37,7 +37,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 /** UI-thread owner of one embedded runtime Fragment. Client callbacks cross back through the UI handler. */
-final class EditorPreviewHost {
+public final class EditorPreviewHost {
     enum Mode { DIALOGUE, IMAGE, SOUND, SCENE, THEME, ACTION, EMPTY }
     private final Fragment owner;
     private final ProjectWorkspace workspace;
@@ -102,8 +102,8 @@ final class EditorPreviewHost {
     private final java.util.Set<Runnable> timelineObservers = new java.util.LinkedHashSet<>();
     private View timelineHoverOwner;
     private boolean playheadHovered;
-    void addTimelineObserver(Runnable listener) { timelineObservers.add(listener); }
-    void removeTimelineObserver(Runnable listener) { timelineObservers.remove(listener); }
+    public void addTimelineObserver(Runnable listener) { timelineObservers.add(listener); }
+    public void removeTimelineObserver(Runnable listener) { timelineObservers.remove(listener); }
     private void notifyTimelineChanged() {
         timelineChanged.run(); java.util.List.copyOf(timelineObservers).forEach(Runnable::run);
     }
@@ -179,10 +179,10 @@ final class EditorPreviewHost {
     private top.rookiestwo.maimai_dialogue_editor.preview.PreviewScenario observedSimulation;
     private java.util.List<EditorPreviewSession.SimulationResult> simulationResults = java.util.List.of();
     private Runnable simulationChanged = () -> {};
-    void setSimulationListener(Runnable listener) { simulationChanged = listener; }
-    java.util.List<EditorPreviewSession.SimulationResult> simulationResults() { return simulationResults; }
-    boolean canSimulateSkip() { return canOperate() && !loading && running() && playback.state().canSkipToEnd(); }
-    void simulateSkip() {
+    public void setSimulationListener(Runnable listener) { simulationChanged = listener; }
+    public java.util.List<EditorPreviewSession.SimulationResult> simulationResults() { return simulationResults; }
+    public boolean canSimulateSkip() { return canOperate() && !loading && running() && playback.state().canSkipToEnd(); }
+    public void simulateSkip() {
         if (!canSimulateSkip()) return;
         if (staleDialogueSession) { restartStep(); skipAfterLoad = true; return; }
         playback.skipToEnd(); render();
@@ -201,7 +201,7 @@ final class EditorPreviewHost {
         refreshTheme();
     };
 
-    EditorPreviewHost(Fragment owner, ProjectWorkspace workspace, EditorPreviewAssets assets, AudioPreviewSession.Backend audioBackend) {
+    public EditorPreviewHost(Fragment owner, ProjectWorkspace workspace, EditorPreviewAssets assets, AudioPreviewSession.Backend audioBackend) {
         this.owner = owner;
         this.workspace = workspace;
         this.assets = assets;
@@ -262,9 +262,9 @@ final class EditorPreviewHost {
     }
     AudioPreviewSession audio() { return audio; }
     EditorActionPreview actionPreview() { return actionPreview; }
-    void setAudioListener(Runnable listener) { audioChanged = listener; }
-    boolean auditioning() { return auditionLoading || audition != null && audition.active(); }
-    String auditionError() { return auditionError; }
+    public void setAudioListener(Runnable listener) { audioChanged = listener; }
+    public boolean auditioning() { return auditionLoading || audition != null && audition.active(); }
+    public String auditionError() { return auditionError; }
     private EditorDialogueAudio audioScope(MaterialSnapshot materials, long expected, boolean sample) {
         return new EditorDialogueAudio(materials, task -> workspace.prepare(() -> { task.run(); return null; }),
                 failure -> Core.getUiHandler().post(() -> {
@@ -273,7 +273,7 @@ final class EditorPreviewHost {
                     refresh();
                 }), () -> Core.getUiHandler().post(this::refresh));
     }
-    void audition() {
+    public void audition() {
         var model = workspace.audio();
         if (!model.active()) return;
         workspace.endEdit();
@@ -305,7 +305,7 @@ final class EditorPreviewHost {
         }));
         refresh();
     }
-    void stopAudition() {
+    public void stopAudition() {
         ++auditionRevision; auditionLoading = false;
         if (audition != null) audition.close();
         audition = null; auditionDraft = null; auditionTarget = null; auditionError = "";

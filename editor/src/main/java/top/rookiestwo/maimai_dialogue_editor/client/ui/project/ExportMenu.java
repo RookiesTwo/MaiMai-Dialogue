@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.project;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
 
@@ -13,7 +13,7 @@ import top.rookiestwo.maimai_dialogue_editor.export.*;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 
 /** Anchored export menu with scrollable validation results. */
-final class ExportMenu extends LinearLayout {
+public final class ExportMenu extends LinearLayout {
     private final ProjectWorkspace project;
     private final ExportWorkspace exports;
     private final Button validate, export, folder;
@@ -21,7 +21,7 @@ final class ExportMenu extends LinearLayout {
     private final LinearLayout issues;
     private ValidationReport shown;
 
-    ExportMenu(Context context, ProjectWorkspace project, ExportWorkspace exports) {
+    public ExportMenu(Context context, ProjectWorkspace project, ExportWorkspace exports) {
         super(context);
         this.project = project; this.exports = exports;
         setOrientation(VERTICAL);
@@ -55,7 +55,7 @@ final class ExportMenu extends LinearLayout {
         return button;
     }
 
-    void refresh() {
+    public void refresh() {
         EditorWidgets.enabled(validate, exports.canRun());
         EditorWidgets.enabled(export, exports.canRun());
         status.setText(EditorWidgets.tr(exports.status()) + (exports.error().isEmpty() ? "" : "\n" + exports.error()));
@@ -75,7 +75,7 @@ final class ExportMenu extends LinearLayout {
                 if (exports.report() == report && isAttachedToWindow()) project.locateIssue(issue);
             });
             String owner = issue.resource() == null ? EditorWidgets.tr("project") : issue.resource().id(report.source().namespace());
-            button.setText(owner + " · " + issue.field() + "\n" + describe(issue));
+            button.setText(owner + " · " + issue.field() + "\n" + top.rookiestwo.maimai_dialogue_editor.client.EditorIssueText.describe(issue));
             button.setSingleLine(false);
             button.setEllipsize(null);
             button.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
@@ -85,7 +85,4 @@ final class ExportMenu extends LinearLayout {
         }
     }
 
-    static String describe(ValidationIssue issue) {
-        return EditorWidgets.tr("export.issue." + issue.reason()) + (issue.detail().isEmpty() ? "" : "\n" + issue.detail());
-    }
 }

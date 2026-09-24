@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.project;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorModalLayout;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 /** 项目创建、列表选择及确认表单；不提供路径编辑入口。 */
-final class ProjectDialog extends EditorModalLayout {
+public final class ProjectDialog extends EditorModalLayout {
     private final ProjectWorkspace workspace;
     private final LinearLayout content;
     private ProjectListView projectList;
@@ -26,7 +26,7 @@ final class ProjectDialog extends EditorModalLayout {
     private final Map<String, EditText> inputs = new LinkedHashMap<>();
     private boolean refreshing;
 
-    ProjectDialog(Context context, ProjectWorkspace workspace) {
+    public ProjectDialog(Context context, ProjectWorkspace workspace) {
         super(context, 600, 560);
         this.workspace = workspace;
         content = new LinearLayout(context);
@@ -92,12 +92,12 @@ final class ProjectDialog extends EditorModalLayout {
         buttons.add(EditorWidgets.formButton(content, key, action));
     }
 
-    void focusFirst() {
+    public void focusFirst() {
         if (inputs.isEmpty()) requestFocus();
         else inputs.values().iterator().next().requestFocus();
     }
 
-    void refresh() {
+    public void refresh() {
         buttons.forEach(button -> EditorWidgets.enabled(button, !workspace.busy()));
         refreshing = true;
         try {

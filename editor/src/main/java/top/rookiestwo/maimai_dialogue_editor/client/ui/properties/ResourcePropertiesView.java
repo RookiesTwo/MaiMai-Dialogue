@@ -1,4 +1,6 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.properties;
+
+import top.rookiestwo.maimai_dialogue_editor.client.ui.EditorPreviewHost;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.ChoicePresenter;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
@@ -13,7 +15,7 @@ import top.rookiestwo.maimai_dialogue_editor.resource.ResourceTree;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 
 /** Read-only resource metadata. Project settings remain in the Project menu. */
-final class ResourcePropertiesView extends LinearLayout {
+public final class ResourcePropertiesView extends LinearLayout {
     private final ProjectWorkspace workspace;
     private final TextView details;
     private final ContentPropertiesView content;
@@ -27,7 +29,7 @@ final class ResourcePropertiesView extends LinearLayout {
     private final ActionPropertiesView actions;
     private final DialogueSimulationView simulation;
 
-    ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, PropertySectionState layout, EditorPreviewHost preview) {
+    public ResourcePropertiesView(Context context, ProjectWorkspace workspace, ChoicePresenter choices, PropertySectionState layout, EditorPreviewHost preview) {
         super(context);
         this.workspace = workspace;
         setOrientation(VERTICAL);
@@ -58,7 +60,7 @@ final class ResourcePropertiesView extends LinearLayout {
         refresh();
     }
 
-    void refresh() {
+    public void refresh() {
         ResourceTree.Node node = workspace.resources().selection();
         ResourceKey key = node.owner();
         boolean opened = key != null && key.equals(workspace.resources().opened());
@@ -69,7 +71,7 @@ final class ResourcePropertiesView extends LinearLayout {
         var issue = workspace.focusedIssue();
         boolean showIssue = issue != null && key != null && key.equals(issue.resource());
         diagnostic.setVisibility(showIssue ? VISIBLE : GONE);
-        diagnostic.setText(showIssue ? issue.field() + "\n" + ExportMenu.describe(issue) : "");
+        diagnostic.setText(showIssue ? issue.field() + "\n" + top.rookiestwo.maimai_dialogue_editor.client.EditorIssueText.describe(issue) : "");
         if (workspace.draft() == null || node.type() == ResourceTree.Type.PROJECT) {
             details.setText(EditorWidgets.tr("no_selection"));
         } else if (editingAction && node.isStep()) {

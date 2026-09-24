@@ -125,17 +125,17 @@ final class EditorToolbar extends FrameLayout {
         closeSize = Math.min(dp(CLOSE_SIZE_DP), Math.min(controlHeight, available));
         closeGap = Math.min(dp(4), available - closeSize);
         title.setVisibility(width < dp(600) ? GONE : VISIBLE);
-        EditorPanel.measureExact(close, closeSize, closeSize);
+        EditorWidgets.measureExact(close, closeSize, closeSize);
         int actionSpace = available - closeSize - closeGap;
         if (title.getVisibility() == GONE) {
-            EditorPanel.measureExact(title, 0, 0);
+            EditorWidgets.measureExact(title, 0, 0);
             titleWidth = 0;
         } else {
             title.measure(MeasureSpec.makeMeasureSpec(actionSpace / 2, MeasureSpec.AT_MOST),
                     MeasureSpec.makeMeasureSpec(controlHeight, MeasureSpec.EXACTLY));
             titleWidth = title.getMeasuredWidth();
         }
-        EditorPanel.measureExact(scroll, actionSpace - titleWidth, controlHeight);
+        EditorWidgets.measureExact(scroll, actionSpace - titleWidth, controlHeight);
         setMeasuredDimension(width, height);
     }
 

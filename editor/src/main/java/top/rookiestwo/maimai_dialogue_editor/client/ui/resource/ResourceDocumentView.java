@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.resource;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorButtonIcon;
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
@@ -13,7 +13,7 @@ import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 
 /** Compact document title and actions; ordered steps live in the resource tree. */
-final class ResourceDocumentView extends FrameLayout {
+public final class ResourceDocumentView extends FrameLayout {
     private final ProjectWorkspace workspace;
     private final TextView title;
     private final Button add;
@@ -22,7 +22,7 @@ final class ResourceDocumentView extends FrameLayout {
     private int buttonSize;
     private int titleWidth;
 
-    ResourceDocumentView(Context context, ProjectWorkspace workspace) {
+    public ResourceDocumentView(Context context, ProjectWorkspace workspace) {
         super(context);
         this.workspace = workspace;
         EditorWidgets.propertyButtonScope(this);
@@ -34,7 +34,7 @@ final class ResourceDocumentView extends FrameLayout {
         refresh();
     }
 
-    void refresh() {
+    public void refresh() {
         ResourceKey opened = workspace.resources().opened();
         title.setText(opened == null ? EditorWidgets.tr("browser.no_document")
                 : EditorWidgets.tr("resource." + opened.kind().key()) + " · " + opened.id(workspace.draft().namespace()));
@@ -56,8 +56,8 @@ final class ResourceDocumentView extends FrameLayout {
                 Math.min(contentHeight, available));
         int remaining = available - buttonSize;
         titleWidth = remaining - (buttonSize == 0 ? 0 : Math.min(dp(6), remaining));
-        EditorPanel.measureExact(title, titleWidth, contentHeight);
-        EditorPanel.measureExact(add, buttonSize, buttonSize);
+        EditorWidgets.measureExact(title, titleWidth, contentHeight);
+        EditorWidgets.measureExact(add, buttonSize, buttonSize);
         setMeasuredDimension(width, height);
     }
 

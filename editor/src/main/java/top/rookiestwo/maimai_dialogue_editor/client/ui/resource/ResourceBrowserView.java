@@ -1,4 +1,4 @@
-package top.rookiestwo.maimai_dialogue_editor.client.ui;
+package top.rookiestwo.maimai_dialogue_editor.client.ui.resource;
 
 import top.rookiestwo.maimai_dialogue_editor.client.ui.controls.EditorWidgets;
 
@@ -22,7 +22,7 @@ import java.util.Objects;
 import java.nio.file.Path;
 
 /** Search and tree bindings. Resource data and navigation survive outside this View. */
-final class ResourceBrowserView extends LinearLayout {
+public final class ResourceBrowserView extends LinearLayout {
     private static final int RESOURCE_LEAF_GAP_DP = 6;
     private record Controls(ResourceTree.Row row, LinearLayout line, Button label, Button toggle) {}
     private final ProjectWorkspace workspace;
@@ -50,7 +50,7 @@ final class ResourceBrowserView extends LinearLayout {
     private boolean animateSelectionPending;
     private long selectionLayoutRevision;
 
-    ResourceBrowserView(Context context, ProjectWorkspace workspace) {
+    public ResourceBrowserView(Context context, ProjectWorkspace workspace) {
         super(context);
         this.workspace = workspace;
         resources = workspace.resources();
@@ -96,7 +96,7 @@ final class ResourceBrowserView extends LinearLayout {
         refresh();
     }
 
-    void refresh() {
+    public void refresh() {
         workspace.content().snapshot();
         ResourceTree.Node selection = resources.selection();
         boolean step = selection.isStep();
