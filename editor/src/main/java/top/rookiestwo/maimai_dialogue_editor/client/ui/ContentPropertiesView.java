@@ -15,6 +15,7 @@ import top.rookiestwo.maimai_dialogue_editor.document.ContentTextField;
 import top.rookiestwo.maimai_dialogue_editor.document.DialogueFields;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKey;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceCandidates;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 
 import java.util.ArrayList;
@@ -343,13 +344,8 @@ final class ContentPropertiesView extends LinearLayout {
             if (!accepts(expected)) return;
             var draft = workspace.draft();
             if (draft == null) return;
-            var catalog = workspace.resources().catalog();
-            var items = catalog.keys().stream().filter(key -> key.kind() == kind).map(key -> {
-                String name = catalog.displayName(key);
-                String id = key.id(draft.namespace());
-                return new ChoicePresenter.Item(id, name.isBlank() ? id : name + " · " + id);
-            }).toList();
-            choices.showSearchable(picker, items, value.get(), selected -> {
+            var items = ResourceCandidates.project(workspace.resources().catalog(), draft.namespace(), kind, ResourceCandidates.Label.NAME_AND_ID);
+            choices.showResources(picker, items, value.get(), selected -> {
                 if (accepts(expected)) content.editTextField(field, selected);
             });
         });

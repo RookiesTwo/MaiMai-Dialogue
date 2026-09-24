@@ -1,6 +1,7 @@
 package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.view.View;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceCandidates;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -16,6 +17,9 @@ interface ChoicePresenter {
     void showMenu(View anchor, List<Item> items, String selected, Consumer<String> chosen);
     void showMenuAt(View anchor, float x, float y, List<Item> items, Consumer<String> chosen);
     void showSearchable(View anchor, List<Item> items, String selected, Consumer<String> chosen);
+    default void showResources(View anchor, List<ResourceCandidates.Item> items, String selected, Consumer<String> chosen) {
+        showSearchable(anchor, items.stream().map(item -> new Item(item.value(), item.label())).toList(), selected, chosen);
+    }
     void editCommand(View anchor, String initial, Consumer<String> confirmed);
     void showColor(View anchor, Supplier<String> value, Consumer<String> changed);
     void showColor(View anchor, Supplier<String> value, Consumer<String> changed,

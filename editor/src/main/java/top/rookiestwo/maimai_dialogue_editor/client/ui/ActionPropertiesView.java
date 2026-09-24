@@ -7,6 +7,7 @@ import icyllis.modernui.view.View;
 import icyllis.modernui.widget.*;
 import net.minecraft.client.Minecraft;
 import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
 import top.rookiestwo.maimai_dialogue_editor.document.*;
 import top.rookiestwo.maimai_dialogue_editor.preview.ActionSceneContext;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
@@ -85,17 +86,9 @@ final class ActionPropertiesView extends LinearLayout {
                 Button choose = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
                 choose.setOnClickListener(view -> {
                     if (!accepts(expected)) return;
-                    String namespace = project.draft().namespace();
-                    var ids = new TreeSet<String>();
-                    project.resources().catalog().keys().stream().filter(key -> key.kind() == ResourceKind.ACTION).forEach(key -> ids.add(key.id(namespace)));
-                    Minecraft.getInstance().execute(() -> {
-                        var external = ClientServices.get().content().current().actions().ids().stream().filter(id -> !id.getNamespace().equals(namespace)).map(Object::toString).toList();
-                        Core.getUiHandler().post(() -> {
-                            if (!accepts(expected)) return;
-                            ids.addAll(external); choices.showSearchable(choose, ids.stream().map(id -> new ChoicePresenter.Item(id, id)).toList(), model.text(true, "action.id", ""),
-                                    id -> { if (accepts(expected)) discrete(() -> model.set(true, "action.id", new JsonPrimitive(id))); });
-                        });
-                    });
+                    EditorResourceCandidates.references(project, ResourceKind.ACTION, EditorResourceCandidates.Source.PROJECT_AND_EXTERNAL,
+                            () -> accepts(expected), items -> choices.showResources(choose, items, model.text(true, "action.id", ""),
+                                    id -> { if (accepts(expected)) discrete(() -> model.set(true, "action.id", new JsonPrimitive(id))); }));
                 });
                 field(body, "action.reference", true, "action.id", choose);
                 bindings.add(() -> EditorWidgets.enabled(choose, model.active()));

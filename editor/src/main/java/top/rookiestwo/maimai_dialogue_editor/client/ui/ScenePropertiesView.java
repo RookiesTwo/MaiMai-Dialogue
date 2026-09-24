@@ -11,7 +11,7 @@ import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.Part;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
-import top.rookiestwo.maimai_dialogue_editor.material.MaterialPack;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
 import java.util.*;
 import java.util.function.*;
 import static top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace.*;
@@ -203,21 +203,14 @@ final class ScenePropertiesView extends LinearLayout {
         Button picker = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
         picker.setOnClickListener(view -> {
             if (!accepts(expected)) return;
-            choices.showSearchable(picker, resourceItems(kind), value.get(), selected -> {
-                if (accepts(expected) && !selected.equals(value.get())) setter.accept(selected);
-            });
+            var source = kind == ResourceKind.VISUAL_ASSET ? EditorResourceCandidates.Source.PROJECT_AND_EXTERNAL : EditorResourceCandidates.Source.PROJECT;
+            EditorResourceCandidates.references(project, kind, source, () -> accepts(expected), items ->
+                    choices.showResources(picker, items, value.get(), selected -> {
+                        if (accepts(expected) && !selected.equals(value.get())) setter.accept(selected);
+                    }));
         });
         field(label, value, text -> { setter.accept(text); return ""; }, false, picker);
         bindings.add(() -> EditorWidgets.enabled(picker, model.active()));
-    }
-    private List<ChoicePresenter.Item> resourceItems(ResourceKind kind) {
-        if (project.draft() == null) return List.of();
-        var ids = new TreeSet<String>();
-        project.resources().catalog().keys().stream().filter(key -> key.kind() == kind).forEach(key -> ids.add(
-                kind == ResourceKind.IMAGE ? MaterialPack.imageId(key, project.draft().namespace()) : key.id(project.draft().namespace())));
-        if (kind == ResourceKind.VISUAL_ASSET) ClientServices.get().content().current().visualAssets().ids().stream()
-                .filter(id -> !id.getNamespace().equals(project.draft().namespace())).forEach(id -> ids.add(id.toString()));
-        return ids.stream().map(id -> new ChoicePresenter.Item(id, id)).toList();
     }
     private Button choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;

@@ -3,8 +3,8 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 import icyllis.modernui.core.*;
 import icyllis.modernui.view.Gravity;
 import icyllis.modernui.widget.*;
-import net.minecraft.client.Minecraft;
-import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
+import top.rookiestwo.maimai_dialogue_editor.resource.ResourceCandidates;
 import top.rookiestwo.maimai_dialogue_editor.resource.ResourceKind;
 import java.util.*;
 
@@ -47,21 +47,15 @@ final class EditorActionPreviewControls extends LinearLayout {
     private void chooseScene() {
         var project = host.workspace(); var key = project.resources().opened(); long generation = project.projectGeneration();
         if (!accepts(generation, key)) return;
-        String namespace = project.draft().namespace(); var ids = new TreeSet<String>();
-        project.resources().catalog().keys().stream().filter(resource -> resource.kind() == ResourceKind.SCENE).forEach(resource -> ids.add(resource.id(namespace)));
-        Minecraft.getInstance().execute(() -> {
-            var external = ClientServices.get().content().current().scenes().ids().stream()
-                    .filter(id -> !id.getNamespace().equals(namespace)).map(Object::toString).toList();
-            Core.getUiHandler().post(() -> {
-                if (!accepts(generation, key)) return;
-                ids.addAll(external); var items = new ArrayList<ChoicePresenter.Item>();
-                items.add(new ChoicePresenter.Item("", EditorWidgets.tr("action.preview_empty_scene")));
-                ids.forEach(id -> items.add(new ChoicePresenter.Item(id, id)));
-                choices.showSearchable(scene, items, project.actions().previewContext().scene(), value -> {
-                    if (accepts(generation, key)) project.actions().previewScene(value);
+        EditorResourceCandidates.references(project, ResourceKind.SCENE, EditorResourceCandidates.Source.PROJECT_AND_EXTERNAL,
+                () -> accepts(generation, key), candidates -> {
+                    var items = new ArrayList<ResourceCandidates.Item>();
+                    items.add(new ResourceCandidates.Item("", EditorWidgets.tr("action.preview_empty_scene")));
+                    items.addAll(candidates);
+                    choices.showResources(scene, items, project.actions().previewContext().scene(), value -> {
+                        if (accepts(generation, key)) project.actions().previewScene(value);
+                    });
                 });
-            });
-        });
     }
     private void chooseTarget() {
         var project = host.workspace(); var key = project.resources().opened(); long generation = project.projectGeneration();

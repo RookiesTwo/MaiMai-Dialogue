@@ -2,7 +2,7 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.*;
-import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
 import top.rookiestwo.maimai_dialogue_editor.document.SceneWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.project.ProjectWorkspace;
 import top.rookiestwo.maimai_dialogue_editor.resource.*;
@@ -26,11 +26,12 @@ final class DialogueScenePropertiesView extends LinearLayout {
         choose = EditorWidgets.button(context, "edit.choose_resource", () -> {
             ResourceKey expected = bound; long expectedGeneration = generation;
             if (!accepts(expected, expectedGeneration)) return;
-            choices.showSearchable(chooseButton(), items(), value(), selected -> {
-                if (accepts(expected, expectedGeneration)) {
-                    project.endEdit(); project.content().editScene(selected); project.endEdit();
-                }
-            });
+            EditorResourceCandidates.references(project, ResourceKind.SCENE, EditorResourceCandidates.Source.PROJECT_AND_EXTERNAL,
+                    () -> accepts(expected, expectedGeneration), items -> choices.showResources(chooseButton(), items, value(), selected -> {
+                        if (accepts(expected, expectedGeneration)) {
+                            project.endEdit(); project.content().editScene(selected); project.endEdit();
+                        }
+                    }));
         });
         EditorWidgets.referenceRow(section.body(), "edit.scene", scene.input(), choose);
     }
@@ -43,16 +44,6 @@ final class DialogueScenePropertiesView extends LinearLayout {
                 && project.projectGeneration() == projectGeneration && key.kind() == ResourceKind.DIALOGUE
                 && key.equals(project.content().snapshot().key()) && key.equals(selection.resource())
                 && selection.type() == ResourceTree.Type.RESOURCE;
-    }
-
-    private List<ChoicePresenter.Item> items() {
-        if (project.draft() == null) return List.of();
-        var ids = new TreeSet<String>();
-        ClientServices.get().content().current().scenes().ids().stream()
-                .filter(id -> !id.getNamespace().equals(project.draft().namespace())).forEach(id -> ids.add(id.toString()));
-        project.resources().catalog().keys().stream().filter(key -> key.kind() == ResourceKind.SCENE)
-                .forEach(key -> ids.add(key.id(project.draft().namespace())));
-        return ids.stream().map(id -> new ChoicePresenter.Item(id, id)).toList();
     }
 
     void refresh() {

@@ -64,8 +64,7 @@ final class MaterialPropertiesView extends LinearLayout {
                     .map(name -> new ChoicePresenter.Item(name, name)).toList(), model::selectVariant);
             variantNameField();
             reference("material.image_id", () -> MaterialPack.string(data.getAsJsonObject("variants").get(variant())), () ->
-                    project.resources().catalog().keys().stream().filter(k -> k.kind() == ResourceKind.IMAGE)
-                            .map(k -> new ChoicePresenter.Item(MaterialPack.imageId(k, project.draft().namespace()), k.path())).toList(), model::setVariantImage);
+                    ResourceCandidates.project(project.resources().catalog(), project.draft().namespace(), ResourceKind.IMAGE, ResourceCandidates.Label.PATH), model::setVariantImage);
             Button remove = EditorWidgets.button(getContext(), "material.delete_variant", () -> { if (active()) model.deleteVariant(); });
             EditorWidgets.propertyRow(group, null, remove, false);
         } else {
@@ -78,9 +77,7 @@ final class MaterialPropertiesView extends LinearLayout {
             EditorWidgets.propertyRow(group, null, replace, false);
             if (key.kind() == ResourceKind.SOUND) {
                 section("material.group.sound_event");
-                reference("material.event", () -> value("event"), () -> project.resources().catalog().keys().stream()
-                        .filter(k -> k.kind() == ResourceKind.SOUND).map(k -> project.resources().catalog().displayName(k))
-                        .filter(name -> !name.isBlank()).distinct().map(name -> new ChoicePresenter.Item(name, name)).toList(), model::setEvent);
+                reference("material.event", () -> value("event"), () -> ResourceCandidates.soundEvents(project.resources().catalog()), model::setEvent);
                 choice("material.stream", () -> String.valueOf(data.has("stream") && data.get("stream").isJsonPrimitive()
                                 && data.get("stream").getAsBoolean()), () -> List.of(
                                 new ChoicePresenter.Item("false", EditorWidgets.tr("material.stream.false")),
@@ -109,12 +106,12 @@ final class MaterialPropertiesView extends LinearLayout {
             } else control.refresh();
         });
     }
-    private void reference(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
+    private void reference(String label, Supplier<String> value, Supplier<List<ResourceCandidates.Item>> items, Consumer<String> setter) {
         String expected = binding;
         Button picker = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
         picker.setOnClickListener(view -> {
             if (!active() || !binding.equals(expected)) return;
-            choices.showSearchable(picker, items.get(), value.get(), selected -> {
+            choices.showResources(picker, items.get(), value.get(), selected -> {
                 if (active() && binding.equals(expected)) setter.accept(selected);
             });
         });

@@ -2,7 +2,7 @@ package top.rookiestwo.maimai_dialogue_editor.client.ui;
 
 import icyllis.modernui.core.Context;
 import icyllis.modernui.widget.*;
-import top.rookiestwo.maimai_dialogue.client.bootstrap.ClientServices;
+import top.rookiestwo.maimai_dialogue_editor.client.EditorResourceCandidates;
 import top.rookiestwo.maimai_dialogue.presentation.DialogueBoxLayout;
 import top.rookiestwo.maimai_dialogue.presentation.scene.SceneDefinition;
 import top.rookiestwo.maimai_dialogue.presentation.visual.VisualAnchor;
@@ -75,32 +75,23 @@ final class SceneLayoutPropertiesView extends LinearLayout {
         var choose = EditorWidgets.button(getContext(), "edit.choose_resource", () -> {});
         choose.setOnClickListener(view -> {
             if (!accepts(expected)) return;
-            choices.showSearchable(choose, resourceItems(kind), value(field, fallback), selected -> {
-                if (accepts(expected) && !selected.equals(value(field, fallback))) {
-                    project.endEdit(); model.setTheme(selected); project.endEdit();
-                }
-            });
+            EditorResourceCandidates.references(project, kind, EditorResourceCandidates.Source.PROJECT_AND_EXTERNAL,
+                    () -> accepts(expected), candidates -> {
+                        var items = new ArrayList<ResourceCandidates.Item>();
+                        if (kind == ResourceKind.SCENE) items.add(new ResourceCandidates.Item("", EditorWidgets.tr("scene.no_scene")));
+                        items.addAll(candidates);
+                        choices.showResources(choose, items, value(field, fallback), selected -> {
+                            if (accepts(expected) && !selected.equals(value(field, fallback))) {
+                                project.endEdit(); model.setTheme(selected); project.endEdit();
+                            }
+                        });
+                    });
         });
         EditorWidgets.referenceRow(group, label, control.input(), choose);
         bindings.add(() -> {
             control.refresh(model.active());
             EditorWidgets.enabled(choose, model.active());
         });
-    }
-    private List<ChoicePresenter.Item> resourceItems(ResourceKind kind) {
-        if (project.draft() == null) return List.of();
-        var ids = new TreeSet<String>(); var external = ClientServices.get().content().current();
-        var externalIds = switch (kind) {
-            case SCENE -> external.scenes().ids();
-            case THEME -> external.themes().ids();
-            default -> Set.<net.minecraft.resources.ResourceLocation>of();
-        };
-        externalIds.stream().filter(id -> !id.getNamespace().equals(project.draft().namespace())).forEach(id -> ids.add(id.toString()));
-        project.resources().catalog().keys().stream().filter(key -> key.kind() == kind).forEach(key -> ids.add(key.id(project.draft().namespace())));
-        var result = new ArrayList<ChoicePresenter.Item>();
-        if (kind == ResourceKind.SCENE) result.add(new ChoicePresenter.Item("", EditorWidgets.tr("scene.no_scene")));
-        ids.forEach(id -> result.add(new ChoicePresenter.Item(id, id)));
-        return result;
     }
     private void choice(String label, Supplier<String> value, Supplier<List<ChoicePresenter.Item>> items, Consumer<String> setter) {
         String expected = binding;
