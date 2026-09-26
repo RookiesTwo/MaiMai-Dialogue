@@ -13,6 +13,7 @@ import top.rookiestwo.maimai_dialogue.client.scene.SceneTransitions;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueStep;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueText;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.CloseTarget;
+import top.rookiestwo.maimai_dialogue.dialogue.branch.CloseExit;
 import top.rookiestwo.maimai_dialogue.dialogue.DialogueDefinition;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueOption;
 import top.rookiestwo.maimai_dialogue.dialogue.branch.DialogueTarget;
@@ -330,6 +331,9 @@ public final class DialogueSession {
             settleBgm(active.playback.finalBgmCue(), effects);
             enterCurrentStep(active, effects);
             return update(effects, true);
+        }
+        if (active.definition.end().exit() instanceof CloseExit) {
+            return performClose();
         }
         if (active.definition.end().exit() instanceof ReturnExit) {
             return performReturn();

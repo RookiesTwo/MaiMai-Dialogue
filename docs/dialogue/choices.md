@@ -169,6 +169,11 @@ Option 可以在执行原 `target` 前先运行一条或多条指令。例如接
 
 把 `about.json` 同步保存到资源包和数据包。选项的 Dialogue target 负责从 `welcome` 进入 `about`；`about` 的 Return 会回到本次入口 `welcome`。在入口 `welcome` 选择 Return 则会关闭界面。
 
+### 可选：推进后直接关闭对话
+
+如果子 Dialogue 结束后也应直接退出，而不是返回入口，把它的 `end.exit` 改为 `{"type":"close"}`。
+玩家读完结尾后再次推进即可关闭，不必制作一个“退出”选项。文字或动画尚未播完时，第一次推进仍只会跳过播放，不会立即关闭。
+
 ### 可选：结束后进入下一个 Dialogue
 
 如果不需要玩家选择，可以把 `end.exit` 直接写成 Dialogue target：

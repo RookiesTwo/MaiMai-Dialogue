@@ -8,6 +8,7 @@ import java.util.Arrays;
 
 public sealed interface DialogueExit permits
         ReturnExit,
+        CloseExit,
         ChoiceExit,
         DialogueTargetExit {
     Codec<DialogueExit> CODEC = Type.CODEC.dispatch(
@@ -20,6 +21,7 @@ public sealed interface DialogueExit permits
 
     enum Type {
         RETURN("return", ReturnExit.CODEC),
+        CLOSE("close", CloseExit.CODEC),
         OPTIONS("options", ChoiceExit.CODEC),
         DIALOGUE("dialogue", DialogueTargetExit.CODEC);
 

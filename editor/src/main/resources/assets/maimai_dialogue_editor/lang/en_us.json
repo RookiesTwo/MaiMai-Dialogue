@@ -50,6 +50,7 @@
   "gui.maimai_dialogue_editor.edit.speaker_id": "Speaker ID",
   "gui.maimai_dialogue_editor.edit.exit": "End behavior",
   "gui.maimai_dialogue_editor.edit.exit.return": "Return to entry (close at entry)",
+  "gui.maimai_dialogue_editor.edit.exit.close": "Close dialogue",
   "gui.maimai_dialogue_editor.edit.exit.dialogue": "Go to Dialogue",
   "gui.maimai_dialogue_editor.edit.exit.options": "Show options",
   "gui.maimai_dialogue_editor.edit.target_dialogue": "Target Dialogue ID",

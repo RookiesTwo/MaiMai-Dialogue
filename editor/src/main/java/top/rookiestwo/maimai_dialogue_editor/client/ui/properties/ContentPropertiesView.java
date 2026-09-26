@@ -267,7 +267,7 @@ final class ContentPropertiesView extends LinearLayout {
     private void buildEnd() {
         section("edit.group.exit");
         choice("edit.exit", () -> string(exit(state.data()), "type"),
-                () -> items("edit.exit.", "return", "dialogue", "options"), content::setExitType);
+                () -> items("edit.exit.", "return", "close", "dialogue", "options"), content::setExitType);
         String type = string(exit(state.data()), "type");
         if (type.equals("dialogue")) {
             reference("edit.target_dialogue", ResourceKind.DIALOGUE, () -> string(exit(state.data()), "dialogue"), ContentTextField.EXIT_DIALOGUE);

@@ -337,7 +337,7 @@ public final class ContentWorkspace {
     }
 
     public void setExitType(String type) {
-        if (!List.of("return", "dialogue", "options").contains(type)) return;
+        if (!List.of("return", "close", "dialogue", "options").contains(type)) return;
         editNode(null, node -> {
             if (snapshot().cursor().step() != END) return;
             JsonObject exit = object(node.get("exit"));

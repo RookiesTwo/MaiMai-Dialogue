@@ -50,6 +50,7 @@
   "gui.maimai_dialogue_editor.edit.speaker_id": "Speaker ID",
   "gui.maimai_dialogue_editor.edit.exit": "结束方式",
   "gui.maimai_dialogue_editor.edit.exit.return": "返回入口（入口处关闭）",
+  "gui.maimai_dialogue_editor.edit.exit.close": "关闭对话",
   "gui.maimai_dialogue_editor.edit.exit.dialogue": "跳转到 Dialogue",
   "gui.maimai_dialogue_editor.edit.exit.options": "显示选项",
   "gui.maimai_dialogue_editor.edit.target_dialogue": "目标 Dialogue ID",

@@ -121,6 +121,20 @@ description: Dialogue、步骤、Speaker、结尾、选项和导航的完整字�
 - 子 Dialogue 的 Return 从本次入口 Dialogue 开头重新播放。
 - 系统没有导航栈或恢复位置。
 
+## Close
+
+在 `end.exit` 中设置：
+
+```json
+{
+  "type": "close"
+}
+```
+
+结尾的正文和 blocking SceneAction 播放完成后，玩家再次推进即关闭整个对话，不需要额外的退出选项。入口和子 Dialogue 都直接关闭，不返回入口。
+
+播放完成本身不会关闭界面；播放中推进仍只会跳过当前文字和动画，下一次推进才关闭。长按跳过到 End 后也会停留，等待玩家推进。
+
 ## 进入指定 Dialogue
 
 在 `end.exit` 中直接指定下一个 Dialogue：
@@ -180,7 +194,7 @@ Option 可以不经过 root，直接关闭整个 Dialogue 界面：
 }
 ```
 
-`close` 只用于 Option 的 `target`。无论当前位于入口还是子 Dialogue，点击后都会结束整个 session；它不能写在 `end.exit` 中。需要返回入口时仍应使用 `return`。
+`close` 可用于 Option 的 `target`，也可直接用于 `end.exit`。前者点击选项后关闭，后者在结尾播放完成后再次推进时关闭；无论当前位于入口还是子 Dialogue，都会结束整个 session。需要返回入口时仍应使用 `return`。
 
 ### Option command
 
@@ -210,7 +224,7 @@ Option 可以不经过 root，直接关闭整个 Dialogue 界面：
 
 - 正文和全部 blocking SceneAction 完成后，当前步骤才可继续。
 - 播放期间第一次推进只提交当前文字和动画的最终状态。
-- 再次推进才进入下一步或执行 `return`、`dialogue` Exit；`options` 需要玩家选择。
+- 再次推进才进入下一步或执行 `return`、`close`、`dialogue` Exit；`options` 需要玩家选择。
 - 默认按住 Ctrl 时，正文与场景动画以 4 倍速度播放；当前步骤就绪后会自动进入下一步，直到进入 `end`。`end` 仍会加速播放，但不会自动执行任何 Exit。玩家可在客户端设置中调整倍率和键位。
 - 右上角跳过按钮默认需长按 600ms；玩家可以配置统一的鼠标/键盘长按时长。触发后会结算剩余 Speaker 与 SceneAction，并直接完成 `end`；尚未进入的正文不会写入历史。
 - `exit` 和普通 Option 只导航；只有显式配置的 Option `command` 会产生服务端副作用。
